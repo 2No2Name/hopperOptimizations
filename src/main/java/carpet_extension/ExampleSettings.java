@@ -11,7 +11,7 @@ import static carpet.settings.RuleCategory.CREATIVE;
 
 public class ExampleSettings
 {
-    private static class CheckFillLimitLimits extends Validator<Integer>
+    private static class CheckValue extends Validator<Integer>
     {
         @Override
         public Integer validate(ServerCommandSource source, ParsedRule<Integer> currentRule, Integer newValue, String typedString)
@@ -23,10 +23,14 @@ public class ExampleSettings
     @Rule(
             desc = "Example numerical setting",
             options = {"32768", "250000", "1000000"},
-            validate = {Validator.POSITIVE_NUMBER.class, CheckFillLimitLimits.class},
-            category = {CREATIVE, "skyblock"}
+            validate = {Validator.POSITIVE_NUMBER.class, CheckValue.class},
+            category = {CREATIVE, "examplemod"}
     )
-    public static int sciblockFillLimit = 32768;
+    public static int uselessNumericalSetting = 32768;
+
+
+    @Rule(desc="makes mobs dance Makarena", category = {"fun", "examplemod"})
+    public static boolean makarena = false;
 
     static
     {

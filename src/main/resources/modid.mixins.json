@@ -3,6 +3,7 @@
   "package": "carpet_extension.mixins",
   "compatibilityLevel": "JAVA_8",
   "mixins": [
+    "MobEntity_makarenaMixin"
   ],
   "client": [
   ],
