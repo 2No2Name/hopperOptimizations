@@ -56,19 +56,23 @@ public class ExampleSettings
         SettingsManager.parseSettingsClass(ExampleSettings.class);
 
         // set-up a snooper to observe how rules are changing in carpet
-        SettingsManager.addRuleObserver( (source, rule, str) ->
+        SettingsManager.addRuleObserver( (serverCommandSource, currentRuleState, originalUserTest) ->
         {
-            if (rule.categories.contains("examplemod"))
+            if (currentRuleState.categories.contains("examplemod"))
             {
-                Messenger.m(source, "gi Psssst... make sure not to change not to touch original carpet rules");
+                Messenger.m(
+                        serverCommandSource,
+                        "gi Psssst... make sure not to change not to touch original carpet rules"
+                );
+                // obviously you can change original carpet rules
             }
             else
             {
                 try
                 {
                     Messenger.print_server_message(
-                            source.getMinecraftServer(),
-                            "Ehlo everybody, "+source.getPlayer().getName().getString()+" is cheating..."
+                            serverCommandSource.getMinecraftServer(),
+                            "Ehlo everybody, "+serverCommandSource.getPlayer().getName().getString()+" is cheating..."
                     );
                 }
                 catch (CommandSyntaxException ignored) { }
