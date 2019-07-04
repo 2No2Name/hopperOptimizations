@@ -2,6 +2,7 @@ package carpet_extension;
 
 import carpet.CarpetExtension;
 import carpet.CarpetServer;
+import carpet.settings.CarpetSettings;
 import carpet.settings.SettingsManager;
 import carpet.utils.Messenger;
 import com.mojang.brigadier.CommandDispatcher;
@@ -12,11 +13,13 @@ import net.minecraft.server.command.ServerCommandSource;
 
 public class ExampleExtension extends CarpetExtension
 {
+    public static void noop() { }
     private static SettingsManager mySettingManager;
     static
     {
         mySettingManager = new SettingsManager("1.0","examplemod","Example Mod");
         CarpetServer.manageExtension(new ExampleExtension());
+        CarpetSettings.LOG.error("\n\n\n\nMod loaded\n\n\n\n");
     }
 
     @Override

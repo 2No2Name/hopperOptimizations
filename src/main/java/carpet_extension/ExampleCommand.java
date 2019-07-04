@@ -13,14 +13,13 @@ public class ExampleCommand
 {
     public static void register(CommandDispatcher<ServerCommandSource> dispatcher)
     {
-        dispatcher.register(literal("test").
-                then(literal("dump").executes((c) -> CarpetServer.settingsManager.printAllRulesToLog())).
-                then(argument("first",word()).
+        dispatcher.register(literal("testcommand").
+                then(literal("first").
                         executes( (c)-> {
                             Messenger.m(c.getSource(), "gi Shhhh.....");
                             return 1;
                         })).
-                then(argument("second", word()).
+                then(literal("second").
                         executes( (c)-> listSettings(c.getSource()))));
 
     }
