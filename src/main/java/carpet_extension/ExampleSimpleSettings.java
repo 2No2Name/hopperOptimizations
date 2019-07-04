@@ -13,7 +13,7 @@ import static carpet.settings.RuleCategory.CREATIVE;
 /**
  * Here is your example Settings class you can plug to use carpetmod /carpet settings command
  */
-public class ExampleSettings
+public class ExampleSimpleSettings
 {
     /**
      *  Custom validator class for your setting. If validate returns null - settings is not changed.
@@ -29,7 +29,7 @@ public class ExampleSettings
     }
 
     /**
-     *  Simple numeric setting
+     *  Simple numeric setting, no use otherwise
      */
     @Rule(
             desc = "Example numerical setting",
@@ -46,37 +46,4 @@ public class ExampleSettings
     @Rule(desc="makes mobs dance Makarena", category = {"fun", "examplemod"})
     public static boolean makarena = false;
 
-    static
-    {
-        // just make sure your settings are used in Mixins, which would load this class and register your settings
-        // otherwise this static code won't be found.
-        // you can always add more rules in runtime later.
-
-        // register your settings
-        SettingsManager.parseSettingsClass(ExampleSettings.class);
-
-        // set-up a snooper to observe how rules are changing in carpet
-        SettingsManager.addRuleObserver( (serverCommandSource, currentRuleState, originalUserTest) ->
-        {
-            if (currentRuleState.categories.contains("examplemod"))
-            {
-                Messenger.m(
-                        serverCommandSource,
-                        "gi Psssst... make sure not to change not to touch original carpet rules"
-                );
-                // obviously you can change original carpet rules
-            }
-            else
-            {
-                try
-                {
-                    Messenger.print_server_message(
-                            serverCommandSource.getMinecraftServer(),
-                            "Ehlo everybody, "+serverCommandSource.getPlayer().getName().getString()+" is cheating..."
-                    );
-                }
-                catch (CommandSyntaxException ignored) { }
-            }
-        });
-    }
 }

@@ -1,6 +1,6 @@
 package carpet_extension.mixins;
 
-import carpet_extension.ExampleSettings;
+import carpet_extension.ExampleSimpleSettings;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.ai.control.LookControl;
@@ -25,7 +25,7 @@ public abstract class MobEntity_makarenaMixin extends LivingEntity
     @Inject(method = "tick", at = @At("HEAD"))
     private void makarena(CallbackInfo ci)
     {
-        if (ExampleSettings.makarena && onGround)
+        if (ExampleSimpleSettings.makarena && onGround)
         {
             int stage = age % 200;
             if (stage > 155 && world.getClosestPlayer(this, 32.0) != null)
