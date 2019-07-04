@@ -22,7 +22,6 @@ public class ExampleExtension extends CarpetExtension
     @Override
     public void onGameStarted()
     {
-        super.onGameStarted();
         // let's /carpet handle our few simple settings
         CarpetServer.settingsManager.parseSettingsClass(ExampleSimpleSettings.class);
         // Lets have our own settings class independent from carpet.conf
