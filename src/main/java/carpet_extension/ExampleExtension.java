@@ -2,16 +2,15 @@ package carpet_extension;
 
 import carpet.CarpetExtension;
 import carpet.CarpetServer;
-import carpet.settings.CarpetSettings;
 import carpet.settings.SettingsManager;
 import carpet.utils.Messenger;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
-import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.command.ServerCommandSource;
+import net.minecraft.server.network.ServerPlayerEntity;
 
-public class ExampleExtension extends CarpetExtension
+public class ExampleExtension implements CarpetExtension
 {
     public static void noop() { }
     private static SettingsManager mySettingManager;
@@ -19,7 +18,6 @@ public class ExampleExtension extends CarpetExtension
     {
         mySettingManager = new SettingsManager("1.0","examplemod","Example Mod");
         CarpetServer.manageExtension(new ExampleExtension());
-        CarpetSettings.LOG.error("\n\n\n\nMod loaded\n\n\n\n");
     }
 
     @Override
@@ -82,13 +80,13 @@ public class ExampleExtension extends CarpetExtension
     }
 
     @Override
-    public void onPlayerLoggedIn(PlayerEntity player)
+    public void onPlayerLoggedIn(ServerPlayerEntity player)
     {
         //
     }
 
     @Override
-    public void onPlayerLoggedOut(PlayerEntity player)
+    public void onPlayerLoggedOut(ServerPlayerEntity player)
     {
         //
     }

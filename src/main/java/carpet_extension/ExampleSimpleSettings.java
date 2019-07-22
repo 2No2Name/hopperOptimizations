@@ -2,10 +2,8 @@ package carpet_extension;
 
 import carpet.settings.ParsedRule;
 import carpet.settings.Rule;
-import carpet.settings.SettingsManager;
 import carpet.settings.Validator;
 import carpet.utils.Messenger;
-import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import net.minecraft.server.command.ServerCommandSource;
 
 import static carpet.settings.RuleCategory.CREATIVE;

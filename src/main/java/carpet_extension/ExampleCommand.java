@@ -1,12 +1,9 @@
 package carpet_extension;
 
-import carpet.CarpetServer;
 import carpet.utils.Messenger;
 import com.mojang.brigadier.CommandDispatcher;
 import net.minecraft.server.command.ServerCommandSource;
 
-import static com.mojang.brigadier.arguments.StringArgumentType.word;
-import static net.minecraft.server.command.CommandManager.argument;
 import static net.minecraft.server.command.CommandManager.literal;
 
 public class ExampleCommand
