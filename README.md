@@ -1,5 +1,5 @@
-# Fabric Example Mod
-
+# Hopper Optimizations Mod
+Using Fabric Carpet Example Mod template.
 ## Setup
 
 1. Edit build.gradle and mod.json to suit your needs.
@@ -13,4 +13,4 @@
 
 ## License
 
-This template is available under the CC0 license. Feel free to learn from it and incorporate it in your own projects.
+TBA

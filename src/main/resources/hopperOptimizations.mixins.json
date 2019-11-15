@@ -1,0 +1,26 @@
+{
+  "required": true,
+  "package": "hopperOptimizations.mixins",
+  "compatibilityLevel": "JAVA_8",
+  "mixins": [
+    "MinecraftServer_noopMixin",
+    "BarrelBlockEntityMixin",
+    "ChestBlockEntityMixin",
+    "CollisionView$1Mixin",
+    "DispenserBlockEntityMixin",
+    "DoubleInventoryMixin",
+    "DropperBlockEntityMixin",
+    "DropperBlockMixin",
+    "HopperBlockEntityMixin",
+    "HopperMinecartEntityMixin",
+    "InventoriesMixin",
+    "ItemEntityMixin",
+    "ItemStackMixin"
+  ],
+  "client": [
+    "MinecraftClient_noopMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

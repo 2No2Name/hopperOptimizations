@@ -1,19 +1,18 @@
 {
   "schemaVersion": 1,
-  "id": "carpet-extension",
-  "version": "1.2.2",
-
-  "name": "Example Carpet Extension Mod",
-  "description": "This is an example description! Tell everyone what your mod is about!",
+  "id": "hopperoptimizations",
+  "version": "0.1.2",
+  "name": "Hopper Optimizations",
+  "description": "Optimization Mod for hoppers and everything that interacts with it.",
   "authors": [
-    "Me!"
+    "2No2Name",
+    "skyrising"
   ],
   "contact": {
-    "homepage": "https://web.me/",
-    "sources": "https://github.com/gnembon/fabric-carpet-extension-example-mod"
+    "homepage": "https://github.com/2no2name",
+    "sources": "https://github.com/2no2name"
   },
 
-  "license": "CC0-1.0",
   "icon": "assets/modid/icon.png",
 
   "environment": "*",
@@ -22,7 +21,7 @@
     ]
   },
   "mixins": [
-    "modid.mixins.json"
+    "hopperOptimizations.mixins.json"
   ],
 
   "depends": {
