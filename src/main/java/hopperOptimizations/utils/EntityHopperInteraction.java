@@ -26,7 +26,7 @@ public class EntityHopperInteraction extends Validator<Boolean> {
 
     public static void notifyHoppers(Entity targetEntity) {
         if (!checked) {
-            if (targetEntity.prevX != targetEntity.getX() || targetEntity.prevY != targetEntity.getY() || targetEntity.prevZ != targetEntity.getZ())
+            if (targetEntity.prevX != targetEntity.x || targetEntity.prevY != targetEntity.y || targetEntity.prevZ != targetEntity.z)
                 findAndNotifyHoppers(targetEntity);
             rememberHoppers = false;
         } else {
@@ -48,12 +48,12 @@ public class EntityHopperInteraction extends Validator<Boolean> {
 
         Box box = targetEntity.getBoundingBox();
         int minX, maxX, minY, maxY, minZ, maxZ;
-        minX = (int) Math.floor(box.x1) - 1;
-        minY = (int) Math.floor(box.y1) - 1;
-        minZ = (int) Math.floor(box.z1) - 1;
-        maxX = (int) Math.ceil(box.x2);
-        maxY = (int) Math.ceil(box.y2);
-        maxZ = (int) Math.ceil(box.z2);
+        minX = (int) Math.floor(box.minX) - 1;
+        minY = (int) Math.floor(box.minY) - 1;
+        minZ = (int) Math.floor(box.minZ) - 1;
+        maxX = (int) Math.ceil(box.maxX);
+        maxY = (int) Math.ceil(box.maxY);
+        maxZ = (int) Math.ceil(box.maxZ);
 
         BlockPos.Mutable blockPos = new BlockPos.Mutable();
         for (int x = minX; x <= maxX; ++x)

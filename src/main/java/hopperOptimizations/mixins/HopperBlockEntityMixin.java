@@ -414,7 +414,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
     @Feature("optimizedInventories")
     private boolean inventoryCacheValid(Inventory cachedInv, BlockPos cachedInvPos) {
         if (cachedInv instanceof BlockEntity) {
-            if (!((BlockEntity) cachedInv).isRemoved() &&
+            if (!((BlockEntity) cachedInv).isInvalid() &&
                     ((BlockEntity) cachedInv).getPos().equals(cachedInvPos)) {
                 if (cachedInv instanceof ChestBlockEntity)
                     return ChestType.SINGLE == ((ChestBlockEntity) cachedInv).getCachedState().get(ChestBlock.CHEST_TYPE);
@@ -699,8 +699,8 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
         return inventory;
     }
 
-    public void markRemoved() {
-        super.markRemoved();
+    public void invalidate() {
+        super.invalidate();
         invalidateEntityHopperInteractionCache();
         invalidateOptimizedInventoryCache();
     }

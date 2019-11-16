@@ -74,10 +74,10 @@ public abstract class ChestBlockEntityMixin extends LootableContainerBlockEntity
 
 
     //Making sure that DoubleInventories don't act on invalid chest halfs using counter comparison.
-    public void markRemoved() {
+    public void invalidate() {
         this.invalidCount++;
         if (invalidCount == 0) invalidCount = -1;
-        super.markRemoved();
+        super.invalidate();
     }
 
     public int getInvalidCount() {

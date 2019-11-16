@@ -87,7 +87,7 @@ public abstract class StorageMinecartEntityMixin extends AbstractMinecartEntity 
 
     public void tick() {
         super.tick();
-        if (!this.world.isClient && (this.prevX != this.getX() || this.prevY != this.getY() || this.prevZ != this.getZ() || !initialized)) {
+        if (!this.world.isClient && (this.prevX != this.x || this.prevY != this.y || this.prevZ != this.z || !initialized)) {
             EntityHopperInteraction.findAndNotifyHoppers(this);
             initialized = true;
         }
