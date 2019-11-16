@@ -16,6 +16,7 @@ import net.minecraft.predicate.entity.EntityPredicates;
 import net.minecraft.util.DefaultedList;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
+import net.minecraft.util.math.ChunkPos;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.shape.VoxelShape;
 import net.minecraft.world.World;
@@ -55,6 +56,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
     private boolean outputInventoryCacheInvalid = true;
     private int ruleUpdates = -1;
     private List<Box> boxes = null;
+    private long lastLazyChunkCheckTick = -1;
     //-----------------------------------------------
     private Box inputBox = null;
     //-----------------------------------------------
@@ -273,7 +275,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
 
     @Redirect(method = "extract(Lnet/minecraft/block/entity/Hopper;)Z", at = @At(value = "INVOKE", target = "Lnet/minecraft/block/entity/HopperBlockEntity;getInputItemEntities(Lnet/minecraft/block/entity/Hopper;)Ljava/util/List;"))
     private static List<ItemEntity> getInputItemEntitiesFromCache(Hopper hopper) {
-        if (!Settings.optimizedEntityHopperInteraction || !(hopper instanceof HopperBlockEntityMixin)) {
+        if (!Settings.optimizedEntityHopperInteraction || !(hopper instanceof HopperBlockEntity)) {
             return HopperBlockEntity.getInputItemEntities(hopper);
         }
         ((HopperBlockEntityMixin) hopper).invalidateCacheIfNeccessary();
@@ -305,7 +307,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
     @Feature("optimizedEntityHopperInteraction")
     @Redirect(method = "extract(Lnet/minecraft/block/entity/Hopper;)Z", at = @At(value = "INVOKE", target = "Lnet/minecraft/block/entity/HopperBlockEntity;getInputInventory(Lnet/minecraft/block/entity/Hopper;)Lnet/minecraft/inventory/Inventory;"))
     private static Inventory getInputInventoryFromCache(Hopper hopper) {
-        if (!Settings.optimizedEntityHopperInteraction || !(hopper instanceof HopperBlockEntityMixin))
+        if (!Settings.optimizedEntityHopperInteraction || !(hopper instanceof HopperBlockEntity))
             return HopperBlockEntityMixin.getInputInventory(hopper);
         ((HopperBlockEntityMixin) hopper).invalidateCacheIfNeccessary();
 
@@ -699,6 +701,34 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
         return inventory;
     }
 
+    private boolean hasToInvalidateEntityCache() {
+        if (lastLazyChunkCheckTick == this.world.getTime() && lastLazyChunkCheckTick != -1) return false;
+        lastLazyChunkCheckTick = this.world.getTime();
+        return !doAllNearbyEntitiesTick();
+    }
+
+    //When the hopper is in lazy chunks, caching doesn't work when entities suddenly can appear from dispensers, destroyed blocks etc.
+    //Chunks should maybe cache whether they are ticking, this will cost some lag otherwise
+    private boolean doAllNearbyEntitiesTick() {
+        if (this.world == null || this.world.isClient()) throw new UnsupportedOperationException();
+
+        int x = this.getPos().getX() - 2;
+        int z = this.getPos().getZ() - 2;
+        int x2 = x + 4;
+        int z2 = z + 4;
+        x = x >> 4;
+        z = z >> 4;
+        x2 = x2 >> 4;
+        z2 = z2 >> 4;
+        for (int i = x; i <= x2; i++)
+            for (int j = z; j <= z2; j++) {
+                if (!this.world.getChunkManager().shouldTickChunk(new ChunkPos(x, z))) {
+                    return false;
+                }
+            }
+        return true;
+    }
+
     public void markRemoved() {
         super.markRemoved();
         invalidateEntityHopperInteractionCache();
@@ -706,7 +736,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
     }
 
     private void invalidateCacheIfNeccessary() {
-        if (EntityHopperInteraction.ruleUpdates != this.ruleUpdates || ruleUpdates == -1) {
+        if (EntityHopperInteraction.ruleUpdates != this.ruleUpdates || ruleUpdates == -1 || hasToInvalidateEntityCache()) {
             invalidateEntityHopperInteractionCache();
             this.ruleUpdates = EntityHopperInteraction.ruleUpdates;
         }
