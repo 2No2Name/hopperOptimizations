@@ -1,15 +1,17 @@
 # Hopper Optimizations Mod
 Using Fabric Carpet Example Mod template.
-## Setup
-
-1. Edit build.gradle and mod.json to suit your needs.
-    * The "mixins" object can be removed from mod.json if you do not need to use mixins.
-    * Please replace all occurences of "modid" with your own mod ID - sometimes, a different string may also suffice.
-2. Run the following command:
-
-```
-./gradlew idea
-```
+## Features
+Use /carpet to enable:
+### optimizedInventories
+Optimized Inventory accesses - bloomfilters, cached BlockEntities and improved item transfers 
+### simplifiedHopperPickupShape
+Simplified hopper box shape when picking up items. This box contains the ring around the hopper's bowl.
+### optimizedEntityHopperInteraction
+Reworked interaction between hoppers and entities. Entities look for hoppers instead of hoppers searching for entities.
+### simplifiedItemElevatorCheck
+Removes check whether item entities have to move out of another entity (boat, shulker).
+### optimizedItemStackEmptyCheck
+Speeds up checking whether an itemStack is empty by using cached information from vanilla.
 
 ## License
 
