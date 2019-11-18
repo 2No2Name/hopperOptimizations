@@ -16,7 +16,7 @@ public class HopperOptimizationsExtension implements CarpetExtension {
     private static SettingsManager mySettingManager;
 
     static {
-        mySettingManager = new SettingsManager("0.1.3", "hopperoptimizations", "Hopper Optimizations Mod");
+        mySettingManager = new SettingsManager("0.1.4", "hopperoptimizations", "Hopper Optimizations Mod");
         CarpetServer.manageExtension(new HopperOptimizationsExtension());
     }
 

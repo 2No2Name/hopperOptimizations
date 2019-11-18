@@ -4,7 +4,6 @@ import hopperOptimizations.annotation.Feature;
 import hopperOptimizations.utils.InventoryListOptimized;
 import hopperOptimizations.utils.InventoryOptimizer;
 import hopperOptimizations.utils.OptimizedInventory;
-import net.minecraft.block.entity.BlockEntityType;
 import net.minecraft.block.entity.DispenserBlockEntity;
 import net.minecraft.block.entity.DropperBlockEntity;
 import net.minecraft.entity.player.PlayerEntity;
@@ -17,21 +16,23 @@ import javax.annotation.Nullable;
 @Feature("optimizedInventories")
 @Mixin(DropperBlockEntity.class)
 public class DropperBlockEntityMixin extends DispenserBlockEntity implements OptimizedInventory {
-    private DefaultedList<ItemStack> inventory = this.getInvStackList();
     private int viewerCount = 0;
 
     public DropperBlockEntityMixin() {
-        super(BlockEntityType.DROPPER);
+        throw new AssertionError();
     }
 
     @Nullable
     public InventoryOptimizer getOptimizer() {
-        return mayHaveOptimizer() && inventory instanceof InventoryListOptimized ? ((InventoryListOptimized) inventory).getCreateOrRemoveOptimizer() : null;
+        DefaultedList<ItemStack> inventory;
+        return mayHaveOptimizer() && (inventory = this.getInvStackList()) instanceof InventoryListOptimized ? ((InventoryListOptimized) inventory).getCreateOrRemoveOptimizer() : null;
     }
 
     @Override
     public void invalidateOptimizer() {
-        if (inventory instanceof InventoryListOptimized) ((InventoryListOptimized) inventory).invalidateOptimizer();
+        DefaultedList<ItemStack> inventory;
+        if ((inventory = this.getInvStackList()) instanceof InventoryListOptimized)
+            ((InventoryListOptimized) inventory).invalidateOptimizer();
     }
 
     //@Inject(method = "onInvOpen(Lnet/minecraft/entity/player/PlayerEntity;)V", at = @At(value = "HEAD"))
