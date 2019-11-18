@@ -85,6 +85,7 @@ public abstract class StorageMinecartEntityMixin extends AbstractMinecartEntity 
         return viewerCount <= 0;
     }
 
+    @Override
     public void tick() {
         super.tick();
         if (!this.world.isClient && (this.prevX != this.getX() || this.prevY != this.getY() || this.prevZ != this.getZ() || !initialized)) {
