@@ -107,11 +107,11 @@ public class DoubleInventoryOptimizer extends InventoryOptimizer {
         return ret;
     }
 
-    public boolean equals(Object other) {
+    /*public boolean equals(Object other) {
         return other == this;
         //if(!(other instanceof DoubleInventoryOptimizer)) return false;
         //return this.first == ((DoubleInventoryOptimizer) other).first && this.second == ((DoubleInventoryOptimizer) other).second;
-    }
+    }*/
 
     public int getInventoryChangeCount() {
         return firstOpt.getInventoryChangeCount() + secondOpt.getInventoryChangeCount();

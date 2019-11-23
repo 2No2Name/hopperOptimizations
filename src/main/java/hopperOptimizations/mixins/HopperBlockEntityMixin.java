@@ -278,7 +278,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
         if (!Settings.optimizedEntityHopperInteraction || !(hopper instanceof HopperBlockEntity)) {
             return HopperBlockEntity.getInputItemEntities(hopper);
         }
-        ((HopperBlockEntityMixin) hopper).invalidateCacheIfNeccessary();
+        ((HopperBlockEntityMixin) hopper).invalidateEntityCacheIfNeccessary();
 
         if (((HopperBlockEntityMixin) hopper).entityCacheInvalid) {
             ((HopperBlockEntityMixin) hopper).nearbyItems = HopperBlockEntity.getInputItemEntities(hopper);
@@ -309,7 +309,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
     private static Inventory getInputInventoryFromCache(Hopper hopper) {
         if (!Settings.optimizedEntityHopperInteraction || !(hopper instanceof HopperBlockEntity))
             return HopperBlockEntityMixin.getInputInventory(hopper);
-        ((HopperBlockEntityMixin) hopper).invalidateCacheIfNeccessary();
+
 
         Inventory ret = ((HopperBlockEntityMixin) hopper).getCachedInventory(true);
         if (ret != null) return ret;
@@ -319,6 +319,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
 
         Inventory inventory = getBlockInventoryAt(world, ((HopperBlockEntityMixin) hopper).getPos().up());
         if (inventory == null) {
+            ((HopperBlockEntityMixin) hopper).invalidateEntityCacheIfNeccessary();
             if (((HopperBlockEntityMixin) hopper).inputInventoryCacheInvalid) {
                 double double_1 = hopper.getHopperX();
                 double double_2 = hopper.getHopperY() + 1.0D;
@@ -455,7 +456,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
         int thisChangeCount = thisOpt.getInventoryChangeCount();
         int otherChangeCount = otherOpt.getInventoryChangeCount();
         if (extracting) {
-            if (this_lastChangeCount_Extract != thisChangeCount || !otherOpt.equals(previousExtract) || previousExtract_lastChangeCount != otherChangeCount) {
+            if (this_lastChangeCount_Extract != thisChangeCount || otherOpt != previousExtract || previousExtract_lastChangeCount != otherChangeCount) {
                 this_lastChangeCount_Extract = thisChangeCount;
                 previousExtract = otherOpt;
                 if (other instanceof BlockEntity) {
@@ -474,7 +475,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
 
             return true;
         } else {
-            if (this_lastChangeCount_Insert != thisChangeCount || !otherOpt.equals(previousInsert) || previousInsert_lastChangeCount != otherChangeCount) {
+            if (this_lastChangeCount_Insert != thisChangeCount || otherOpt != previousInsert || previousInsert_lastChangeCount != otherChangeCount) {
                 this_lastChangeCount_Insert = thisChangeCount;
                 previousInsert = otherOpt;
                 if (other instanceof BlockEntity) {
@@ -667,7 +668,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
     @Redirect(method = "insert()Z", at = @At(value = "INVOKE", target = "Lnet/minecraft/block/entity/HopperBlockEntity;getOutputInventory()Lnet/minecraft/inventory/Inventory;"))
     private Inventory getOutputInventoryFromCache(HopperBlockEntity hopper) {
         if (!Settings.optimizedEntityHopperInteraction) return this.getOutputInventory();
-        this.invalidateCacheIfNeccessary();
+
 
         Inventory ret = getCachedInventory(false);
         if (ret != null) return ret;
@@ -678,6 +679,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
         Direction outputDirection = hopper.getCachedState().get(HopperBlock.FACING);
         Inventory inventory = getBlockInventoryAt(world, hopper.getPos().offset(outputDirection));
         if (inventory == null) {
+            this.invalidateEntityCacheIfNeccessary();
             if (this.outputInventoryCacheInvalid) {
                 BlockPos pos = this.pos.offset(outputDirection);
                 double double_1 = pos.getX() + 0.5D;
@@ -735,7 +737,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
         invalidateOptimizedInventoryCache();
     }
 
-    private void invalidateCacheIfNeccessary() {
+    private void invalidateEntityCacheIfNeccessary() {
         if (EntityHopperInteraction.ruleUpdates != this.ruleUpdates || ruleUpdates == -1 || hasToInvalidateEntityCache()) {
             invalidateEntityHopperInteractionCache();
             this.ruleUpdates = EntityHopperInteraction.ruleUpdates;
