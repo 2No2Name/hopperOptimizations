@@ -353,7 +353,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
             if (blockEntity_1 instanceof Inventory) {
                 inventory_1 = (Inventory) blockEntity_1;
                 if (inventory_1 instanceof ChestBlockEntity && block_1 instanceof ChestBlock) {
-                    inventory_1 = ChestBlock.getInventory(blockState_1, world_1, blockPos_1, true);
+                    inventory_1 = ChestBlock.getInventory((ChestBlock) block_1, blockState_1, world_1, blockPos_1, true);
                 }
             }
         }
@@ -385,14 +385,14 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
         throw new AssertionError();
     }
 
-    @Shadow
-    protected abstract boolean isEmpty();
+    //@Shadow
+    //protected abstract boolean isEmpty();
 
     @Shadow
     protected abstract boolean isFull();
 
-    @Shadow
-    public abstract boolean isInvEmpty();
+    //@Shadow
+    //public abstract boolean isInvEmpty();
 
     @Shadow
     private Inventory getOutputInventory() {
@@ -498,13 +498,13 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
     }
 
     @Feature("optimizedInventories")
-    @Redirect(method = "insertAndExtract", at = @At(value = "INVOKE", target = "Lnet/minecraft/block/entity/HopperBlockEntity;isEmpty()Z"))
+    @Redirect(method = "insertAndExtract", at = @At(value = "INVOKE", target = "Lnet/minecraft/block/entity/HopperBlockEntity;isInvEmpty()Z"))
     private boolean isEmptyOpt(HopperBlockEntity hopperBlockEntity) {
         if (Settings.optimizedInventories) {
             InventoryOptimizer opt = this.getOptimizer();
             if (opt != null) return opt.getFirstOccupiedSlot_extractable() == -1;
         }
-        return isEmpty();
+        return isInvEmpty();
     }
 
     @Feature("optimizedInventories")
