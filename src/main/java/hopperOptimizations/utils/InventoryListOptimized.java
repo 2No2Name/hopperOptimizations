@@ -38,7 +38,7 @@ public class InventoryListOptimized<E> extends DefaultedList<E> {
         if (!Settings.optimizedInventories) return this.optimizer = null;
 
         if (this.optimizer == null) {
-            this.optimizer = new InventoryOptimizer(this);
+            this.optimizer = new InventoryOptimizer((InventoryListOptimized<ItemStack>) this);
         }
         if (this.optimizer.isInvalid()) {
             System.out.println("Invalid Optimizer! BAD");
