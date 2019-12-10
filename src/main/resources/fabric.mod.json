@@ -12,7 +12,7 @@
     "homepage": "https://github.com/2no2name",
     "sources": "https://github.com/2no2name"
   },
-
+  "license": "MIT",
   "icon": "assets/modid/icon.png",
 
   "environment": "*",
