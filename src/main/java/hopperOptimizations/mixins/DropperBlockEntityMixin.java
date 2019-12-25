@@ -1,6 +1,7 @@
 package hopperOptimizations.mixins;
 
 import hopperOptimizations.annotation.Feature;
+import hopperOptimizations.settings.Settings;
 import hopperOptimizations.utils.InventoryListOptimized;
 import hopperOptimizations.utils.InventoryOptimizer;
 import hopperOptimizations.utils.OptimizedInventory;
@@ -37,7 +38,7 @@ public class DropperBlockEntityMixin extends DispenserBlockEntity implements Opt
 
     //@Inject(method = "onInvOpen(Lnet/minecraft/entity/player/PlayerEntity;)V", at = @At(value = "HEAD"))
     public void onInvOpen(PlayerEntity playerEntity_1) {
-        if (!playerEntity_1.isSpectator()) {
+        if (!Settings.playerHopperOptimizations && !playerEntity_1.isSpectator()) {
             invalidateOptimizer();
             viewerCount++;
         }
@@ -55,7 +56,7 @@ public class DropperBlockEntityMixin extends DispenserBlockEntity implements Opt
 
     @Override
     public boolean mayHaveOptimizer() {
-        return viewerCount <= 0;
+        return Settings.playerHopperOptimizations || viewerCount <= 0;
     }
 
 }

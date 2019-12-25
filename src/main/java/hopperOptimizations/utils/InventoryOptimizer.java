@@ -1,15 +1,21 @@
 package hopperOptimizations.utils;
 
+import carpet.CarpetServer;
 import it.unimi.dsi.fastutil.HashCommon;
 import net.minecraft.block.entity.ShulkerBoxBlockEntity;
 import net.minecraft.inventory.Inventory;
 import net.minecraft.inventory.SidedInventory;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
+import net.minecraft.text.LiteralText;
+import net.minecraft.text.Text;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.MathHelper;
 import org.apache.commons.lang3.NotImplementedException;
 
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 
 //Don't store instances of InventoryOptimizer, unless you sync with the corresponding inventory!
@@ -30,7 +36,9 @@ public class InventoryOptimizer {
     //todo(unneccesary) recalculate Filters when 180+ Bits are set -> ~12% chance that negative filters as false positive
     //maybe use usage stats for this as well
     //todo(unneccesary) cache previous firstFreeSlot location in case of the firstFreeSlot jumping around, for preEmptyBloomFilter
+
     private static boolean DEBUG = false; //nonfinal to be able to change with debugger
+
     private final InventoryListOptimized<ItemStack> stackList;
     private final SidedInventory sidedInventory; //only use when required, inventory handling should be mostly independent from the container
     private final boolean itemRestrictions;
@@ -50,6 +58,9 @@ public class InventoryOptimizer {
     private int firstFreeSlot;
     private int firstOccupiedSlot;
     private int weightedItemCount;
+
+    private int fakeSignalStrength;
+    private Map<Integer, Integer> stackSizeToSlotCount = new HashMap<>();
 
     private boolean initialized;
     private boolean invalid;
@@ -73,6 +84,8 @@ public class InventoryOptimizer {
         filterMisses = 0;
         filterTrueHits = 0;
         filterEdits = 0;
+
+        fakeSignalStrength = -1;
     }
 
     private static long hash(ItemStack stack) {
@@ -108,6 +121,7 @@ public class InventoryOptimizer {
         int firstOccupiedSlot = -1;
         int totalSlots = size();
             int weightedItemCount = 0;
+            Map<Integer, Integer> stackSizeToSlotCount = new HashMap<>();
 
 
         for (int i = 0; i < totalSlots; i++) {
@@ -118,6 +132,7 @@ public class InventoryOptimizer {
 
             if (!stack.isEmpty()) {
                 weightedItemCount += stack.getCount() * (int) (64F / stack.getMaxCount());
+                stackSizeToSlotCount.put(stack.getMaxCount(), stackSizeToSlotCount.getOrDefault(stack.getMaxCount(), 0) + 1);
 
                 if (firstOccupiedSlot < 0)
                     firstOccupiedSlot = i;
@@ -151,18 +166,16 @@ public class InventoryOptimizer {
             int signal2 = calculateComparatorOutput();
             if (this.weightedItemCount != weightedItemCount || signal1 != signal2)
                 throw new IllegalStateException("comparator output wrong");
+            if (!this.stackSizeToSlotCount.equals(stackSizeToSlotCount))
+                throw new IllegalStateException("stacksize slot counts wrong");
+
 
         //System.out.println(this.stackList.toString());
         //printStackTrace = true;
         } catch (IllegalStateException e) {
-            System.out.println(this.toString());
-            e.printStackTrace();
-            boolean loop = true;
-            while(loop){
-                try{
-                    Thread.sleep(1);
-                }catch (InterruptedException ignored){}
-            }
+            initialized = false;
+            Text text = new LiteralText("Detected broken optimizer ( " + e.getMessage() + ") at " + Arrays.toString(e.getStackTrace()));
+            CarpetServer.minecraft_server.getPlayerManager().broadcastChatMessage(text, false);
         }
     }
 
@@ -189,17 +202,18 @@ public class InventoryOptimizer {
 
         ItemStack itemStack = getSlot(index);
         int count = itemStack.getCount();
-        itemStack.setCount(1);
-        boolean wasEmpty = itemStack.isEmpty();
-        int max = itemStack.getMaxCount();
-        itemStack.setCount(count);
-        boolean isEmpty = itemStack.isEmpty();
-        boolean wasFull = count - countChange >= max;
-        boolean isFull = count >= max;
 
-        STACK_NONFULL.setCount(count - countChange);
-        if (!wasEmpty) update(index, wasFull ? STACK_FULL : STACK_NONFULL);
-        else if (!isEmpty) update(index, STACK_ZEROCOUNT);
+        itemStack.setCount(1);
+        ItemStack prevStack = itemStack.copy();
+        itemStack.setCount(count);
+
+        prevStack.setCount(count - countChange);
+
+        boolean wasEmpty = prevStack.isEmpty();
+        int max = itemStack.getMaxCount();
+        boolean isEmpty = itemStack.isEmpty();
+
+        if (!wasEmpty || !isEmpty) update(index, prevStack);
         else {
             weightedItemCount += countChange * (int) (64F / max);
             inventoryChanges++;
@@ -280,10 +294,18 @@ public class InventoryOptimizer {
         this.weightedItemCount -= prevC * (int) (64F / prevMaxC) - newC * (int) (64F / newMaxC);
 
 
-        if (!prevStack.isEmpty())
+        if (!prevStack.isEmpty()) {
             --occupiedSlots;
+            int c = stackSizeToSlotCount.getOrDefault(prevMaxC, 0);
+            if (c != 1)
+                stackSizeToSlotCount.replace(prevMaxC, c - 1);
+            else
+                stackSizeToSlotCount.remove(prevMaxC);
+        }
         if (!newStack.isEmpty()) {
             ++occupiedSlots;
+            stackSizeToSlotCount.put(newMaxC, stackSizeToSlotCount.getOrDefault(newMaxC, 0) + 1);
+
             firstOccupiedSlot = firstOccupiedSlot > slot || firstOccupiedSlot == -1 ? slot : firstOccupiedSlot;
             if (firstFreeSlot == slot)
                 flagRecalcFree = true;
@@ -326,7 +348,33 @@ public class InventoryOptimizer {
     }
 
     public int getSignalStrength() {
+        if (fakeSignalStrength != -1) {
+            return fakeSignalStrength;
+        }
+        if (!initialized) recalculate();
         return (int) ((this.weightedItemCount / ((float) this.totalSlots * 64)) * 14) + (occupiedSlots == 0 ? 0 : 1);
+    }
+
+    //Used to trick comparators into sending block updates like in vanilla.
+    public void setFakeReducedSignalStrength() {
+        this.fakeSignalStrength = this.getSignalStrength() - 1;
+        if (fakeSignalStrength == -1) fakeSignalStrength = 0;
+    }
+
+    public void clearFakeChangedSignalStrength() {
+        this.fakeSignalStrength = -1;
+    }
+
+    public boolean isOneItemAboveSignalStrength() {
+        int maxExtractableItemWeight = 0;
+        for (Map.Entry<Integer, Integer> entry : stackSizeToSlotCount.entrySet())
+            if (entry.getValue() > 0 && entry.getKey() > maxExtractableItemWeight)
+                maxExtractableItemWeight = entry.getKey();
+
+        boolean wouldBeEmpty = occupiedSlots == 0 || this.weightedItemCount <= maxExtractableItemWeight;
+        int minOneLessItemSignalStrength = (int) ((this.weightedItemCount - maxExtractableItemWeight / ((float) this.totalSlots * 64)) * 14) + (wouldBeEmpty ? 0 : 1);
+
+        return minOneLessItemSignalStrength != this.getSignalStrength();
     }
 
     private void clearFilters() {
@@ -351,17 +399,16 @@ public class InventoryOptimizer {
         int firstOccupiedSlot = -1;
         this.weightedItemCount = 0;
         this.totalSlots = size();
+        stackSizeToSlotCount.clear();
 
         for (int i = 0; i < totalSlots; i++) {
             ItemStack stack = getSlot(i);
             long hash = hash(stack);
             filterAdd(bloomFilter, hash);
-            /*if (firstFreeSlot < 0){
-                if (stack.getCount() < stack.getMaxCount())
-                    preEmptyNonFullStackFilterAdd(hash);
-            }//*/
             if (!stack.isEmpty()) {
                 this.weightedItemCount += stack.getCount() * (int) (64F / stack.getMaxCount());
+                stackSizeToSlotCount.put(stack.getMaxCount(), stackSizeToSlotCount.getOrDefault(stack.getMaxCount(), 0) + 1);
+
                 if (firstOccupiedSlot < 0)
                     firstOccupiedSlot = i;
                 occupiedSlots++;
@@ -382,6 +429,7 @@ public class InventoryOptimizer {
         this.fullSlots = fullSlots;
         this.firstFreeSlot = firstFreeSlot;
         this.firstOccupiedSlot = firstOccupiedSlot;
+        this.stackSizeToSlotCount = stackSizeToSlotCount;
 
         this.initialized = true;
         //printStackTrace = true;

@@ -44,7 +44,6 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
     //Fields for optimizedHopperPickupShape
     //Two pixels larger in horizontal directions than the inside of the "bowl" of the hopper. But entities normally don't clip into hoppers
     private static final VoxelShape INPUT_AREA_SHAPE_SIMPLIFIED = Block.createCuboidShape(0.0D, 11.0D, 0.0D, 16.0D, 32.0D, 16.0D);
-    private static final boolean failedTransfersDoNotUpdateComparators_nonvanilla = false; //Set to true for simplified but non-vanilla behavior
     //-----------------------------------------------
     //Fields for OptimizedEntityHopperInteraction
     //todo check whether ArrayLists are a good choice, otherwise find something faster, maybe a set class //also asymptotically bad contains call, use some set instead
@@ -218,8 +217,9 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
 
                     //If someone adds an Inventory Block that calls markDirty on setInvStack, but also implements canExtract behaviors this might be incorrect
                     //Todo test whether barrels, composters, brewing stands, furnaces and shulkerboxes behave like vanilla here! Use comparator update detectors
-                    if (!failedTransfersDoNotUpdateComparators_nonvanilla && getAvailableSlots(to, Direction.UP).anyMatch((int i) -> true)) {
-                        IHopper.markDirtyIfHopperWould(from);
+                    if (getAvailableSlots(to, Direction.UP).anyMatch((int i) -> true)) {
+                        if (!Settings.failedTransferNoComparatorUpdates)
+                            IHopper.markDirtyLikeHopperWould(from, fromOpt);
                         ((IHopper) to).setMarkOtherDirty();
                     }
 
@@ -470,8 +470,8 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
                 previousExtract_causeMarkDirty = false;
                 return false;
             }
-            if (previousExtract_causeMarkDirty)
-                IHopper.markDirtyIfHopperWould(other); //failed transfers sometimes cause comparator updates
+            if (previousExtract_causeMarkDirty && !Settings.failedTransferNoComparatorUpdates)
+                IHopper.markDirtyLikeHopperWould(other, otherOpt); //failed transfers sometimes cause comparator updates
 
             return true;
         } else {
@@ -616,7 +616,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
 
     //@Inject(method = "onInvOpen(Lnet/minecraft/entity/player/PlayerEntity;)V", at = @At(value = "HEAD"))
     public void onInvOpen(PlayerEntity playerEntity_1) {
-        if (!playerEntity_1.isSpectator()) {
+        if (!Settings.playerHopperOptimizations && !playerEntity_1.isSpectator()) {
             invalidateOptimizer();
             viewerCount++;
         }
@@ -634,7 +634,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
 
     @Override
     public boolean mayHaveOptimizer() {
-        return viewerCount <= 0;
+        return Settings.playerHopperOptimizations || viewerCount <= 0;
     }
 
     private Box inputBox() {

@@ -32,4 +32,14 @@ public class Settings {
             category = {OPTIMIZATION, EXPERIMENTAL, "hopperoptimizations"})
     public static boolean optimizedItemStackEmptyCheck = false;
 
+    @Rule(desc = "Doesn't do comparator updates when an item transfer fails unlike vanilla (when the transfer would have changed the signal strength)",
+            category = {OPTIMIZATION, FEATURE, EXPERIMENTAL, "hopperoptimizations"})
+    public static boolean failedTransferNoComparatorUpdates = false;
+
+    /*
+    @Rule(desc = "Don't disable optimized inventories when players interact with them.", category = {EXPERIMENTAL, "hopperoptimizations"})
+    */ //This rule is causing problems when enabled. Inventories *should* panic when a player interacts with them until player handling code is added.
+    public static boolean playerHopperOptimizations = false;
+
+
 }
