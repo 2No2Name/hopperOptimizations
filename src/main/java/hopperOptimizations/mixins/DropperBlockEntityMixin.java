@@ -25,7 +25,7 @@ public class DropperBlockEntityMixin extends DispenserBlockEntity implements Opt
     @Nullable
     public InventoryOptimizer getOptimizer() {
         DefaultedList<ItemStack> inventory;
-        return mayHaveOptimizer() && (inventory = this.getInvStackList()) instanceof InventoryListOptimized ? ((InventoryListOptimized) inventory).getCreateOrRemoveOptimizer() : null;
+        return mayHaveOptimizer() && (inventory = this.getInvStackList()) instanceof InventoryListOptimized ? ((InventoryListOptimized) inventory).getCreateOrRemoveOptimizer(this) : null;
     }
 
     @Override

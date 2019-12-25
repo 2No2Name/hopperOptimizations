@@ -1,10 +1,14 @@
 package hopperOptimizations.utils;
 
 import it.unimi.dsi.fastutil.HashCommon;
+import net.minecraft.block.entity.ShulkerBoxBlockEntity;
+import net.minecraft.inventory.Inventory;
+import net.minecraft.inventory.SidedInventory;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.MathHelper;
+import org.apache.commons.lang3.NotImplementedException;
 
 import java.util.Objects;
 
@@ -28,6 +32,8 @@ public class InventoryOptimizer {
     //todo(unneccesary) cache previous firstFreeSlot location in case of the firstFreeSlot jumping around, for preEmptyBloomFilter
     private static boolean DEBUG = false; //nonfinal to be able to change with debugger
     private final InventoryListOptimized<ItemStack> stackList;
+    private final SidedInventory sidedInventory; //only use when required, inventory handling should be mostly independent from the container
+    private final boolean itemRestrictions;
     private int inventoryChanges;
     private long[] bloomFilter = new long[filterLongCount];
     private long[] nonFullStackBloomFilter = new long[filterLongCount];
@@ -48,8 +54,17 @@ public class InventoryOptimizer {
     private boolean initialized;
     private boolean invalid;
 
-    public InventoryOptimizer(InventoryListOptimized<ItemStack> stackList) {
+    public InventoryOptimizer(InventoryListOptimized<ItemStack> stackList, Inventory inventory) {
         this.stackList = stackList;
+        this.sidedInventory = inventory instanceof SidedInventory ? (SidedInventory) inventory : null;
+        this.itemRestrictions = this.sidedInventory != null;
+
+        if (this.itemRestrictions && !(this.sidedInventory instanceof ShulkerBoxBlockEntity))
+            //Shulkerbox restrictions are slot independent.
+            //Slot dependent restrictions aren't checked atm, since there is no large inventory that has those.
+            //OptimizedInventory doesn't seem viable for small inventories.
+            throw new NotImplementedException("Implement OptimizedInventory with more complex item insert conditions before using those.");
+
         this.initialized = false;
         this.invalid = false;
         if (stackList == null) return;
@@ -424,7 +439,7 @@ public class InventoryOptimizer {
         if (hash == 0) return false;
 
         boolean ret = true; //becomes false if any of the corresponding bits is not set
-        //Use the lowest 8 bits of the hash hashBits times to set a bit in the filter
+        //Use the lowest maskLength bits of the hash, hashBits times checking a bit in the filter
         for (int i = 0; i < hashBits && ret; ++i) {
             long hIndex = (hash & (mask << (i * maskLength))) >> (i * maskLength);
             ret = (bloomFilter[((int) hIndex) / 64] & (1L << (hIndex % 64))) != 0;
@@ -435,7 +450,7 @@ public class InventoryOptimizer {
     private void filterAdd(long[] bloomFilter, long hash) {
         if (hash == 0) return;
         filterEdits++;
-        //Use the lowest 8 bits of the hash hashBits times to set a bit in the filter
+        //Use the lowest maskLength bits of the hash hashBits times to set a bit in the filter
         for (int i = 0; i < hashBits; ++i) {
             long hIndex = (hash & (mask << (i * maskLength))) >> (i * maskLength);
             bloomFilter[((int) hIndex) / 64] |= (1L << (hIndex % 64));
@@ -479,7 +494,8 @@ public class InventoryOptimizer {
 
         //Empty slot available? Check for non full stacks before the empty slot.
         int firstFreeSlot = getFirstFreeSlot();
-        if (firstFreeSlot == 0 || stack.getMaxCount() == 1) return firstFreeSlot;
+        if ((firstFreeSlot == 0 || stack.getMaxCount() == 1))
+            return this.itemRestrictions && !this.sidedInventory.canInsertInvStack(firstFreeSlot, stack, fromDirection) ? -1 : firstFreeSlot;
         else if (firstFreeSlot > 0) {
             long hash = hash(stack);
             if (filterContains(preEmptyNonFullStackBloomFilter, hash)) {

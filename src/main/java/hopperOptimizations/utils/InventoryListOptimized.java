@@ -1,6 +1,7 @@
 package hopperOptimizations.utils;
 
 import hopperOptimizations.settings.Settings;
+import net.minecraft.inventory.Inventory;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.DefaultedList;
 import org.apache.commons.lang3.Validate;
@@ -34,11 +35,11 @@ public class InventoryListOptimized<E> extends DefaultedList<E> {
         return new InventoryListOptimized<>((List<E>) Arrays.asList(objects_1), object_1);
     }
 
-    public InventoryOptimizer getCreateOrRemoveOptimizer() {
+    public InventoryOptimizer getCreateOrRemoveOptimizer(Inventory inventory) {
         if (!Settings.optimizedInventories) return this.optimizer = null;
 
         if (this.optimizer == null) {
-            this.optimizer = new InventoryOptimizer((InventoryListOptimized<ItemStack>) this);
+            this.optimizer = new InventoryOptimizer((InventoryListOptimized<ItemStack>) this, inventory);
         }
         if (this.optimizer.isInvalid()) {
             System.out.println("Invalid Optimizer! BAD");
