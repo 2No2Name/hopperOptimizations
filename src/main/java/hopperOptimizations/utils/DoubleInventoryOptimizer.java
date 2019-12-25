@@ -12,7 +12,7 @@ public class DoubleInventoryOptimizer extends InventoryOptimizer {
     private final InventoryOptimizer secondOpt;
 
     public DoubleInventoryOptimizer(OptimizedInventory first, OptimizedInventory second) {
-        super(null);
+        super(null, null);
         this.first = first;
         this.second = second;
         this.firstOpt = first.getOptimizer();

@@ -36,7 +36,7 @@ public abstract class DoubleInventoryMixin implements OptimizedInventory {
 
 
     @Inject(method = "<init>(Lnet/minecraft/inventory/Inventory;Lnet/minecraft/inventory/Inventory;)V", at = @At(value = "RETURN"))
-    private void registerToInventoryHalves(Inventory inventory_1, Inventory inventory_2, CallbackInfo ci) {
+    private void initValidityCheck(Inventory inventory_1, Inventory inventory_2, CallbackInfo ci) {
         if (!Settings.optimizedInventories) {
             invalid = true;
             return;
@@ -51,10 +51,9 @@ public abstract class DoubleInventoryMixin implements OptimizedInventory {
             invalid = true;
             return;
         }
-        invalid = false;
         firstInvalidCount = ((OptimizedInventory) inventory_1).getInvalidCount();
         secondInvalidCount = ((OptimizedInventory) inventory_2).getInvalidCount();
-        invalid |= (firstInvalidCount == -1 || secondInvalidCount == -1);
+        invalid = (firstInvalidCount == -1 || secondInvalidCount == -1);
     }
 
     /*public void setInvalid(){
@@ -116,7 +115,7 @@ public abstract class DoubleInventoryMixin implements OptimizedInventory {
     }*/
 
 
-    //Allows caching the inventory, but no state like keeping an inventory that is part of a double inventory
+    //Allows caching the inventory safely
     public boolean isStillValid() {
         return !this.invalid && !(this.invalid = firstInvalidCount != ((OptimizedInventory) first).getInvalidCount()) &&
                 !(this.invalid = secondInvalidCount != ((OptimizedInventory) second).getInvalidCount());
