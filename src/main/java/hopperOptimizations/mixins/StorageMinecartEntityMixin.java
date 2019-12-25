@@ -1,6 +1,7 @@
 package hopperOptimizations.mixins;
 
 
+import hopperOptimizations.settings.Settings;
 import hopperOptimizations.utils.EntityHopperInteraction;
 import hopperOptimizations.utils.InventoryListOptimized;
 import hopperOptimizations.utils.InventoryOptimizer;
@@ -67,7 +68,7 @@ public abstract class StorageMinecartEntityMixin extends AbstractMinecartEntity 
     }
 
     public void onInvOpen(PlayerEntity playerEntity_1) {
-        if (!playerEntity_1.isSpectator())
+        if (!Settings.playerHopperOptimizations && !playerEntity_1.isSpectator())
             invalidateOptimizer();
         viewerCount++;
     }
@@ -82,7 +83,7 @@ public abstract class StorageMinecartEntityMixin extends AbstractMinecartEntity 
 
     @Override
     public boolean mayHaveOptimizer() {
-        return viewerCount <= 0;
+        return Settings.playerHopperOptimizations || viewerCount <= 0;
     }
 
     @Override

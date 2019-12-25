@@ -1,6 +1,7 @@
 package hopperOptimizations.mixins;
 
 import hopperOptimizations.annotation.Feature;
+import hopperOptimizations.settings.Settings;
 import hopperOptimizations.utils.InventoryListOptimized;
 import hopperOptimizations.utils.InventoryOptimizer;
 import hopperOptimizations.utils.OptimizedInventory;
@@ -63,13 +64,13 @@ public abstract class ChestBlockEntityMixin extends LootableContainerBlockEntity
 
     @Inject(method = "onInvOpen(Lnet/minecraft/entity/player/PlayerEntity;)V", at = @At(value = "HEAD"))
     private void onInventoryOpened(PlayerEntity playerEntity_1, CallbackInfo ci) {
-        if (!playerEntity_1.isSpectator())
+        if (!Settings.playerHopperOptimizations && !playerEntity_1.isSpectator())
             invalidateOptimizer();
     }
 
     @Override
     public boolean mayHaveOptimizer() {
-        return viewerCount <= 0;
+        return Settings.playerHopperOptimizations || viewerCount <= 0;
     }
 
 

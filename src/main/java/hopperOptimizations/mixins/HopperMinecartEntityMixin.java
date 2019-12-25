@@ -2,6 +2,7 @@ package hopperOptimizations.mixins;
 
 
 import hopperOptimizations.annotation.Feature;
+import hopperOptimizations.settings.Settings;
 import hopperOptimizations.utils.IHopper;
 import hopperOptimizations.utils.InventoryOptimizer;
 import net.minecraft.entity.vehicle.HopperMinecartEntity;
@@ -36,8 +37,8 @@ public class HopperMinecartEntityMixin implements IHopper {
                 previousExtract_causeMarkDirty = false;
                 return false;
             }
-            if (previousExtract_causeMarkDirty)
-                IHopper.markDirtyIfHopperWould(other); //failed transfers sometimes cause comparator updates
+            if (previousExtract_causeMarkDirty && !Settings.failedTransferNoComparatorUpdates)
+                IHopper.markDirtyLikeHopperWould(other, otherOpt); //failed transfers sometimes cause comparator updates
 
             return true;
         } else {
