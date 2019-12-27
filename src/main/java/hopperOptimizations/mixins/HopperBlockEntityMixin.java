@@ -136,9 +136,9 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
 
     @Feature("optimizedInventories")
     @Inject(method = "transfer(Lnet/minecraft/inventory/Inventory;Lnet/minecraft/inventory/Inventory;Lnet/minecraft/item/ItemStack;ILnet/minecraft/util/math/Direction;)Lnet/minecraft/item/ItemStack;", at = @At(value = "INVOKE", target = "Lnet/minecraft/item/ItemStack;increment(I)V", shift = At.Shift.AFTER), locals = LocalCapture.CAPTURE_FAILHARD)
-    private static void notifyOptimizedInventoryAboutChangedItemStack(Inventory inventory_1, Inventory inventory_2, ItemStack itemStack_1, int int_1, Direction direction_1, CallbackInfoReturnable<ItemStack> cir, ItemStack itemStack_2, boolean boolean_1, boolean boolean_2, int int_2, int int_3) {
+    private static void notifyOptimizedInventoryAboutChangedItemStack(Inventory inventory_1, Inventory destination, ItemStack itemStack_1, int int_1, Direction direction_1, CallbackInfoReturnable<ItemStack> cir, ItemStack itemStack_2, boolean boolean_1, boolean boolean_2, int int_2, int int_3) {
         if (!Settings.optimizedInventories) return;
-        InventoryOptimizer opt = inventory_2 instanceof OptimizedInventory ? ((OptimizedInventory) inventory_2).getOptimizer() : null;
+        InventoryOptimizer opt = destination instanceof OptimizedInventory ? ((OptimizedInventory) destination).getOptimizer() : null;
         if (opt != null)
             opt.onItemStackCountChanged(int_1, int_3);
     }
@@ -217,7 +217,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
 
                     //If someone adds an Inventory Block that calls markDirty on setInvStack, but also implements canExtract behaviors this might be incorrect
                     //Todo test whether barrels, composters, brewing stands, furnaces and shulkerboxes behave like vanilla here! Use comparator update detectors
-                    if (getAvailableSlots(to, Direction.UP).anyMatch((int i) -> true)) {
+                    if (getAvailableSlots(from, Direction.DOWN).anyMatch((int i) -> true)) {
                         if (!Settings.failedTransferNoComparatorUpdates)
                             IHopper.markDirtyLikeHopperWould(from, fromOpt);
                         ((IHopper) to).setMarkOtherDirty();
@@ -544,15 +544,17 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
                     int invSize = this.getInvSize();
                     for (int fromSlot = firstOccupiedSlot; fromSlot < invSize; fromSlot++) {
                         ItemStack stack = this.getInvStack(fromSlot);
-                        int toSlot = toOpt.findInsertSlot(stack, insertFromDirection);
-                        if (toSlot == -1) continue;
+                        if (!stack.isEmpty()) {
+                            int toSlot = toOpt.findInsertSlot(stack, insertFromDirection);
+                            if (toSlot == -1) continue;
 
-                        boolean wasEmpty = toOpt.getFirstOccupiedSlot_extractable() == -1;
-                        transferOneItem_knownSuccessful(to, toSlot, this, fromSlot);
-                        setReceiverCooldown(to, wasEmpty);
-                        to.markDirty();
-                        cir.setReturnValue(true);
-                        return;
+                            boolean wasEmpty = toOpt.getFirstOccupiedSlot_extractable() == -1;
+                            transferOneItem_knownSuccessful(to, toSlot, this, fromSlot);
+                            setReceiverCooldown(to, wasEmpty);
+                            to.markDirty();
+                            cir.setReturnValue(true);
+                            return;
+                        }
                     }
                     cir.setReturnValue(false);
                 }
