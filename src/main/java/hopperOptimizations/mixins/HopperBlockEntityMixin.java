@@ -308,31 +308,20 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
     @Feature("optimizedEntityHopperInteraction")
     @Redirect(method = "extract(Lnet/minecraft/block/entity/Hopper;)Z", at = @At(value = "INVOKE", target = "Lnet/minecraft/block/entity/HopperBlockEntity;getInputInventory(Lnet/minecraft/block/entity/Hopper;)Lnet/minecraft/inventory/Inventory;"))
     private static Inventory getInputInventoryFromCache(Hopper hopper) {
-        /*
-        if (!(hopper instanceof HopperBlockEntity))
-            return getInputInventory(hopper);
 
-        Inventory ret = ((HopperBlockEntityMixin) hopper).getCachedInventory(true);
+        if (!(hopper instanceof HopperBlockEntity))
+            return getInputInventory(hopper); //Hopper Minecarts do not cache Inventories
+
+        Inventory ret = ((HopperBlockEntityMixin) hopper).getCachedBlockInventory(true); //Blockentities cached?
         if (ret != null) return ret;
 
         if (!Settings.optimizedEntityHopperInteraction)
             return getInputInventory(hopper);
-        */
-        //
-
-
-        if (!Settings.optimizedEntityHopperInteraction || !(hopper instanceof HopperBlockEntity))
-            return HopperBlockEntityMixin.getInputInventory(hopper);
-
-
-        Inventory ret = ((HopperBlockEntityMixin) hopper).getCachedInventory(true);
-        if (ret != null) return ret;
 
         World world = ((HopperBlockEntityMixin) hopper).getWorld();
-        if (world == null) return null;
-
         Inventory inventory = getBlockInventoryAt(world, ((HopperBlockEntityMixin) hopper).getPos().up());
         if (inventory == null) {
+            //Use the entity cache to find minecarts
             ((HopperBlockEntityMixin) hopper).invalidateEntityCacheIfNeccessary();
             if (((HopperBlockEntityMixin) hopper).inputInventoryCacheInvalid) {
                 double double_1 = hopper.getHopperX();
@@ -357,6 +346,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
 
     @Feature("optimizedEntityHopperInteraction")
     private static Inventory getBlockInventoryAt(World world_1, BlockPos blockPos_1) {
+        //code copied from vanilla
         Inventory inventory_1 = null;
         BlockState blockState_1 = world_1.getBlockState(blockPos_1);
         Block block_1 = blockState_1.getBlock();
@@ -445,7 +435,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
     }
 
     @Feature("optimizedInventories")
-    private Inventory getCachedInventory(boolean extracting) {
+    private Inventory getCachedBlockInventory(boolean extracting) {
         if (!Settings.optimizedInventories) return null;
         //cached inventory alive && position checks
         if (extracting) {
@@ -686,11 +676,10 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
     @Feature("optimizedEntityHopperInteraction")
     @Redirect(method = "insert()Z", at = @At(value = "INVOKE", target = "Lnet/minecraft/block/entity/HopperBlockEntity;getOutputInventory()Lnet/minecraft/inventory/Inventory;"))
     private Inventory getOutputInventoryFromCache(HopperBlockEntity hopper) {
-        if (!Settings.optimizedEntityHopperInteraction) return this.getOutputInventory();
-
-
-        Inventory ret = getCachedInventory(false);
+        Inventory ret = getCachedBlockInventory(false);
         if (ret != null) return ret;
+
+        if (!Settings.optimizedEntityHopperInteraction) return this.getOutputInventory();
 
         World world = hopper.getWorld();
         if (world == null) return null;
