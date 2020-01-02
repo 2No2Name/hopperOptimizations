@@ -37,7 +37,6 @@ public class Settings {
             category = {OPTIMIZATION, FEATURE, EXPERIMENTAL, "hopperoptimizations"})
     public static boolean failedTransferNoComparatorUpdates = false;
 
-
     @Rule(desc = "Don't disable optimized inventories when players interact with them.", category = {EXPERIMENTAL, "hopperoptimizations"})
     //This rule was causing problems when enabled. Inventories no longer need to panic when a player interacts with them after player handling code was added.
     public static boolean playerHopperOptimizations = false;
