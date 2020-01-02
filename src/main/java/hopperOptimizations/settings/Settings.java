@@ -9,6 +9,7 @@ import static carpet.settings.RuleCategory.*;
 /**
  * Here is your example Settings class you can plug to use carpetmod /carpet settings command
  */
+@SuppressWarnings("CanBeFinal")
 public class Settings {
     /**
      * Simple boolean Settings
