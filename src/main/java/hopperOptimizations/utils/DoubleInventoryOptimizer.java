@@ -117,4 +117,17 @@ public class DoubleInventoryOptimizer extends InventoryOptimizer {
         return firstOpt.getInventoryChangeCount() + secondOpt.getInventoryChangeCount();
     }
 
+    void ensureInitialized() {
+        firstOpt.ensureInitialized();
+        secondOpt.ensureInitialized();
+    }
+
+    int getWeightedItemCount() {
+        return firstOpt.getWeightedItemCount() + secondOpt.getWeightedItemCount();
+    }
+
+    int getTotalSlots() {
+        return firstOpt.getTotalSlots() + secondOpt.getTotalSlots();
+    }
+
 }

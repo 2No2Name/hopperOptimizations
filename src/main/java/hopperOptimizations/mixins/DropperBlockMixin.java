@@ -19,7 +19,6 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
 
-@Feature("dispensersPlaceBlocks")
 @Mixin(DropperBlock.class)
 public abstract class DropperBlockMixin extends DispenserBlock {
     public DropperBlockMixin(Block.Settings block$Settings_1) {

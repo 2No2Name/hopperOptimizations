@@ -78,14 +78,13 @@ public class InventoryOptimizer {
 
         this.initialized = false;
         this.invalid = false;
+        fakeSignalStrength = -1;
         if (stackList == null) return;
         inventoryChanges = 0;
         filterHits = 0;
         filterMisses = 0;
         filterTrueHits = 0;
         filterEdits = 0;
-
-        fakeSignalStrength = -1;
     }
 
     private static long hash(ItemStack stack) {
@@ -183,8 +182,7 @@ public class InventoryOptimizer {
         int int_1 = 0;
         float float_1 = 0.0F;
 
-        for (int int_2 = 0; int_2 < stackList.size(); ++int_2) {
-            ItemStack itemStack_1 = stackList.get(int_2);
+        for (ItemStack itemStack_1 : stackList) {
             if (!itemStack_1.isEmpty()) {
                 float_1 += (float) itemStack_1.getCount() / (float) Math.min(64, itemStack_1.getMaxCount());
                 ++int_1;
@@ -351,21 +349,33 @@ public class InventoryOptimizer {
         if (fakeSignalStrength != -1) {
             return fakeSignalStrength;
         }
+        return (int) ((this.getWeightedItemCount() / ((float) this.getTotalSlots() * 64)) * 14) + (this.getOccupiedSlots() == 0 ? 0 : 1);
+    }
+
+    void ensureInitialized() {
         if (!initialized) recalculate();
-        return (int) ((this.weightedItemCount / ((float) this.totalSlots * 64)) * 14) + (occupiedSlots == 0 ? 0 : 1);
+    }
+
+    int getWeightedItemCount() {
+        return weightedItemCount;
+    }
+
+    int getTotalSlots() {
+        return totalSlots;
     }
 
     //Used to trick comparators into sending block updates like in vanilla.
-    public void setFakeReducedSignalStrength() {
+    void setFakeReducedSignalStrength() {
+        this.ensureInitialized();
         this.fakeSignalStrength = this.getSignalStrength() - 1;
         if (fakeSignalStrength == -1) fakeSignalStrength = 0;
     }
 
-    public void clearFakeChangedSignalStrength() {
+    void clearFakeChangedSignalStrength() {
         this.fakeSignalStrength = -1;
     }
 
-    public boolean isOneItemAboveSignalStrength() {
+    boolean isOneItemAboveSignalStrength() {
         int maxExtractableItemWeight = 0;
         for (Map.Entry<Integer, Integer> entry : stackSizeToSlotCount.entrySet())
             if (entry.getValue() > 0 && entry.getKey() > maxExtractableItemWeight)
@@ -429,7 +439,7 @@ public class InventoryOptimizer {
         this.fullSlots = fullSlots;
         this.firstFreeSlot = firstFreeSlot;
         this.firstOccupiedSlot = firstOccupiedSlot;
-        this.stackSizeToSlotCount = stackSizeToSlotCount;
+        //this.stackSizeToSlotCount = stackSizeToSlotCount;
 
         this.initialized = true;
         //printStackTrace = true;
@@ -503,6 +513,22 @@ public class InventoryOptimizer {
             long hIndex = (hash & (mask << (i * maskLength))) >> (i * maskLength);
             bloomFilter[((int) hIndex) / 64] |= (1L << (hIndex % 64));
         }
+    }
+
+    //Used for player interactions which sometimes just modify itemstacks without knowing where else they are used.
+    //Pray that itemstacks will be immutable one day
+
+    /**
+     * Finds the slot that contains the given itemstack object (object comparison, no equals)
+     *
+     * @return index of the stack object, -1 if none found.
+     */
+    public int indexOfObject(ItemStack stack) {
+        for (int i = 0; i < this.totalSlots; i++) {
+            if (stack == this.stackList.get(i))
+                return i;
+        }
+        return -1;
     }
 
     /**

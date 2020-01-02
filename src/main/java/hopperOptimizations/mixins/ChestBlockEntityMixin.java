@@ -70,7 +70,7 @@ public abstract class ChestBlockEntityMixin extends LootableContainerBlockEntity
 
     @Override
     public boolean mayHaveOptimizer() {
-        return Settings.playerHopperOptimizations || viewerCount <= 0;
+        return !this.world.isClient && (Settings.playerHopperOptimizations || viewerCount <= 0);
     }
 
 

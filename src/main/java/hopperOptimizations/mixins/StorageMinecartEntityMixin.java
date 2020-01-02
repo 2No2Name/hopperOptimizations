@@ -39,14 +39,14 @@ public abstract class StorageMinecartEntityMixin extends AbstractMinecartEntity 
     @Redirect(method = "<init>(Lnet/minecraft/entity/EntityType;Lnet/minecraft/world/World;)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/util/DefaultedList;ofSize(ILjava/lang/Object;)Lnet/minecraft/util/DefaultedList;"))
     private DefaultedList<ItemStack> createInventory(int int_1, Object object_1) {
         DefaultedList<ItemStack> ret = InventoryListOptimized.ofSize(int_1, (ItemStack) object_1);
-        ((InventoryListOptimized) ret).setSize(this.getInvSize());
+        ((InventoryListOptimized) ret).setSize(this.getInvSize()); //Storage Minecarts pretend to have smaller inventories
         return ret;
     }
 
     @Redirect(method = "<init>(Lnet/minecraft/entity/EntityType;DDDLnet/minecraft/world/World;)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/util/DefaultedList;ofSize(ILjava/lang/Object;)Lnet/minecraft/util/DefaultedList;"))
     private DefaultedList<ItemStack> createInventory1(int int_1, Object object_1) {
         DefaultedList<ItemStack> ret = InventoryListOptimized.ofSize(int_1, (ItemStack) object_1);
-        ((InventoryListOptimized) ret).setSize(this.getInvSize());
+        ((InventoryListOptimized) ret).setSize(this.getInvSize()); //Storage Minecarts pretend to have smaller inventories
         return ret;
     }
 
@@ -68,22 +68,28 @@ public abstract class StorageMinecartEntityMixin extends AbstractMinecartEntity 
     }
 
     public void onInvOpen(PlayerEntity playerEntity_1) {
-        if (!Settings.playerHopperOptimizations && !playerEntity_1.isSpectator())
-            invalidateOptimizer();
-        viewerCount++;
+        if (!playerEntity_1.isSpectator()) {
+            if (!Settings.playerHopperOptimizations)
+                invalidateOptimizer();
+            viewerCount++;
+        }
     }
 
     public void onInvClose(PlayerEntity playerEntity_1) {
-        viewerCount--;
-        if (viewerCount < 0) {
-            System.out.println("StorageMinecartEntityMixin: (Inventory-)viewerCount inconsistency detected, might affect performance of optimizedInventories!");
-            viewerCount = 0;
+        if (!playerEntity_1.isSpectator()) {
+            viewerCount--;
+            if (!Settings.playerHopperOptimizations) {
+                if (viewerCount < 0) {
+                    System.out.println("StorageMinecartEntityMixin: (Inventory-)viewerCount inconsistency detected, might affect performance of optimizedInventories!");
+                    viewerCount = 0;
+                }
+            }
         }
     }
 
     @Override
     public boolean mayHaveOptimizer() {
-        return Settings.playerHopperOptimizations || viewerCount <= 0;
+        return !this.world.isClient && (Settings.playerHopperOptimizations || viewerCount <= 0);
     }
 
     @Override
