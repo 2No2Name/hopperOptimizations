@@ -10,8 +10,6 @@ import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.List;
 
-//import static hopperOptimizations.utils.InventoryOptimizer.printStackTrace;
-
 public class InventoryListOptimized<E> extends DefaultedList<E> {
     private InventoryOptimizer optimizer = null;
     private int sizeOverride = -1; //used for Minecart Inventories to pretend to be small, just like they do
@@ -64,7 +62,7 @@ public class InventoryListOptimized<E> extends DefaultedList<E> {
         if (Settings.optimizedInventories) {
             InventoryOptimizer opt = this.getOrRemoveOptimizer();
             if (opt != null) opt.update(int_1, (ItemStack) ret);
-        } else this.optimizer = null;
+        } else invalidateOptimizer();
         return ret;
     }
 
@@ -93,7 +91,7 @@ public class InventoryListOptimized<E> extends DefaultedList<E> {
     }
 
     public void clear() {
-        this.invalidateOptimizer(); //idk if this call is neccessary. (clear is usually called when closing the world)
+        this.invalidateOptimizer(); //todo find out what clear is used for
         super.clear();
     }
 
