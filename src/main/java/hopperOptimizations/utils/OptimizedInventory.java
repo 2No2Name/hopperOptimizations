@@ -21,4 +21,5 @@ public interface OptimizedInventory extends Inventory {
     default int getInvalidCount() {
         return -1;
     }
+
 }
