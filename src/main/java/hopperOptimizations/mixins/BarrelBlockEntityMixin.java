@@ -69,6 +69,6 @@ public abstract class BarrelBlockEntityMixin extends LootableContainerBlockEntit
 
     @Override
     public boolean mayHaveOptimizer() {
-        return Settings.playerHopperOptimizations || viewerCount <= 0;
+        return !this.world.isClient && (Settings.playerHopperOptimizations || viewerCount <= 0);
     }
 }

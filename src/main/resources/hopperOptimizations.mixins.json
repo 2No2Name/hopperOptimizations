@@ -9,7 +9,6 @@
     "CollisionView$1Mixin",
     "DispenserBlockEntityMixin",
     "DoubleInventoryMixin",
-    "DropperBlockEntityMixin",
     "DropperBlockMixin",
     "HopperBlockEntityMixin",
     "HopperMinecartEntityMixin",
@@ -18,7 +17,8 @@
     "ItemStackMixin",
     "ShulkerBoxBlockEntityMixin",
     "StorageMinecartEntityMixin",
-    "ContainerMixin"
+    "ContainerMixin",
+    "DispenserBlockMixin"
   ],
   "client": [
     "MinecraftClient_noopMixin"

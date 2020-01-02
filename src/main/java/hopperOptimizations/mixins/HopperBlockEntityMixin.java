@@ -20,6 +20,7 @@ import net.minecraft.util.math.ChunkPos;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.shape.VoxelShape;
 import net.minecraft.world.World;
+import net.minecraft.world.chunk.ChunkManager;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -36,7 +37,6 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-@Feature("hopperCounters")
 @Mixin(HopperBlockEntity.class)
 public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntity implements OptimizedInventory, IHopper, Hopper {
 
@@ -250,13 +250,14 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
             } else {
                 toStack = fromStack.copy();
                 toStack.setCount(1);
+                fromStack.decrement(1);
             }
             to.setInvStack(toSlot, toStack);
             replacedToStack = true;
-        } else
+        } else {
             to.getInvStack(toSlot).increment(1);
-
-        fromStack.decrement(1);
+            fromStack.decrement(1);
+        }
 
         if (!Settings.optimizedInventories) return;
         //Notify optimizers of change, if neccessary
@@ -307,6 +308,19 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
     @Feature("optimizedEntityHopperInteraction")
     @Redirect(method = "extract(Lnet/minecraft/block/entity/Hopper;)Z", at = @At(value = "INVOKE", target = "Lnet/minecraft/block/entity/HopperBlockEntity;getInputInventory(Lnet/minecraft/block/entity/Hopper;)Lnet/minecraft/inventory/Inventory;"))
     private static Inventory getInputInventoryFromCache(Hopper hopper) {
+        /*
+        if (!(hopper instanceof HopperBlockEntity))
+            return getInputInventory(hopper);
+
+        Inventory ret = ((HopperBlockEntityMixin) hopper).getCachedInventory(true);
+        if (ret != null) return ret;
+
+        if (!Settings.optimizedEntityHopperInteraction)
+            return getInputInventory(hopper);
+        */
+        //
+
+
         if (!Settings.optimizedEntityHopperInteraction || !(hopper instanceof HopperBlockEntity))
             return HopperBlockEntityMixin.getInputInventory(hopper);
 
@@ -542,9 +556,11 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
 
                     //Try to push each item into the destination. As the hopper is usually smaller than the destination
                     int invSize = this.getInvSize();
-                    for (int fromSlot = firstOccupiedSlot; fromSlot < invSize; fromSlot++) {
+                    int transferAttempts = fromOpt.getOccupiedSlots();
+                    for (int fromSlot = firstOccupiedSlot; transferAttempts > 0 && fromSlot < invSize; fromSlot++) {
                         ItemStack stack = this.getInvStack(fromSlot);
                         if (!stack.isEmpty()) {
+                            --transferAttempts;
                             int toSlot = toOpt.findInsertSlot(stack, insertFromDirection);
                             if (toSlot == -1) continue;
 
@@ -618,16 +634,17 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
 
     //@Inject(method = "onInvOpen(Lnet/minecraft/entity/player/PlayerEntity;)V", at = @At(value = "HEAD"))
     public void onInvOpen(PlayerEntity playerEntity_1) {
-        if (!Settings.playerHopperOptimizations && !playerEntity_1.isSpectator()) {
-            invalidateOptimizer();
+        if (!playerEntity_1.isSpectator()) {
             viewerCount++;
+            if (!Settings.playerHopperOptimizations && !playerEntity_1.isSpectator())
+                invalidateOptimizer();
         }
     }
 
     public void onInvClose(PlayerEntity playerEntity_1) {
         if (!playerEntity_1.isSpectator()) {
             viewerCount--;
-            if (viewerCount < 0) {
+            if (!Settings.playerHopperOptimizations && viewerCount < 0) {
                 System.out.println("Hopper viewer count inconsistency, might affect performance of optimizedInventories!");
                 viewerCount = 0;
             }
@@ -636,7 +653,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
 
     @Override
     public boolean mayHaveOptimizer() {
-        return Settings.playerHopperOptimizations || viewerCount <= 0;
+        return !this.world.isClient && (Settings.playerHopperOptimizations || viewerCount <= 0);
     }
 
     private Box inputBox() {
@@ -724,9 +741,10 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
         z = z >> 4;
         x2 = x2 >> 4;
         z2 = z2 >> 4;
+        ChunkManager chunkManager = this.world.getChunkManager();
         for (int i = x; i <= x2; i++)
             for (int j = z; j <= z2; j++) {
-                if (!this.world.getChunkManager().shouldTickChunk(new ChunkPos(x, z))) {
+                if (!chunkManager.shouldTickChunk(new ChunkPos(x, z))) {
                     return false;
                 }
             }
