@@ -9,6 +9,7 @@ import static carpet.settings.RuleCategory.*;
 /**
  * Here is your example Settings class you can plug to use carpetmod /carpet settings command
  */
+@SuppressWarnings("CanBeFinal")
 public class Settings {
     /**
      * Simple boolean Settings
@@ -36,7 +37,6 @@ public class Settings {
     @Rule(desc = "Doesn't do comparator updates when an item transfer fails unlike vanilla (when the transfer would have changed the signal strength)",
             category = {OPTIMIZATION, FEATURE, EXPERIMENTAL, "hopperoptimizations"})
     public static boolean failedTransferNoComparatorUpdates = false;
-
 
     @Rule(desc = "Don't disable optimized inventories when players interact with them.", category = {EXPERIMENTAL, "hopperoptimizations"})
     //This rule was causing problems when enabled. Inventories no longer need to panic when a player interacts with them after player handling code was added.

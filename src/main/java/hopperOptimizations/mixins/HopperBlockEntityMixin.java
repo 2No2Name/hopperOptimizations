@@ -37,6 +37,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+@Feature("hopperCounters")
 @Mixin(HopperBlockEntity.class)
 public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntity implements OptimizedInventory, IHopper, Hopper {
 
@@ -47,9 +48,9 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
     //-----------------------------------------------
     //Fields for OptimizedEntityHopperInteraction
     //todo check whether ArrayLists are a good choice, otherwise find something faster, maybe a set class //also asymptotically bad contains call, use some set instead
-    private List<ItemEntity> nearbyItems = new ArrayList<>(); //todo Order will be different from vanilla, either sort or decide to not fix
-    private List<Entity> nearbyInputInventoryEntities = new ArrayList<>();
-    private List<Entity> nearbyOutputInventoryEntities = new ArrayList<>();
+    private List<ItemEntity> nearbyItems = new ArrayList<>(0); //Order will be different from vanilla
+    private List<Entity> nearbyInputInventoryEntities = new ArrayList<>(0);
+    private List<Entity> nearbyOutputInventoryEntities = new ArrayList<>(0);
     private boolean entityCacheInvalid = true;
     private boolean inputInventoryCacheInvalid = true;
     private boolean outputInventoryCacheInvalid = true;

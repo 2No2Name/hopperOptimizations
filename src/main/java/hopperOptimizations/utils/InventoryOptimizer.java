@@ -36,9 +36,9 @@ public class InventoryOptimizer {
     private final SidedInventory sidedInventory; //only use when required, inventory handling should be mostly independent from the container
     private final boolean itemRestrictions;
     private int inventoryChanges;
-    private long[] bloomFilter = new long[filterLongCount];
-    private long[] nonFullStackBloomFilter = new long[filterLongCount];
-    private long[] preEmptyNonFullStackBloomFilter = new long[filterLongCount];
+    private final long[] bloomFilter = new long[filterLongCount];
+    private final long[] nonFullStackBloomFilter = new long[filterLongCount];
+    private final long[] preEmptyNonFullStackBloomFilter = new long[filterLongCount];
 
     private int filterHits;
     private int filterMisses;
@@ -53,7 +53,7 @@ public class InventoryOptimizer {
     private int weightedItemCount;
 
     private int fakeSignalStrength;
-    private Map<Integer, Integer> stackSizeToSlotCount = new HashMap<>();
+    private final Map<Integer, Integer> stackSizeToSlotCount = new HashMap<>();
 
     private boolean initialized;
     private boolean invalid;
