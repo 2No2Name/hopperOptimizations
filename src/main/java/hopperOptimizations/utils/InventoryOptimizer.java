@@ -53,8 +53,10 @@ public class InventoryOptimizer {
     private int firstOccupiedSlot;
     private int weightedItemCount;
 
-    private int fakeSignalStrength;
+    //saves how many inventory slots are occupied with stacks of a given size: e.g. 64->6, 16->1, 1->3
     private final Map<Integer, Integer> stackSizeToSlotCount = new HashMap<>();
+    //saves a lower signal strength for a short moment to make comparators send updates at their outputs
+    private int fakeSignalStrength;
 
     private boolean initialized;
     private boolean invalid;
@@ -197,9 +199,8 @@ public class InventoryOptimizer {
         int count = itemStack.getCount();
 
         itemStack.setCount(1);
-        ItemStack prevStack = itemStack.copy();
+        ItemStack prevStack = itemStack.copy(); //copy fails to create a real copy when count is 0
         itemStack.setCount(count);
-
         prevStack.setCount(count - countChange);
 
         boolean wasEmpty = prevStack.isEmpty();
