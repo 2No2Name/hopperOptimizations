@@ -19,7 +19,8 @@ public class Settings {
     public static boolean optimizedInventories = false;
 
     @Rule(desc = "Simplified hopper box shape when picking up items. This box contains the ring around the hopper's bowl.",
-            category = {OPTIMIZATION, FEATURE, EXPERIMENTAL, "hopperoptimizations"})
+            category = {OPTIMIZATION, FEATURE, EXPERIMENTAL, "hopperoptimizations"}, validate = EntityHopperInteraction.class)
+    //Using the EntityHopperInteraction counter to invalidate entity caches on box change.
     public static boolean simplifiedHopperPickupShape = false;
 
     @Rule(desc = "Reworked interaction between hoppers and entities. Entities look for hoppers instead of hoppers searching for entities.",

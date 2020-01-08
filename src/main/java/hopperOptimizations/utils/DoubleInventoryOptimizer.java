@@ -97,6 +97,11 @@ public class DoubleInventoryOptimizer extends InventoryOptimizer {
         return firstOpt.getOccupiedSlots() + secondOpt.getOccupiedSlots();
     }
 
+    @Override
+    public int getItemTypeChanges() {
+        return firstOpt.getItemTypeChanges() + secondOpt.getItemTypeChanges();
+    }
+
     public int getFirstOccupiedSlot_extractable() {
         int ret = firstOpt.getFirstOccupiedSlot_extractable();
         if (ret == -1) {

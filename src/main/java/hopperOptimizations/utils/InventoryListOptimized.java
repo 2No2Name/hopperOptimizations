@@ -67,6 +67,7 @@ public class InventoryListOptimized<E> extends DefaultedList<E> {
     }
 
     /*
+    //Debug code to see who causes trouble with item stacks
     public E get(int int_1) {
         if(printStackTrace)
             new UnsupportedOperationException().printStackTrace();
@@ -74,7 +75,8 @@ public class InventoryListOptimized<E> extends DefaultedList<E> {
         if(printStackTrace)
             System.out.println(e.toString());
         return (E)e;
-    }*/
+    }
+    */
 
     public void add(int int_1, E object_1) {
         if (Settings.optimizedInventories)

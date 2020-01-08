@@ -36,6 +36,7 @@ public class InventoryOptimizer {
     private final SidedInventory sidedInventory; //only use when required, inventory handling should be mostly independent from the container
     private final boolean itemRestrictions;
     private int inventoryChanges;
+    private int itemTypeChanges;
     private final long[] bloomFilter = new long[filterLongCount];
     private final long[] nonFullStackBloomFilter = new long[filterLongCount];
     private final long[] preEmptyNonFullStackBloomFilter = new long[filterLongCount];
@@ -77,6 +78,7 @@ public class InventoryOptimizer {
         fakeSignalStrength = -1;
         if (stackList == null) return;
         inventoryChanges = 0;
+        itemTypeChanges = 0;
         filterHits = 0;
         filterMisses = 0;
         filterTrueHits = 0;
@@ -201,11 +203,11 @@ public class InventoryOptimizer {
         prevStack.setCount(count - countChange);
 
         boolean wasEmpty = prevStack.isEmpty();
-        int max = itemStack.getMaxCount();
         boolean isEmpty = itemStack.isEmpty();
 
         if (!wasEmpty || !isEmpty) update(index, prevStack);
-        else {
+        else { //wasEmpty && isEmpty //todo why even do this?
+            int max = itemStack.getMaxCount();
             weightedItemCount += countChange * (int) (64F / max);
             inventoryChanges++;
             if (DEBUG) consistencyCheck();
@@ -228,6 +230,10 @@ public class InventoryOptimizer {
         if (!initialized || this.optimizedInventoryRuleChangeCounter != OptimizedInventoriesRule.ruleUpdates)
             recalculate();
         return occupiedSlots;
+    }
+
+    public int getItemTypeChanges() {
+        return itemTypeChanges;
     }
 
     /**
@@ -260,12 +266,16 @@ public class InventoryOptimizer {
      */
     void update(int slot, ItemStack prevStack) {
         if (!initialized || this.optimizedInventoryRuleChangeCounter != OptimizedInventoriesRule.ruleUpdates) return;
-        inventoryChanges++;
-
-
-        int oldFirstFreeSlot = firstFreeSlot;
 
         ItemStack newStack = stackList.get(slot);
+        if (prevStack == newStack) return;
+
+        if (prevStack.getItem() != newStack.getItem())
+            itemTypeChanges++;
+
+        inventoryChanges++;
+        int oldFirstFreeSlot = firstFreeSlot;
+
         long hash = hash(newStack);
         filterAdd(bloomFilter, hash);
         boolean flagRecalcFree = false;
@@ -530,15 +540,16 @@ public class InventoryOptimizer {
     }
 
     /**
-     * Finds the first slot that matches stack and can be sucked by a hopper.
+     * Finds the first slot that matches stack.
+     * Not for use with SidedInventories
      *
      * @param stack to find a matching item for
      * @return index of the matching item, -1 if none found.
      */
-    private int indexOf_extractable(ItemStack stack) {
+    public int indexOf(ItemStack stack) {
         if (!initialized || this.optimizedInventoryRuleChangeCounter != OptimizedInventoriesRule.ruleUpdates)
             recalculate();
-        return indexOf_extractable_endIndex(stack, totalSlots);
+        return indexOf_extractable_endIndex(stack, getTotalSlots());
     }
 
     //Does not support unstackable items!
