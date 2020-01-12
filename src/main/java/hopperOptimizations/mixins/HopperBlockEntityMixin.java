@@ -48,13 +48,21 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
     private static final VoxelShape INPUT_AREA_SHAPE_SIMPLIFIED = Block.createCuboidShape(0.0D, 11.0D, 0.0D, 16.0D, 32.0D, 16.0D);
     //-----------------------------------------------
     //Fields for OptimizedEntityHopperInteraction
-    //todo get rid of building up entries in reachable/fitting items and inventory entity caches when the hopper is locked!
-    private LinkedHashSet<ItemEntity> reachableItems;
-    //separate set for entities that have an item type that matches an inventory slot. becomes invalid when not all hopper slots occupied or hopper slot item types change
-    private LinkedHashSet<ItemEntity> fittingItems;
-    private int transferAttemptsBeforeReinitFittingItems;
-    private int lastItemTypeChanges; //when this.getOptimizer().itemTypeChanges increments, invalidate reachableFittingItems
 
+    //set for item entities that are above the hopper. item entities add themselves to the set when they move, but
+    //when they move away or die the hopper has to remove them again
+    //the set only exists/is valid when the hopper is not interacting with an inventory instead
+    //getting entities from this set instead of the world improves performance by a lot
+    private LinkedHashSet<ItemEntity> reachableItems;
+    //separate set for entities that have an item type that matches an inventory slot. It becomes invalid when not all hopper slots occupied or hopper slot item types change
+    //intended to improve performance when a lot of non-fitting item entities are on top of a hopper
+    private LinkedHashSet<ItemEntity> fittingItems;
+    //countdown after fittingItems becomes invalid: when the hopper is constantly changing, the overhead of recalculating fitting items doesn't result in any speedup, so don't reinitialize then
+    private int transferAttemptsBeforeReinitFittingItems;
+    //value of the counter when fittingItems was initialized. a change of the item types means that fitting items is outdated
+    private int lastItemTypeChangeCount; //when this.getOptimizer().itemTypeChanges increments, invalidate reachableFittingItems
+
+    //lists (not set, random choosing is required) for inventory entities that are in range
     private List<Entity> reachableInputInventoryEntities;
     private List<Entity> reachableOutputInventoryEntities;
     private boolean itemEntityCacheInvalid = true;
@@ -206,7 +214,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
                     return;
                 }
                 if (from instanceof OptimizedInventory && (fromOpt = ((OptimizedInventory) from).getOptimizer()) != null) {
-                    if (to instanceof IHopper && ((IHopper) to).tryShortcutFailedTransfer(toOpt, from, fromOpt, true)) {
+                    if (to instanceof IHopper && ((IHopper) to).tryShortcutFailedExtract(toOpt, from, fromOpt)) {
                         cir.setReturnValue(false);
                         return;
                     }
@@ -363,16 +371,16 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
                     ((HopperBlockEntityMixin) hopper).fittingItems.addAll(nearbyItems);
 
                     //keep the current counter value to be able to detect changes to the item types the hopper can pick up later
-                    ((HopperBlockEntityMixin) hopper).lastItemTypeChanges = opt.getItemTypeChanges();
+                    ((HopperBlockEntityMixin) hopper).lastItemTypeChangeCount = opt.getItemTypeChanges();
                 }
             }
             ((HopperBlockEntityMixin) hopper).itemEntityCacheInvalid = false;
         } else {
             //invalidate the fitting items set when the item types the hopper can pick up changed
-            if (((HopperBlockEntityMixin) hopper).lastItemTypeChanges != opt.getItemTypeChanges()) {
+            if (((HopperBlockEntityMixin) hopper).lastItemTypeChangeCount != opt.getItemTypeChanges()) {
                 ((HopperBlockEntityMixin) hopper).fittingItems = null;
                 ((HopperBlockEntityMixin) hopper).transferAttemptsBeforeReinitFittingItems = 5;
-                ((HopperBlockEntityMixin) hopper).lastItemTypeChanges = opt.getItemTypeChanges();
+                ((HopperBlockEntityMixin) hopper).lastItemTypeChangeCount = opt.getItemTypeChanges();
             }
 
             //remove item entities that have died or have moved away from the reachable items set
@@ -398,8 +406,8 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
         //item entity cache up to date and valid
         ((HopperBlockEntityMixin) hopper).lastTickTime_usedItemEntityCache = ((HopperBlockEntityMixin) hopper).lastTickTime;
 
-        //reinitialize fitting items if not invalidated during this transfer attempt (would happen everytime when transferring nonstackable items)
-        if (opt != null && ((HopperBlockEntityMixin) hopper).lastItemTypeChanges == opt.getItemTypeChanges() && ((HopperBlockEntityMixin) hopper).transferAttemptsBeforeReinitFittingItems == 0 && ((HopperBlockEntityMixin) hopper).fittingItems == null && !opt.hasFreeSlots_insertable()) {
+        //reinitialize fitting items if not invalidated during this transfer attempt (would happen every time when transferring nonstackable items)
+        if (opt != null && ((HopperBlockEntityMixin) hopper).lastItemTypeChangeCount == opt.getItemTypeChanges() && ((HopperBlockEntityMixin) hopper).transferAttemptsBeforeReinitFittingItems == 0 && ((HopperBlockEntityMixin) hopper).fittingItems == null && !opt.hasFreeSlots_insertable()) {
             ((HopperBlockEntityMixin) hopper).fittingItems = new LinkedHashSet<>(((HopperBlockEntityMixin) hopper).reachableItems);
             //Assume hoppers are no SidedInventory due to some other mod!
             assert !(hopper instanceof SidedInventory);
@@ -409,9 +417,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
                 //the set is supposed to be only recalculated when the item types the hopper can pick up change
                 return -1 == opt.indexOf(itemEntity.getStack());
             });
-        }
-
-        if (((HopperBlockEntityMixin) hopper).transferAttemptsBeforeReinitFittingItems > 0)
+        } else if (((HopperBlockEntityMixin) hopper).transferAttemptsBeforeReinitFittingItems > 0)
             --((HopperBlockEntityMixin) hopper).transferAttemptsBeforeReinitFittingItems;
 
 
@@ -564,8 +570,16 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
         return false; //never cache Entity Inventories, the entity might have moved away or a Blockentity might have been placed
     }
 
+    /**
+     * Gets the cached block entity input inventory if it is still valid.
+     * Requires optimizedInventories
+     * Note: In vanilla hoppers getBlockState the location, which makes them load chunks in some versions.
+     *
+     * @return cached output inventory, if found and valid
+     */
     @Feature("optimizedInventories")
     private Inventory getCachedBlockInputInventory() {
+        //maybe use optional or some static NULL inv
         if (!Settings.optimizedInventories) return null;
         //cached inventory alive && position checks
         if (inventoryCacheValid(prevExtractInventory, prevExtractInventoryPos)) {
@@ -578,9 +592,17 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
 
     }
 
+    /**
+     * Gets the cached block entity output inventory if it is still valid.
+     * Requires optimizedInventories
+     * Note: In vanilla hoppers getBlockState the location, which makes them load chunks in some versions.
+     *
+     * @return cached output inventory, if found and valid
+     */
+    @Feature("optimizedInventories")
     private Inventory getCachedBlockOutputInventory() {
         if (!Settings.optimizedInventories) return null;
-
+        //cached inventory alive && position checks
         if (inventoryCacheValid(prevInsertInventory, prevInsertInventoryPos)) {
             return prevInsertInventory;
         }
@@ -590,45 +612,71 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
 
     }
 
+    /**
+     * Checks whether the last item insert attempt was with the same inventory as the current one AND
+     * since before the last item transfer attempt the hopper's inventory and the other inventory did not change.
+     * Requires optimizedInventories.
+     *
+     * @param thisOpt  InventoryOptimizer of this hopper
+     * @param other    Inventory interacted with
+     * @param otherOpt InventoryOptimizer of other
+     *                 <p>
+     *                 Side effect: Sends comparator updates that would be sent on normal failed transfers.
+     * @return Whether the current item transfer attempt is known to fail.
+     */
     @Feature("optimizedInventories")
-    public boolean tryShortcutFailedTransfer(InventoryOptimizer thisOpt, Inventory other, InventoryOptimizer otherOpt, boolean extracting) {
+    public boolean tryShortcutFailedInsert(InventoryOptimizer thisOpt, Inventory other, InventoryOptimizer otherOpt) {
         int thisChangeCount = thisOpt.getInventoryChangeCount();
         int otherChangeCount = otherOpt.getInventoryChangeCount();
-        if (extracting) {
-            if (this_lastChangeCount_Extract != thisChangeCount || otherOpt != previousExtract || previousExtract_lastChangeCount != otherChangeCount) {
-                this_lastChangeCount_Extract = thisChangeCount;
-                previousExtract = otherOpt;
-                if (other instanceof BlockEntity) {
-                    prevExtractInventory = other;
-                    prevExtractInventoryPos = ((BlockEntity) other).getPos().toImmutable();
-                } else if (other instanceof DoubleInventory) {
-                    prevExtractInventory = other;
-                    prevExtractInventoryPos = null;
-                }
-                previousExtract_lastChangeCount = otherChangeCount;
-                previousExtract_causeMarkDirty = false;
-                return false;
+        if (this_lastChangeCount_Insert != thisChangeCount || otherOpt != previousInsert || previousInsert_lastChangeCount != otherChangeCount) {
+            this_lastChangeCount_Insert = thisChangeCount;
+            previousInsert = otherOpt;
+            if (other instanceof BlockEntity) {
+                prevInsertInventory = other;
+                prevInsertInventoryPos = ((BlockEntity) other).getPos().toImmutable();
+            } else if (other instanceof DoubleInventory) {
+                prevInsertInventory = other;
+                prevInsertInventoryPos = null;
             }
-            if (previousExtract_causeMarkDirty && !Settings.failedTransferNoComparatorUpdates)
-                IHopper.markDirtyLikeHopperWould(other, otherOpt); //failed transfers sometimes cause comparator updates
-
-            return true;
-        } else {
-            if (this_lastChangeCount_Insert != thisChangeCount || otherOpt != previousInsert || previousInsert_lastChangeCount != otherChangeCount) {
-                this_lastChangeCount_Insert = thisChangeCount;
-                previousInsert = otherOpt;
-                if (other instanceof BlockEntity) {
-                    prevInsertInventory = other;
-                    prevInsertInventoryPos = ((BlockEntity) other).getPos().toImmutable();
-                } else if (other instanceof DoubleInventory) {
-                    prevInsertInventory = other;
-                    prevInsertInventoryPos = null;
-                }
-                previousInsert_lastChangeCount = otherChangeCount;
-                return false;
-            }
-            return true;
+            previousInsert_lastChangeCount = otherChangeCount;
+            return false;
         }
+        return true;
+    }
+
+    /**
+     * Checks whether the last item extract attempt was with the same inventory as the current one AND
+     * since before the last item transfer attempt the hopper's inventory and the other inventory did not change.
+     * Requires optimizedInventories.
+     * @param thisOpt InventoryOptimizer of this hopper
+     * @param other Inventory interacted with
+     * @param otherOpt InventoryOptimizer of other
+     *
+     * Side effect: Sends comparator updates that would be sent on normal failed transfers.
+     * @return Whether the current item transfer attempt is known to fail.
+     */
+    @Feature("optimizedInventories")
+    public boolean tryShortcutFailedExtract(InventoryOptimizer thisOpt, Inventory other, InventoryOptimizer otherOpt) {
+        int thisChangeCount = thisOpt.getInventoryChangeCount();
+        int otherChangeCount = otherOpt.getInventoryChangeCount();
+        if (this_lastChangeCount_Extract != thisChangeCount || otherOpt != previousExtract || previousExtract_lastChangeCount != otherChangeCount) {
+            this_lastChangeCount_Extract = thisChangeCount;
+            previousExtract = otherOpt;
+            if (other instanceof BlockEntity) {
+                prevExtractInventory = other;
+                prevExtractInventoryPos = ((BlockEntity) other).getPos().toImmutable();
+            } else if (other instanceof DoubleInventory) {
+                prevExtractInventory = other;
+                prevExtractInventoryPos = null;
+            }
+            previousExtract_lastChangeCount = otherChangeCount;
+            previousExtract_causeMarkDirty = false;
+            return false;
+        }
+        if (previousExtract_causeMarkDirty && !Settings.failedTransferNoComparatorUpdates)
+            IHopper.markDirtyLikeHopperWould(other, otherOpt); //failed transfers sometimes cause comparator updates
+
+        return true;
     }
 
     @Feature("optimizedInventories")
@@ -663,7 +711,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
             InventoryOptimizer toOpt, fromOpt;
             if (to instanceof OptimizedInventory && (toOpt = ((OptimizedInventory) to).getOptimizer()) != null) {
                 fromOpt = ((OptimizedInventory) this).getOptimizer();
-                if (fromOpt != null && ((IHopper) this).tryShortcutFailedTransfer(fromOpt, to, toOpt, false)) {
+                if (fromOpt != null && ((IHopper) this).tryShortcutFailedInsert(fromOpt, to, toOpt)) {
                     cir.setReturnValue(false);
                     return;
                 }
@@ -738,7 +786,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
     @Inject(method = "setInvStackList", at = @At("RETURN"))
     private void onSetStackList(DefaultedList<ItemStack> stackList, CallbackInfo ci) {
         if (!(inventory instanceof InventoryListOptimized))
-            inventory = new InventoryListOptimized<>(Arrays.asList((ItemStack[]) inventory.toArray()), ItemStack.EMPTY);
+            inventory = new InventoryListOptimized(Arrays.asList((ItemStack[]) inventory.toArray()), ItemStack.EMPTY);
     }
 
     @Feature("optimizedInventories")
@@ -761,7 +809,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
     public void onInvOpen(PlayerEntity playerEntity_1) {
         if (!playerEntity_1.isSpectator()) {
             viewerCount++;
-            if (!Settings.playerHopperOptimizations && !playerEntity_1.isSpectator())
+            if (Settings.playerInventoryDeoptimization && !playerEntity_1.isSpectator())
                 invalidateOptimizer();
         }
     }
@@ -769,7 +817,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
     public void onInvClose(PlayerEntity playerEntity_1) {
         if (!playerEntity_1.isSpectator()) {
             viewerCount--;
-            if (!Settings.playerHopperOptimizations && viewerCount < 0) {
+            if (Settings.playerInventoryDeoptimization && viewerCount < 0) {
                 System.out.println("Hopper viewer count inconsistency, might affect performance of optimizedInventories!");
                 viewerCount = 0;
             }
@@ -778,7 +826,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
 
     @Override
     public boolean mayHaveOptimizer() {
-        return !this.world.isClient && (Settings.playerHopperOptimizations || viewerCount <= 0);
+        return !this.world.isClient && (!Settings.playerInventoryDeoptimization || viewerCount <= 0);
     }
 
     private Box inputBox() {

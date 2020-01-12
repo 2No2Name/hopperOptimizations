@@ -1,6 +1,7 @@
 package hopperOptimizations.utils;
 
 import carpet.CarpetServer;
+import hopperOptimizations.settings.Settings;
 import it.unimi.dsi.fastutil.HashCommon;
 import net.minecraft.block.entity.ShulkerBoxBlockEntity;
 import net.minecraft.inventory.Inventory;
@@ -30,9 +31,9 @@ public class InventoryOptimizer {
     private static final int filterLongCount = Math.max(1, (1 << maskLength) / 64); //256 bit total, 8 bits can address it
 
     //todo(unneccesary) recalculate Filters when 180+ Bits are set -> ~12% chance for false positive
-    private static boolean DEBUG = false; //nonfinal to be able to change with debugger
+    //private static boolean DEBUG = false; //nonfinal to be able to change with debugger
 
-    private final InventoryListOptimized<ItemStack> stackList;
+    private final InventoryListOptimized stackList;
     private final SidedInventory sidedInventory; //only use when required, inventory handling should be mostly independent from the container
     private final boolean itemRestrictions;
     private int inventoryChanges;
@@ -62,7 +63,7 @@ public class InventoryOptimizer {
     private boolean invalid;
     private int optimizedInventoryRuleChangeCounter;
 
-    public InventoryOptimizer(InventoryListOptimized<ItemStack> stackList, Inventory inventory) {
+    public InventoryOptimizer(InventoryListOptimized stackList, Inventory inventory) {
         this.stackList = stackList;
         this.sidedInventory = inventory instanceof SidedInventory ? (SidedInventory) inventory : null;
         this.itemRestrictions = this.sidedInventory != null;
@@ -211,7 +212,7 @@ public class InventoryOptimizer {
             int max = itemStack.getMaxCount();
             weightedItemCount += countChange * (int) (64F / max);
             inventoryChanges++;
-            if (DEBUG) consistencyCheck();
+            if (Settings.debugOptimizedInventories) consistencyCheck();
         }
     }
 
@@ -248,17 +249,9 @@ public class InventoryOptimizer {
         return firstOccupiedSlot;
     }
 
-    //old approach: something stupid about conservatively invalidating the bloomfilter everytime the inventory was accessed (bad idea)
-    //new approach: assume that nothing besides players and hoppers/droppers change inventory contents
+    //assume that nothing besides players and hoppers/droppers etc. change inventory contents
     //control their inventory accesses, notify of the inventory of hidden stacksize changes (see HopperBlockEntityMixin and InventoriesMixin)
-    /*/**
-     * Remembers that an item escaped to an unknown context. Going to assume its hash and count may change immediately, but not later again.
-     * This assumption may lead to incorrect results
-     * @param slot Location of the escaped Item
-     */
-    /*void markEscaped(int slot){
-        //possiblyOutdatedSlots |= (1 << slot);
-    }//*/
+
 
     /**
      * Update the bloom filter after a slot has been modified.
@@ -322,7 +315,7 @@ public class InventoryOptimizer {
             recalcFirstFreeAndOccupiedSlots(oldFirstFreeSlot, flagRecalcFree, flagRecalcOccupied);
 
 
-        if (DEBUG) consistencyCheck();
+        if (Settings.debugOptimizedInventories) consistencyCheck();
     }
 
     private void recalcFirstFreeAndOccupiedSlots(int oldFirstFreeSlot, boolean flagRecalcFree, boolean flagRecalcOccupied) {

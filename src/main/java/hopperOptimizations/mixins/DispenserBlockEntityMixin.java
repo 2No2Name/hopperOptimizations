@@ -44,7 +44,7 @@ public abstract class DispenserBlockEntityMixin extends LootableContainerBlockEn
     @Inject(method = "setInvStackList", at = @At("RETURN"))
     private void onSetStackList(DefaultedList<ItemStack> stackList, CallbackInfo ci) {
         if (!(inventory instanceof InventoryListOptimized))
-            inventory = new InventoryListOptimized<>(Arrays.asList((ItemStack[]) inventory.toArray()), ItemStack.EMPTY);
+            inventory = new InventoryListOptimized(Arrays.asList((ItemStack[]) inventory.toArray()), ItemStack.EMPTY);
     }
 
     @Redirect(method = "fromTag(Lnet/minecraft/nbt/CompoundTag;)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/util/DefaultedList;ofSize(ILjava/lang/Object;)Lnet/minecraft/util/DefaultedList;"))
@@ -67,7 +67,7 @@ public abstract class DispenserBlockEntityMixin extends LootableContainerBlockEn
     public void onInvOpen(PlayerEntity playerEntity_1) {
         if (!playerEntity_1.isSpectator()) {
             viewerCount++;
-            if (!Settings.playerHopperOptimizations)
+            if (Settings.playerInventoryDeoptimization)
                 invalidateOptimizer();
         }
     }
@@ -75,7 +75,7 @@ public abstract class DispenserBlockEntityMixin extends LootableContainerBlockEn
     public void onInvClose(PlayerEntity playerEntity_1) {
         if (!playerEntity_1.isSpectator()) {
             viewerCount--;
-            if (!Settings.playerHopperOptimizations && viewerCount < 0) {
+            if (Settings.playerInventoryDeoptimization && viewerCount < 0) {
                 System.out.println("Dropper/Dispenser viewer count inconsistency, might affect performance of optimizedInventories!");
                 viewerCount = 0;
             }
@@ -84,7 +84,7 @@ public abstract class DispenserBlockEntityMixin extends LootableContainerBlockEn
 
     @Override
     public boolean mayHaveOptimizer() {
-        return !this.world.isClient && (Settings.playerHopperOptimizations || viewerCount <= 0);
+        return !this.world.isClient && (!Settings.playerInventoryDeoptimization || viewerCount <= 0);
     }
 
 }
