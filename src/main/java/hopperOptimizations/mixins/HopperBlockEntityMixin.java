@@ -334,7 +334,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
             return; //use vanilla code when optimization is off or this is a hopper minecart
         }
         assert hopper instanceof HopperBlockEntityMixin; //at runtime: assert hopper instanceof HopperBlockEntity;
-        ((HopperBlockEntityMixin) hopper).invalidateEntityCacheIfNeccessary();
+        ((HopperBlockEntityMixin) hopper).invalidateEntityCacheIfNecessary();
 
 
         if (((HopperBlockEntityMixin) hopper).inputArea == null) {
@@ -382,31 +382,33 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
             ((HopperBlockEntityMixin) hopper).itemEntityCacheInvalid = false;
         } else {
             //invalidate the fitting items set when the item types the hopper can pick up changed
-            if (((HopperBlockEntityMixin) hopper).lastItemTypeChangeCount != opt.getItemTypeChanges()) {
+            if (Settings.optimizedInventories && ((HopperBlockEntityMixin) hopper).lastItemTypeChangeCount != opt.getItemTypeChanges()) {
                 ((HopperBlockEntityMixin) hopper).fittingItems = null;
                 ((HopperBlockEntityMixin) hopper).transferAttemptsBeforeReinitFittingItems = 5;
                 ((HopperBlockEntityMixin) hopper).lastItemTypeChangeCount = opt.getItemTypeChanges();
             }
 
-            //remove item entities that have died or have moved away from the reachable items set
-            //when any were removed, also fittingItems needs to be filtered.
-            List<ItemEntity> listRemovedItems = new ArrayList<>();
-            boolean removedSome = ((HopperBlockEntityMixin) hopper).reachableItems.removeIf((ItemEntity entity) -> {
-                if (entity.removed) {
+            if (((HopperBlockEntityMixin) hopper).reachableItems.size() > 0) {
+                //remove item entities that have died or have moved away from the reachable items set
+                //when any were removed, also fittingItems needs to be filtered.
+                List<ItemEntity> listRemovedItems = new ArrayList<>();
+                boolean removedSome = ((HopperBlockEntityMixin) hopper).reachableItems.removeIf((ItemEntity entity) -> {
+                    if (entity.removed) {
+                        listRemovedItems.add(entity);
+                        return true;
+                    }
+                    Box entityBoundingBox = entity.getBoundingBox();
+                    for (Box box : ((HopperBlockEntityMixin) hopper).inputArea) {
+                        if (entityBoundingBox.intersects(box))
+                            return false;
+                    }
                     listRemovedItems.add(entity);
                     return true;
-                }
-                Box entityBoundingBox = entity.getBoundingBox();
-                for (Box box : ((HopperBlockEntityMixin) hopper).inputArea) {
-                    if (entityBoundingBox.intersects(box))
-                        return false;
-                }
-                listRemovedItems.add(entity);
-                return true;
-            });
-            //remove item entities that have died or have moved away from the reachable items set. fitting items must be a subset of reachable items
-            if (removedSome && ((HopperBlockEntityMixin) hopper).fittingItems != null && ((HopperBlockEntityMixin) hopper).fittingItems.size() > 0)
-                ((HopperBlockEntityMixin) hopper).fittingItems.removeAll(listRemovedItems);
+                });
+                //remove item entities that have died or have moved away from the reachable items set. fitting items must be a subset of reachable items
+                if (removedSome && ((HopperBlockEntityMixin) hopper).fittingItems != null && ((HopperBlockEntityMixin) hopper).fittingItems.size() > 0)
+                    ((HopperBlockEntityMixin) hopper).fittingItems.removeAll(listRemovedItems);
+            }
         }
         //item entity cache up to date and valid
         ((HopperBlockEntityMixin) hopper).lastTickTime_usedItemEntityCache = ((HopperBlockEntityMixin) hopper).lastTickTime;
@@ -467,7 +469,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
 
         if (inventory == null) {
             //Use the entity cache to find minecarts
-            ((HopperBlockEntityMixin) hopper).invalidateEntityCacheIfNeccessary();
+            ((HopperBlockEntityMixin) hopper).invalidateEntityCacheIfNecessary();
             if (((HopperBlockEntityMixin) hopper).inputInventoryEntityCacheInvalid) {
                 double double_1 = hopper.getHopperX();
                 double double_2 = hopper.getHopperY() + 1.0D;
@@ -582,7 +584,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
             return ((OptimizedInventory) cachedInv).isStillValid();
         }
         if (Settings.inventoryCheckOnBlockUpdate && cachedInv == null)
-            return extracting ? hasToCheckForInputInventory : hasToCheckForOutputInventory;
+            return extracting ? !hasToCheckForInputInventory : !hasToCheckForOutputInventory;
         return false; //never cache Entity Inventories, the entity might have moved away or a Blockentity might have been placed
     }
 
@@ -918,7 +920,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
             hasToCheckForOutputInventory = false;
         }
         if (inventory == null) {
-            this.invalidateEntityCacheIfNeccessary();
+            this.invalidateEntityCacheIfNecessary();
             if (this.outputInventoryEntityCacheInvalid) {
                 BlockPos pos = this.pos.offset(outputDirection);
                 double double_1 = pos.getX() + 0.5D;
@@ -945,9 +947,13 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
     }
 
     private boolean hasToInvalidateEntityCache() {
+        return false;
+        /*
+        //Replaced with WorldChunkMixin telling the hopper even about new lazy entities.
         if (lastLazyChunkCheckTick == this.world.getTime() && lastLazyChunkCheckTick != -1) return false;
         lastLazyChunkCheckTick = this.world.getTime();
         return !doAllNearbyEntitiesTick();
+        */
     }
 
     //When the hopper is in lazy chunks, caching doesn't work when entities suddenly can appear from dispensers, destroyed blocks etc.
@@ -979,7 +985,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
         invalidateOptimizedInventoryCache();
     }
 
-    private void invalidateEntityCacheIfNeccessary() {
+    private void invalidateEntityCacheIfNecessary() {
         if (EntityHopperInteraction.ruleUpdates != this.ruleUpdates || ruleUpdates == -1 || hasToInvalidateEntityCache()) {
             invalidateEntityHopperInteractionCache();
             this.ruleUpdates = EntityHopperInteraction.ruleUpdates;

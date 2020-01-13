@@ -19,7 +19,9 @@
     "StorageMinecartEntityMixin",
     "ContainerMixin",
     "DispenserBlockMixin",
-    "HopperBlock"
+    "HopperBlockMixin",
+    "WorldChunkMixin",
+    "EntityMixin"
   ],
   "client": [
     "MinecraftClient_noopMixin"

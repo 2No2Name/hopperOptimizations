@@ -8,6 +8,8 @@ import net.minecraft.block.Blocks;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.block.entity.HopperBlockEntity;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.ItemEntity;
+import net.minecraft.inventory.Inventory;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
@@ -21,14 +23,18 @@ public class EntityHopperInteraction extends Validator<Boolean> {
     public static final List<BlockPos> hopperLocationsToNotify = new ArrayList<>();
     //used to track when the rule was changed, incrementing makes all cached optimization states invalid
     public static int ruleUpdates = 0;
-    public static boolean rememberHoppers = false;
-    public static boolean checked = false;
+    public static boolean findHoppers = false;
+    public static boolean searchedForHoppers = false;
+
+    public static void notifyHoppersObj(Object object) {
+        if (object instanceof Entity) notifyHoppers((Entity) object);
+    }
 
     public static void notifyHoppers(Entity targetEntity) {
-        if (!checked) {
+        if (!searchedForHoppers) {
             if (targetEntity.prevX != targetEntity.getX() || targetEntity.prevY != targetEntity.getY() || targetEntity.prevZ != targetEntity.getZ())
                 findAndNotifyHoppers(targetEntity);
-            rememberHoppers = false;
+            findHoppers = false;
         } else {
             for (BlockPos pos : hopperLocationsToNotify) {
                 BlockEntity hopper = targetEntity.world.getBlockEntity(pos);
@@ -37,14 +43,14 @@ public class EntityHopperInteraction extends Validator<Boolean> {
                 }
             }
             hopperLocationsToNotify.clear();
-            rememberHoppers = false;
-            checked = false;
+            findHoppers = false;
+            searchedForHoppers = false;
         }
     }
 
     public static void findAndNotifyHoppers(Entity targetEntity) {
-        checked = true;
-        rememberHoppers = true;
+        searchedForHoppers = true;
+        findHoppers = true;
 
         Box box = targetEntity.getBoundingBox();
         int minX, maxX, minY, maxY, minZ, maxZ;
@@ -74,5 +80,9 @@ public class EntityHopperInteraction extends Validator<Boolean> {
         if (ruleUpdates != -1)
             ++ruleUpdates;
         return newValue;
+    }
+
+    public static boolean canInteractWithHopper(Object object) {
+        return object instanceof ItemEntity || object instanceof Inventory;
     }
 }

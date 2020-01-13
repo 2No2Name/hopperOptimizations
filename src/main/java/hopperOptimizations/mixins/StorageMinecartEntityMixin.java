@@ -2,7 +2,6 @@ package hopperOptimizations.mixins;
 
 
 import hopperOptimizations.settings.Settings;
-import hopperOptimizations.utils.EntityHopperInteraction;
 import hopperOptimizations.utils.InventoryListOptimized;
 import hopperOptimizations.utils.InventoryOptimizer;
 import hopperOptimizations.utils.OptimizedInventory;
@@ -91,6 +90,7 @@ public abstract class StorageMinecartEntityMixin extends AbstractMinecartEntity 
         return !this.world.isClient && (!Settings.playerInventoryDeoptimization || viewerCount <= 0);
     }
 
+    /* //replaced with code in EntityMixin
     @Override
     public void tick() {
         super.tick();
@@ -98,5 +98,5 @@ public abstract class StorageMinecartEntityMixin extends AbstractMinecartEntity 
             EntityHopperInteraction.findAndNotifyHoppers(this);
             initialized = true;
         }
-    }
+    }*/
 }
