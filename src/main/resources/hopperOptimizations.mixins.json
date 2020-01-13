@@ -18,7 +18,8 @@
     "ShulkerBoxBlockEntityMixin",
     "StorageMinecartEntityMixin",
     "ContainerMixin",
-    "DispenserBlockMixin"
+    "DispenserBlockMixin",
+    "HopperBlock"
   ],
   "client": [
     "MinecraftClient_noopMixin"

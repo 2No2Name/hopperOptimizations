@@ -56,4 +56,7 @@ public interface IHopper {
     @Feature("optimizedEntityHopperInteraction")
     default void notifyOfNearbyEntity(Entity entity) {
     }
+
+    default void onBlockUpdate() {
+    }
 }

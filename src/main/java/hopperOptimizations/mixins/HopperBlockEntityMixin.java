@@ -92,6 +92,11 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
     private BlockPos prevExtractInventoryPos;
     private int previousExtract_lastChangeCount;
     //-----------------------------------------------
+    //Fields for inventoryCheckOnBlockUpdate
+    private boolean hasToCheckForInputInventory = true;
+    private boolean hasToCheckForOutputInventory = true;
+
+    //-----------------------------------------------
     private boolean previousExtract_causeMarkDirty;
     @Shadow
     private long lastTickTime;
@@ -439,9 +444,12 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
             return getInputInventory(hopper); //Hopper Minecarts do not cache Inventories
 
         assert hopper instanceof HopperBlockEntityMixin; //at runtime: assert hopper instanceof HopperBlockEntity;
+        boolean skipGetBlockInventoryAt = false;
         if (Settings.optimizedInventories) {
             Inventory ret = ((HopperBlockEntityMixin) hopper).getCachedBlockInputInventory(); //Blockentities cached?
-            if (ret != null) {
+            if (Settings.inventoryCheckOnBlockUpdate && ret == hopper) { //this hopper as "no blockupdate since the last time there was no inventory"
+                skipGetBlockInventoryAt = true;
+            } else if (ret != null) { //null as "no valid inventory cached, or no inventory found"
                 return ret;
             }
         }
@@ -450,7 +458,13 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
             return getInputInventory(hopper);
 
         World world = ((HopperBlockEntityMixin) hopper).getWorld();
-        Inventory inventory = getBlockInventoryAt(world, ((HopperBlockEntityMixin) hopper).getPos().up());
+        Inventory inventory;
+        if (skipGetBlockInventoryAt) inventory = null;
+        else {
+            inventory = getBlockInventoryAt(world, ((HopperBlockEntityMixin) hopper).getPos().up());
+            ((HopperBlockEntityMixin) hopper).hasToCheckForInputInventory = false;
+        }
+
         if (inventory == null) {
             //Use the entity cache to find minecarts
             ((HopperBlockEntityMixin) hopper).invalidateEntityCacheIfNeccessary();
@@ -555,7 +569,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
     }
 
     @Feature("optimizedInventories")
-    private boolean inventoryCacheValid(Inventory cachedInv, BlockPos cachedInvPos) {
+    private boolean inventoryCacheValid(Inventory cachedInv, BlockPos cachedInvPos, boolean extracting) {
         if (cachedInv instanceof BlockEntity) {
             if (!((BlockEntity) cachedInv).isRemoved() &&
                     ((BlockEntity) cachedInv).getPos().equals(cachedInvPos)) {
@@ -567,6 +581,8 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
         if (cachedInv instanceof DoubleInventory && cachedInv instanceof OptimizedInventory) {
             return ((OptimizedInventory) cachedInv).isStillValid();
         }
+        if (Settings.inventoryCheckOnBlockUpdate && cachedInv == null)
+            return extracting ? hasToCheckForInputInventory : hasToCheckForOutputInventory;
         return false; //never cache Entity Inventories, the entity might have moved away or a Blockentity might have been placed
     }
 
@@ -575,15 +591,15 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
      * Requires optimizedInventories
      * Note: In vanilla hoppers getBlockState the location, which makes them load chunks in some versions.
      *
-     * @return cached output inventory, if found and valid
+     * @return cached output inventory, if found and valid. this if null is still valid (inventoryCheckOnBlockupdate)
      */
     @Feature("optimizedInventories")
     private Inventory getCachedBlockInputInventory() {
         //maybe use optional or some static NULL inv
         if (!Settings.optimizedInventories) return null;
         //cached inventory alive && position checks
-        if (inventoryCacheValid(prevExtractInventory, prevExtractInventoryPos)) {
-            return prevExtractInventory;
+        if (inventoryCacheValid(prevExtractInventory, prevExtractInventoryPos, true)) {
+            return prevExtractInventory == null ? this : prevExtractInventory; //this hopper as "no blockupdate since the last time there was no inventory"
         }
         //previousExtract = null; //invalidate cache
         prevExtractInventory = null;
@@ -603,7 +619,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
     private Inventory getCachedBlockOutputInventory() {
         if (!Settings.optimizedInventories) return null;
         //cached inventory alive && position checks
-        if (inventoryCacheValid(prevInsertInventory, prevInsertInventoryPos)) {
+        if (inventoryCacheValid(prevInsertInventory, prevInsertInventoryPos, false)) {
             return prevInsertInventory;
         }
         //previousInsert = null; //invalidate cache
@@ -881,9 +897,12 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
     @Redirect(method = "insert()Z", at = @At(value = "INVOKE", target = "Lnet/minecraft/block/entity/HopperBlockEntity;getOutputInventory()Lnet/minecraft/inventory/Inventory;"))
     private Inventory getOutputInventoryFromCache(HopperBlockEntity hopper) {
 
+        boolean skipGetBlockInventoryAt = false;
         if (Settings.optimizedInventories) {
             Inventory ret = getCachedBlockOutputInventory();
-            if (ret != null) return ret;
+            if (Settings.inventoryCheckOnBlockUpdate && ret == this) { //this hopper as "no blockupdate since the last time there was no inventory"
+                skipGetBlockInventoryAt = true;
+            } else if (ret != null) return ret;
         }
 
         if (!Settings.optimizedEntityHopperInteraction) return this.getOutputInventory();
@@ -892,7 +911,12 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
         if (world == null) return null;
 
         Direction outputDirection = hopper.getCachedState().get(HopperBlock.FACING);
-        Inventory inventory = getBlockInventoryAt(world, hopper.getPos().offset(outputDirection));
+        Inventory inventory;
+        if (skipGetBlockInventoryAt) inventory = null;
+        else {
+            inventory = getBlockInventoryAt(world, hopper.getPos().offset(outputDirection));
+            hasToCheckForOutputInventory = false;
+        }
         if (inventory == null) {
             this.invalidateEntityCacheIfNeccessary();
             if (this.outputInventoryEntityCacheInvalid) {
@@ -985,8 +1009,17 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
         clearOutputInventoryEntityCache();
         ruleUpdates = -1;
 
+        hasToCheckForInputInventory = true;
+        hasToCheckForOutputInventory = true;
+
         inputArea = null;
         inputBox = null;
         outputBox = null;
     }
+
+    public void onBlockUpdate() {
+        hasToCheckForInputInventory = true;
+        hasToCheckForOutputInventory = true;
+    }
+
 }
