@@ -294,7 +294,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
     @Feature("optimizedInventories")
     private static void transferOneItem_knownSuccessful(Inventory to, int toSlot, Inventory from, int fromSlot) {
         //assume stack sizes were checked, assume item types were already compared
-        //todo validate inputs if debug flag is set
+        //todo validate inputs if debugOptimizedInventories
 
         ItemStack fromStack = from.getInvStack(fromSlot);
         ItemStack toStack = to.getInvStack(toSlot);

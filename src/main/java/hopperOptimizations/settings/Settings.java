@@ -42,7 +42,7 @@ public class Settings {
     @Rule(desc = "Disable optimized inventories when players interact with them. Not an optimization.", category = {"hopperoptimizations"})
     public static boolean playerInventoryDeoptimization = false;
 
-    @Rule(desc = "Search for errors in optimized inventories on every known inventory modification. Prints errors in chat and resets the optimization state in case any error is detected. Massive lag, only enable for debugging.", category = {"hopperoptimizations"})
+    @Rule(desc = "Search for errors in optimized inventories on every known inventory modification. Prints errors in chat and resets the optimization state in case any error is detected. Massive lag, only enable for debugging. Partially requires assertions.", category = {"hopperoptimizations"})
     public static boolean debugOptimizedInventories = false;
 
     @Rule(desc = "Search for errors in optimized entity-hopper-interaction on every entity search. Prints errors in chat and resets the optimization state in case any error is detected. Massive lag, only enable for debugging.", category = {"hopperoptimizations"})

@@ -111,6 +111,10 @@ public class InventoryOptimizer {
         return this.invalid;
     }
 
+    public boolean isInitialized() {
+        return this.initialized;
+    }
+
     private void consistencyCheck() {
         //this is code from recalculate, but instead of changing anything, we just check if the results are conflicting
         if (!initialized || this.optimizedInventoryRuleChangeCounter != OptimizedInventoriesRule.ruleUpdates) return;
@@ -375,7 +379,7 @@ public class InventoryOptimizer {
         this.fakeSignalStrength = -1;
     }
 
-    boolean isOneItemAboveSignalStrength() {
+    boolean isOneItemAboveSignalStrength() { //todo what about doubleInventories
         int maxExtractableItemWeight = 0;
         for (Map.Entry<Integer, Integer> entry : stackSizeToSlotCount.entrySet())
             if (entry.getValue() > 0 && entry.getKey() > maxExtractableItemWeight)
@@ -526,6 +530,9 @@ public class InventoryOptimizer {
      * @return index of the stack object, -1 if none found.
      */
     public int indexOfObject(ItemStack stack) {
+        if (!initialized || this.optimizedInventoryRuleChangeCounter != OptimizedInventoriesRule.ruleUpdates)
+            recalculate();
+
         for (int i = 0; i < this.totalSlots; i++) {
             if (stack == this.stackList.get(i))
                 return i;
