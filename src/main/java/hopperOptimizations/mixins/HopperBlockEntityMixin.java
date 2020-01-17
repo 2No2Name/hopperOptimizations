@@ -628,6 +628,9 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
         throw new AssertionError();
     }
 
+    @Shadow
+    protected abstract boolean isEmpty();
+
     @Feature("optimizedHopperPickupShape")
     public VoxelShape getInputAreaShape() {
         if (Settings.simplifiedHopperPickupShape) return INPUT_AREA_SHAPE_SIMPLIFIED;
