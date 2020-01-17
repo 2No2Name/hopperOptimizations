@@ -3,6 +3,7 @@ package hopperOptimizations.utils;
 import carpet.settings.ParsedRule;
 import carpet.settings.Validator;
 import hopperOptimizations.annotation.Feature;
+import hopperOptimizations.settings.Settings;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.block.entity.BlockEntity;
@@ -84,5 +85,15 @@ public class EntityHopperInteraction extends Validator<Boolean> {
 
     public static boolean canInteractWithHopper(Object object) {
         return object instanceof ItemEntity || object instanceof Inventory;
+    }
+
+
+    public static void notifyHoppersOfNewOrTeleportedEntity(Entity entity) {
+        if (Settings.optimizedEntityHopperInteraction && !entity.removed) {
+            //when rememberHoppers is true, we are already checking for hoppers, so calling it would be redundant
+            //only call for entity types that hoppers can interact with
+            if (!EntityHopperInteraction.findHoppers && (canInteractWithHopper(entity)))
+                EntityHopperInteraction.findAndNotifyHoppers(entity);
+        }
     }
 }

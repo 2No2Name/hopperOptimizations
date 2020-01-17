@@ -45,6 +45,9 @@ public class Settings {
     @Rule(desc = "Search for errors in optimized inventories on every known inventory modification. Prints errors in chat and resets the optimization state in case any error is detected. Massive lag, only enable for debugging.", category = {"hopperoptimizations"})
     public static boolean debugOptimizedInventories = false;
 
+    @Rule(desc = "Search for errors in optimized entity-hopper-interaction on every entity search. Prints errors in chat and resets the optimization state in case any error is detected. Massive lag, only enable for debugging.", category = {"hopperoptimizations"})
+    public static boolean debugOptimizedEntityHopperInteraction = false;
+
     //doesn't work without entityhopperinteraction yet. breaks on fill without blockupdates/update suppression
     @Rule(desc = "Make hoppers only check for newly created blockentities when receiving a block update. Requires optimizedEntityHopperInteraction.",
             category = {"hopperoptimizations"}, validate = EntityHopperInteraction.class)

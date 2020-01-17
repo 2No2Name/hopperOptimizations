@@ -1,5 +1,6 @@
 package hopperOptimizations.mixins;
 
+import carpet.CarpetServer;
 import hopperOptimizations.annotation.Feature;
 import hopperOptimizations.settings.Settings;
 import hopperOptimizations.utils.*;
@@ -14,6 +15,8 @@ import net.minecraft.inventory.Inventory;
 import net.minecraft.inventory.SidedInventory;
 import net.minecraft.item.ItemStack;
 import net.minecraft.predicate.entity.EntityPredicates;
+import net.minecraft.text.LiteralText;
+import net.minecraft.text.Text;
 import net.minecraft.util.DefaultedList;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
@@ -32,12 +35,11 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
 
 import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.LinkedHashSet;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+
+import static net.minecraft.block.entity.HopperBlockEntity.getInputItemEntities;
 
 @Mixin(HopperBlockEntity.class)
 public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntity implements OptimizedInventory, IHopper, Hopper {
@@ -110,6 +112,11 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
 
     @Shadow
     private static boolean extract(Hopper hopper_1, Inventory inventory_1, int int_1, Direction direction_1) {
+        throw new AssertionError();
+    }
+
+    @Shadow
+    public static boolean extract(Inventory inventory, ItemEntity itemEntity) {
         throw new AssertionError();
     }
 
@@ -329,113 +336,49 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
     }
 
     @Inject(method = "extract(Lnet/minecraft/block/entity/Hopper;)Z", at = @At(value = "INVOKE", target = "Lnet/minecraft/block/entity/HopperBlockEntity;getInputItemEntities(Lnet/minecraft/block/entity/Hopper;)Ljava/util/List;", shift = At.Shift.BEFORE), locals = LocalCapture.CAPTURE_FAILHARD, cancellable = true)
-    private static void optimizeItemPickup(Hopper hopper, CallbackInfoReturnable<Boolean> cir) {
+    private static void optimizeItemPickupMixin(Hopper hopper, CallbackInfoReturnable<Boolean> cir) {
         if (!Settings.optimizedEntityHopperInteraction || !(hopper instanceof HopperBlockEntity)) {
             return; //use vanilla code when optimization is off or this is a hopper minecart
         }
         assert hopper instanceof HopperBlockEntityMixin; //at runtime: assert hopper instanceof HopperBlockEntity;
-        ((HopperBlockEntityMixin) hopper).invalidateEntityCacheIfNecessary();
 
-
-        if (((HopperBlockEntityMixin) hopper).inputArea == null) {
-            VoxelShape inputArea = hopper.getInputAreaShape();
-            ((HopperBlockEntityMixin) hopper).inputArea = inputArea.getBoundingBoxes().stream().map(box -> box.offset(hopper.getHopperX() - 0.5D, hopper.getHopperY() - 0.5D, hopper.getHopperZ() - 0.5D)).collect(Collectors.toList());
-        }
-
-        //get the optimizer of this hopper
-        final InventoryOptimizer opt;
-        if (Settings.optimizedInventories)
-            opt = ((HopperBlockEntityMixin) hopper).getOptimizer();
+        if (!Settings.debugOptimizedEntityHopperInteraction)
+            ((HopperBlockEntityMixin) hopper).optimizeItemPickup(cir);
         else {
-            opt = null;
-            ((HopperBlockEntityMixin) hopper).fittingItems = null;
-        }
+            try {
+                List<ItemEntity> itemEntities = HopperBlockEntity.getInputItemEntities(hopper);
+                ItemEntity pickedUp = ((HopperBlockEntityMixin) hopper).optimizeItemPickup(cir);
+                if (pickedUp == null) {
+                    pickedUp = conventionalItemPickup(hopper, itemEntities.iterator());
+                    if (pickedUp != null)
+                        throw new IllegalStateException("HopperOptimizations picked up no item even though vanilla could pick up: " + pickedUp.toString());
+                } else if (!itemEntities.contains(pickedUp))
+                    throw new IllegalStateException("HopperOptimizations picked up an item that vanilla couldn't pick up: " + pickedUp.toString());
 
-        //fix the entity cache in case it is not initialized
-        if (((HopperBlockEntityMixin) hopper).itemEntityCacheInvalid) {
-            //get entities like vanilla
-            List<ItemEntity> nearbyItems = HopperBlockEntity.getInputItemEntities(hopper);
-            int size;
-            //keep a set of reachable items to be faster next time
-            ((HopperBlockEntityMixin) hopper).reachableItems = new LinkedHashSet<>(size = nearbyItems.size());
-            ((HopperBlockEntityMixin) hopper).reachableItems.addAll(nearbyItems);
-
-            if (Settings.optimizedInventories) {
-                //when using optimizedInventories also keep a set of items that the hopper already has
-                //only do this when there is no empty slot, because then the set is equivalent to reachableItems
-                if (opt != null && !opt.hasFreeSlots_insertable()) {
-                    ((HopperBlockEntityMixin) hopper).fittingItems = new LinkedHashSet<>(size);
-                    //Assume hoppers are no SidedInventory due to some other mod!
-                    assert !(hopper instanceof SidedInventory);
-                    nearbyItems.removeIf((ItemEntity itemEntity) -> {
-                        //If the item cannot be taken out of the inventory, it is not inside the inventory.
-                        //explicitly not checking whether those stacks are full, because that changes very often in sorters etc.
-                        //the set is supposed to be only recalculated when the item types the hopper can pick up change
-                        return -1 == opt.indexOf(itemEntity.getStack());
-                    });
-                    ((HopperBlockEntityMixin) hopper).fittingItems.addAll(nearbyItems);
-
-                    //keep the current counter value to be able to detect changes to the item types the hopper can pick up later
-                    ((HopperBlockEntityMixin) hopper).lastItemTypeChangeCount = opt.getItemTypeChanges();
+                if (!itemEntities.containsAll(((HopperBlockEntityMixin) hopper).reachableItems)) {
+                    throw new IllegalStateException("HopperOptimizations found item(s) that vanilla did not find.");
                 }
-            }
-            ((HopperBlockEntityMixin) hopper).itemEntityCacheInvalid = false;
-        } else {
-            //invalidate the fitting items set when the item types the hopper can pick up changed
-            if (Settings.optimizedInventories && ((HopperBlockEntityMixin) hopper).lastItemTypeChangeCount != opt.getItemTypeChanges()) {
-                ((HopperBlockEntityMixin) hopper).fittingItems = null;
-                ((HopperBlockEntityMixin) hopper).transferAttemptsBeforeReinitFittingItems = 5;
-                ((HopperBlockEntityMixin) hopper).lastItemTypeChangeCount = opt.getItemTypeChanges();
-            }
 
-            if (((HopperBlockEntityMixin) hopper).reachableItems.size() > 0) {
-                //remove item entities that have died or have moved away from the reachable items set
-                //when any were removed, also fittingItems needs to be filtered.
-                List<ItemEntity> listRemovedItems = new ArrayList<>();
-                boolean removedSome = ((HopperBlockEntityMixin) hopper).reachableItems.removeIf((ItemEntity entity) -> {
-                    if (entity.removed) {
-                        listRemovedItems.add(entity);
-                        return true;
-                    }
-                    Box entityBoundingBox = entity.getBoundingBox();
-                    for (Box box : ((HopperBlockEntityMixin) hopper).inputArea) {
-                        if (entityBoundingBox.intersects(box))
-                            return false;
-                    }
-                    listRemovedItems.add(entity);
-                    return true;
-                });
-                //remove item entities that have died or have moved away from the reachable items set. fitting items must be a subset of reachable items
-                if (removedSome && ((HopperBlockEntityMixin) hopper).fittingItems != null && ((HopperBlockEntityMixin) hopper).fittingItems.size() > 0)
-                    ((HopperBlockEntityMixin) hopper).fittingItems.removeAll(listRemovedItems);
+                if (!((HopperBlockEntityMixin) hopper).reachableItems.containsAll(itemEntities)) {
+                    throw new IllegalStateException("HopperOptimizations did not find item(s) that vanilla found.");
+                }
+            } catch (IllegalStateException e) {
+                ((HopperBlockEntityMixin) hopper).invalidateEntityHopperInteractionCache();
+                Text text = new LiteralText("Detected wrong entity hopper interaction ( " + e.getMessage() + ")!");
+                CarpetServer.minecraft_server.getPlayerManager().broadcastChatMessage(text, false);
+                e.printStackTrace();
             }
         }
-        //item entity cache up to date and valid
-        ((HopperBlockEntityMixin) hopper).lastTickTime_usedItemEntityCache = ((HopperBlockEntityMixin) hopper).lastTickTime;
+    }
 
-        //reinitialize fitting items if not invalidated during this transfer attempt (would happen every time when transferring nonstackable items)
-        if (opt != null && ((HopperBlockEntityMixin) hopper).lastItemTypeChangeCount == opt.getItemTypeChanges() && ((HopperBlockEntityMixin) hopper).transferAttemptsBeforeReinitFittingItems == 0 && ((HopperBlockEntityMixin) hopper).fittingItems == null && !opt.hasFreeSlots_insertable()) {
-            ((HopperBlockEntityMixin) hopper).fittingItems = new LinkedHashSet<>(((HopperBlockEntityMixin) hopper).reachableItems);
-            //Assume hoppers are no SidedInventory due to some other mod!
-            assert !(hopper instanceof SidedInventory);
-            ((HopperBlockEntityMixin) hopper).fittingItems.removeIf((ItemEntity itemEntity) -> {
-                //If the item cannot be taken out of the inventory, it is not inside the inventory. (no SidedInventory!)
-                //explicitly not checking whether those stacks are full, because that changes very often in sorters etc.
-                //the set is supposed to be only recalculated when the item types the hopper can pick up change
-                return -1 == opt.indexOf(itemEntity.getStack());
-            });
-        } else if (((HopperBlockEntityMixin) hopper).transferAttemptsBeforeReinitFittingItems > 0)
-            --((HopperBlockEntityMixin) hopper).transferAttemptsBeforeReinitFittingItems;
-
-
-        LinkedHashSet<ItemEntity> itemsToTransfer = ((HopperBlockEntityMixin) hopper).fittingItems == null ? ((HopperBlockEntityMixin) hopper).reachableItems : ((HopperBlockEntityMixin) hopper).fittingItems;
-        for (ItemEntity itemEntity : itemsToTransfer) {
-            if (HopperBlockEntity.extract(hopper, itemEntity)) {
-                cir.setReturnValue(true);
-                return;
-            }
+    private static ItemEntity conventionalItemPickup(Hopper hopper, Iterator<ItemEntity> itemEntities) {
+        ItemEntity itemEntity;
+        while (itemEntities.hasNext()) {
+            itemEntity = itemEntities.next();
+            if (extract(hopper, itemEntity))
+                return itemEntity;
         }
-        cir.setReturnValue(false);
+        return null;
     }
 
     @Feature("optimizedEntityHopperInteraction")
@@ -449,7 +392,9 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
         boolean skipGetBlockInventoryAt = false;
         if (Settings.optimizedInventories) {
             Inventory ret = ((HopperBlockEntityMixin) hopper).getCachedBlockInputInventory(); //Blockentities cached?
-            if (Settings.inventoryCheckOnBlockUpdate && ret == hopper) { //this hopper as "no blockupdate since the last time there was no inventory"
+            //this hopper as "no blockupdate since the last time there was no inventory"
+            //would need two different types of special return codes besides actual inventories for nothing cached, and null cached
+            if (Settings.inventoryCheckOnBlockUpdate && ret == hopper) {
                 skipGetBlockInventoryAt = true;
             } else if (ret != null) { //null as "no valid inventory cached, or no inventory found"
                 return ret;
@@ -484,6 +429,26 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
                 return null;
             list_1.removeIf((Entity inv) -> inv.removed || !inv.getBoundingBox().intersects(((HopperBlockEntityMixin) hopper).inputBox()));
 
+            if (Settings.debugOptimizedEntityHopperInteraction) {
+                try {
+                    List<Entity> inventoriesVanilla = world.getEntities((Entity) null, new Box(hopper.getHopperX() - 0.5D, hopper.getHopperY() + 1.0D - 0.5D, hopper.getHopperZ() - 0.5D, hopper.getHopperX() + 0.5D, hopper.getHopperY() + 1.0D + 0.5D, hopper.getHopperZ() + 0.5D), EntityPredicates.VALID_INVENTORIES);
+                    if (!list_1.containsAll(inventoriesVanilla)) {
+                        throw new IllegalStateException("HopperOptimizations did not find inventory entity/entities that vanilla found.");
+                    }
+                    if (!inventoriesVanilla.containsAll(list_1)) {
+                        throw new IllegalStateException("HopperOptimizations found inventory entity/entities that vanilla did not find.");
+                    }
+                    if (inventoriesVanilla.size() != list_1.size()) {
+                        throw new IllegalStateException("HopperOptimizations did not find the same number of entities as vanilla."); //duplicate entries!
+                    }
+                } catch (IllegalStateException e) {
+                    ((HopperBlockEntityMixin) hopper).invalidateEntityHopperInteractionCache();
+                    Text text = new LiteralText("Detected wrong entity hopper interaction ( " + e.getMessage() + ")!");
+                    CarpetServer.minecraft_server.getPlayerManager().broadcastChatMessage(text, false);
+                    e.printStackTrace();
+                }
+            }
+
             if (!list_1.isEmpty()) {
                 ((HopperBlockEntityMixin) hopper).clearInputItemEntityCache();
                 return (Inventory) list_1.get(world.random.nextInt(list_1.size()));
@@ -495,6 +460,114 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
         ((HopperBlockEntityMixin) hopper).clearInputItemEntityCache();
         return inventory;
     }
+
+    private ItemEntity optimizeItemPickup(CallbackInfoReturnable<Boolean> cir) {
+
+        this.invalidateEntityCacheIfNecessary();
+
+
+        if (this.inputArea == null) {
+            VoxelShape inputArea = this.getInputAreaShape();
+            this.inputArea = inputArea.getBoundingBoxes().stream().map(box -> box.offset(this.getHopperX() - 0.5D, this.getHopperY() - 0.5D, this.getHopperZ() - 0.5D)).collect(Collectors.toList());
+        }
+
+        //get the optimizer of this hopper
+        final InventoryOptimizer opt;
+        if (Settings.optimizedInventories)
+            opt = this.getOptimizer();
+        else {
+            opt = null;
+            this.fittingItems = null;
+        }
+
+        //fix the entity cache in case it is not initialized
+        if (this.itemEntityCacheInvalid) {
+            //get entities like vanilla
+            List<ItemEntity> nearbyItems = getInputItemEntities(this);
+            int size;
+            //keep a set of reachable items to be faster next time
+            this.reachableItems = new LinkedHashSet<>(size = nearbyItems.size());
+            this.reachableItems.addAll(nearbyItems);
+
+            if (Settings.optimizedInventories) {
+                //when using optimizedInventories also keep a set of items that the hopper already has
+                //only do this when there is no empty slot, because then the set is equivalent to reachableItems
+                if (opt != null && !opt.hasFreeSlots_insertable()) {
+                    this.fittingItems = new LinkedHashSet<>(size);
+                    //Assume hoppers are no SidedInventory due to some other mod!
+                    assert !(this instanceof SidedInventory);
+                    nearbyItems.removeIf((ItemEntity itemEntity) -> {
+                        //If the item cannot be taken out of the inventory, it is not inside the inventory.
+                        //explicitly not checking whether those stacks are full, because that changes very often in sorters etc.
+                        //the set is supposed to be only recalculated when the item types the hopper can pick up change
+                        return -1 == opt.indexOf(itemEntity.getStack());
+                    });
+                    this.fittingItems.addAll(nearbyItems);
+
+                    //keep the current counter value to be able to detect changes to the item types the hopper can pick up later
+                    this.lastItemTypeChangeCount = opt.getItemTypeChanges();
+                }
+            }
+            this.itemEntityCacheInvalid = false;
+        } else {
+            //invalidate the fitting items set when the item types the hopper can pick up changed
+            if (Settings.optimizedInventories && this.lastItemTypeChangeCount != opt.getItemTypeChanges()) {
+                this.fittingItems = null;
+                this.transferAttemptsBeforeReinitFittingItems = 5;
+                this.lastItemTypeChangeCount = opt.getItemTypeChanges();
+            }
+
+            if (this.reachableItems.size() > 0) {
+                //remove item entities that have died or have moved away from the reachable items set
+                //when any were removed, also fittingItems needs to be filtered.
+                List<ItemEntity> listRemovedItems = new ArrayList<>();
+                boolean removedSome = this.reachableItems.removeIf((ItemEntity entity) -> {
+                    if (entity.removed) {
+                        listRemovedItems.add(entity);
+                        return true;
+                    }
+                    Box entityBoundingBox = entity.getBoundingBox();
+                    for (Box box : this.inputArea) {
+                        if (entityBoundingBox.intersects(box))
+                            return false;
+                    }
+                    listRemovedItems.add(entity);
+                    return true;
+                });
+                //remove item entities that have died or have moved away from the reachable items set. fitting items must be a subset of reachable items
+                if (removedSome && this.fittingItems != null && this.fittingItems.size() > 0)
+                    this.fittingItems.removeAll(listRemovedItems);
+            }
+        }
+        //item entity cache up to date and valid
+        this.lastTickTime_usedItemEntityCache = this.lastTickTime;
+
+        //reinitialize fitting items if not invalidated during this transfer attempt (would happen every time when transferring nonstackable items)
+        if (opt != null && this.lastItemTypeChangeCount == opt.getItemTypeChanges() && this.transferAttemptsBeforeReinitFittingItems == 0 && this.fittingItems == null && !opt.hasFreeSlots_insertable()) {
+            this.fittingItems = new LinkedHashSet<>(this.reachableItems);
+            //Assume hoppers are no SidedInventory due to some other mod!
+            assert !(this instanceof SidedInventory);
+            this.fittingItems.removeIf((ItemEntity itemEntity) -> {
+                //If the item cannot be taken out of the inventory, it is not inside the inventory. (no SidedInventory!)
+                //explicitly not checking whether those stacks are full, because that changes very often in sorters etc.
+                //the set is supposed to be only recalculated when the item types the hopper can pick up change
+                return -1 == opt.indexOf(itemEntity.getStack());
+            });
+        } else if (this.transferAttemptsBeforeReinitFittingItems > 0)
+            --this.transferAttemptsBeforeReinitFittingItems;
+
+
+        LinkedHashSet<ItemEntity> itemsToTransfer = this.fittingItems == null ? this.reachableItems : this.fittingItems;
+        for (ItemEntity itemEntity : itemsToTransfer) {
+            if (HopperBlockEntity.extract(this, itemEntity)) {
+                cir.setReturnValue(true);
+                return itemEntity;
+            }
+        }
+        cir.setReturnValue(false);
+        return null;
+    }
+
 
     @Feature("optimizedEntityHopperInteraction")
     private static Inventory getBlockInventoryAt(World world_1, BlockPos blockPos_1) {
@@ -936,6 +1009,31 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
             if (list_1.isEmpty())
                 return null;
             list_1.removeIf((Entity inv) -> inv.removed || !inv.getBoundingBox().intersects(this.outputBox()));
+
+            if (Settings.debugOptimizedEntityHopperInteraction) {
+                try {
+                    BlockPos pos = this.pos.offset(outputDirection);
+                    double double_1 = pos.getX() + 0.5D;
+                    double double_2 = pos.getY() + 0.5D;
+                    double double_3 = pos.getZ() + 0.5D;
+                    List<Entity> inventoriesVanilla = world.getEntities((Entity) null, new Box(double_1 - 0.5D, double_2 - 0.5D, double_3 - 0.5D, double_1 + 0.5D, double_2 + 0.5D, double_3 + 0.5D), EntityPredicates.VALID_INVENTORIES);
+
+                    if (!list_1.containsAll(inventoriesVanilla)) {
+                        throw new IllegalStateException("HopperOptimizations did not find inventory entity/entities that vanilla found.");
+                    }
+                    if (!inventoriesVanilla.containsAll(list_1)) {
+                        throw new IllegalStateException("HopperOptimizations found inventory entity/entities that vanilla did not find.");
+                    }
+                    if (inventoriesVanilla.size() != list_1.size()) {
+                        throw new IllegalStateException("HopperOptimizations did not find the same number of entities as vanilla."); //duplicate entries!
+                    }
+                } catch (IllegalStateException e) {
+                    this.invalidateEntityHopperInteractionCache();
+                    Text text = new LiteralText("Detected wrong entity hopper interaction ( " + e.getMessage() + ")!");
+                    CarpetServer.minecraft_server.getPlayerManager().broadcastChatMessage(text, false);
+                    e.printStackTrace();
+                }
+            }
 
             if (!list_1.isEmpty()) {
                 return (Inventory) list_1.get(world.random.nextInt(list_1.size()));

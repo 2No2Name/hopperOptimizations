@@ -21,7 +21,8 @@
     "DispenserBlockMixin",
     "HopperBlockMixin",
     "WorldChunkMixin",
-    "EntityMixin"
+    "EntityMixin",
+    "TeleportCommandMixin"
   ],
   "client": [
     "MinecraftClient_noopMixin"
