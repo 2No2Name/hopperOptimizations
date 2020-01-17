@@ -3,11 +3,14 @@ package hopperOptimizations.utils;
 import carpet.settings.ParsedRule;
 import carpet.settings.Validator;
 import hopperOptimizations.annotation.Feature;
+import hopperOptimizations.settings.Settings;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.block.entity.HopperBlockEntity;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.ItemEntity;
+import net.minecraft.inventory.Inventory;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
@@ -21,14 +24,18 @@ public class EntityHopperInteraction extends Validator<Boolean> {
     public static final List<BlockPos> hopperLocationsToNotify = new ArrayList<>();
     //used to track when the rule was changed, incrementing makes all cached optimization states invalid
     public static int ruleUpdates = 0;
-    public static boolean rememberHoppers = false;
-    public static boolean checked = false;
+    public static boolean findHoppers = false;
+    public static boolean searchedForHoppers = false;
+
+    public static void notifyHoppersObj(Object object) {
+        if (object instanceof Entity) notifyHoppers((Entity) object);
+    }
 
     public static void notifyHoppers(Entity targetEntity) {
-        if (!checked) {
+        if (!searchedForHoppers) {
             if (targetEntity.prevX != targetEntity.x || targetEntity.prevY != targetEntity.y || targetEntity.prevZ != targetEntity.z)
                 findAndNotifyHoppers(targetEntity);
-            rememberHoppers = false;
+            findHoppers = false;
         } else {
             for (BlockPos pos : hopperLocationsToNotify) {
                 BlockEntity hopper = targetEntity.world.getBlockEntity(pos);
@@ -37,14 +44,14 @@ public class EntityHopperInteraction extends Validator<Boolean> {
                 }
             }
             hopperLocationsToNotify.clear();
-            rememberHoppers = false;
-            checked = false;
+            findHoppers = false;
+            searchedForHoppers = false;
         }
     }
 
     public static void findAndNotifyHoppers(Entity targetEntity) {
-        checked = true;
-        rememberHoppers = true;
+        searchedForHoppers = true;
+        findHoppers = true;
 
         Box box = targetEntity.getBoundingBox();
         int minX, maxX, minY, maxY, minZ, maxZ;
@@ -74,5 +81,19 @@ public class EntityHopperInteraction extends Validator<Boolean> {
         if (ruleUpdates != -1)
             ++ruleUpdates;
         return newValue;
+    }
+
+    public static boolean canInteractWithHopper(Object object) {
+        return object instanceof ItemEntity || object instanceof Inventory;
+    }
+
+
+    public static void notifyHoppersOfNewOrTeleportedEntity(Entity entity) {
+        if (Settings.optimizedEntityHopperInteraction && !entity.removed) {
+            //when rememberHoppers is true, we are already checking for hoppers, so calling it would be redundant
+            //only call for entity types that hoppers can interact with
+            if (!EntityHopperInteraction.findHoppers && (canInteractWithHopper(entity)))
+                EntityHopperInteraction.findAndNotifyHoppers(entity);
+        }
     }
 }

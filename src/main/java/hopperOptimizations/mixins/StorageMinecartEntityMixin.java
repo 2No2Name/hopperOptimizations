@@ -2,7 +2,6 @@ package hopperOptimizations.mixins;
 
 
 import hopperOptimizations.settings.Settings;
-import hopperOptimizations.utils.EntityHopperInteraction;
 import hopperOptimizations.utils.InventoryListOptimized;
 import hopperOptimizations.utils.InventoryOptimizer;
 import hopperOptimizations.utils.OptimizedInventory;
@@ -30,9 +29,8 @@ public abstract class StorageMinecartEntityMixin extends AbstractMinecartEntity 
     private DefaultedList<ItemStack> inventory;
     private int viewerCount;
 
-    protected StorageMinecartEntityMixin(EntityType<?> entityType_1, World world_1) {
+    protected StorageMinecartEntityMixin(EntityType<?> entityType_1, World world_1, int someInt, int someOtherInt) {
         super(entityType_1, world_1);
-        //todo check what has to be here!!
         throw new AssertionError();
     }
 
@@ -69,7 +67,7 @@ public abstract class StorageMinecartEntityMixin extends AbstractMinecartEntity 
 
     public void onInvOpen(PlayerEntity playerEntity_1) {
         if (!playerEntity_1.isSpectator()) {
-            if (!Settings.playerHopperOptimizations)
+            if (Settings.playerInventoryDeoptimization)
                 invalidateOptimizer();
             viewerCount++;
         }
@@ -78,7 +76,7 @@ public abstract class StorageMinecartEntityMixin extends AbstractMinecartEntity 
     public void onInvClose(PlayerEntity playerEntity_1) {
         if (!playerEntity_1.isSpectator()) {
             viewerCount--;
-            if (!Settings.playerHopperOptimizations) {
+            if (Settings.playerInventoryDeoptimization) {
                 if (viewerCount < 0) {
                     System.out.println("StorageMinecartEntityMixin: (Inventory-)viewerCount inconsistency detected, might affect performance of optimizedInventories!");
                     viewerCount = 0;
@@ -89,9 +87,10 @@ public abstract class StorageMinecartEntityMixin extends AbstractMinecartEntity 
 
     @Override
     public boolean mayHaveOptimizer() {
-        return !this.world.isClient && (Settings.playerHopperOptimizations || viewerCount <= 0);
+        return !this.world.isClient && (!Settings.playerInventoryDeoptimization || viewerCount <= 0);
     }
 
+    /* //replaced with code in EntityMixin
     @Override
     public void tick() {
         super.tick();
@@ -99,5 +98,5 @@ public abstract class StorageMinecartEntityMixin extends AbstractMinecartEntity 
             EntityHopperInteraction.findAndNotifyHoppers(this);
             initialized = true;
         }
-    }
+    }*/
 }

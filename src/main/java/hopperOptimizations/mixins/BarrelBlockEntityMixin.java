@@ -47,7 +47,7 @@ public abstract class BarrelBlockEntityMixin extends LootableContainerBlockEntit
     @Inject(method = "setInvStackList", at = @At("RETURN"))
     private void onSetStackList(DefaultedList<ItemStack> stackList, CallbackInfo ci) {
         if (!(inventory instanceof InventoryListOptimized))
-            inventory = new InventoryListOptimized<>(Arrays.asList((ItemStack[]) inventory.toArray()), ItemStack.EMPTY);
+            inventory = new InventoryListOptimized(Arrays.asList((ItemStack[]) inventory.toArray()), ItemStack.EMPTY);
     }
 
 
@@ -63,12 +63,12 @@ public abstract class BarrelBlockEntityMixin extends LootableContainerBlockEntit
 
     @Inject(method = "onInvOpen(Lnet/minecraft/entity/player/PlayerEntity;)V", at = @At(value = "HEAD"))
     private void onInventoryOpened(PlayerEntity playerEntity_1, CallbackInfo ci) {
-        if (!Settings.playerHopperOptimizations && !playerEntity_1.isSpectator())
+        if (Settings.playerInventoryDeoptimization && !playerEntity_1.isSpectator())
             invalidateOptimizer();
     }
 
     @Override
     public boolean mayHaveOptimizer() {
-        return !this.world.isClient && (Settings.playerHopperOptimizations || viewerCount <= 0);
+        return !this.world.isClient && (!Settings.playerInventoryDeoptimization || viewerCount <= 0);
     }
 }

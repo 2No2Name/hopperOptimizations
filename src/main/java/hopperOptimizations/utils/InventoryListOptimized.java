@@ -10,7 +10,7 @@ import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.List;
 
-public class InventoryListOptimized<E> extends DefaultedList<E> {
+public class InventoryListOptimized extends DefaultedList<ItemStack> {
     private InventoryOptimizer optimizer = null;
     private int sizeOverride = -1; //used for Minecart Inventories to pretend to be small, just like they do
 
@@ -18,26 +18,26 @@ public class InventoryListOptimized<E> extends DefaultedList<E> {
         super();
     }
 
-    public InventoryListOptimized(List<E> list_1, @Nullable E object_1) {
+    public InventoryListOptimized(List<ItemStack> list_1, @Nullable ItemStack object_1) {
         super(list_1, object_1);
     }
 
-    public static <E> DefaultedList<E> of() {
-        return new InventoryListOptimized<>();
+    public static DefaultedList<ItemStack> of() {
+        return new InventoryListOptimized();
     }
 
-    public static <E> DefaultedList<E> ofSize(int int_1, E object_1) {
+    public static DefaultedList<ItemStack> ofSize(int int_1, ItemStack object_1) {
         Validate.notNull(object_1);
-        Object[] objects_1 = new Object[int_1];
+        ItemStack[] objects_1 = new ItemStack[int_1];
         Arrays.fill(objects_1, object_1);
-        return new InventoryListOptimized<>((List<E>) Arrays.asList(objects_1), object_1);
+        return new InventoryListOptimized(Arrays.asList(objects_1), object_1);
     }
 
     public InventoryOptimizer getCreateOrRemoveOptimizer(Inventory inventory) {
         if (!Settings.optimizedInventories) return this.optimizer = null;
 
         if (this.optimizer == null) {
-            this.optimizer = new InventoryOptimizer((InventoryListOptimized<ItemStack>) this, inventory);
+            this.optimizer = new InventoryOptimizer(this, inventory);
         }
         if (this.optimizer.isInvalid()) {
             System.out.println("Invalid Optimizer! BAD");
@@ -57,16 +57,17 @@ public class InventoryListOptimized<E> extends DefaultedList<E> {
         this.optimizer = null;
     }
 
-    public E set(int int_1, E object_1) {
-        E ret = super.set(int_1, object_1);
+    public ItemStack set(int slotIndex, ItemStack newStack) {
+        ItemStack prevStack = super.set(slotIndex, newStack);
         if (Settings.optimizedInventories) {
             InventoryOptimizer opt = this.getOrRemoveOptimizer();
-            if (opt != null) opt.update(int_1, (ItemStack) ret);
+            if (opt != null) opt.update(slotIndex, prevStack);
         } else invalidateOptimizer();
-        return ret;
+        return prevStack;
     }
 
     /*
+    //Debug code to see who causes trouble with item stacks
     public E get(int int_1) {
         if(printStackTrace)
             new UnsupportedOperationException().printStackTrace();
@@ -74,16 +75,17 @@ public class InventoryListOptimized<E> extends DefaultedList<E> {
         if(printStackTrace)
             System.out.println(e.toString());
         return (E)e;
-    }*/
+    }
+    */
 
-    public void add(int int_1, E object_1) {
+    public void add(int int_1, ItemStack object_1) {
         if (Settings.optimizedInventories)
             throw new UnsupportedOperationException("Won't resize optimized inventory!");
         else
             super.add(int_1, object_1);
     }
 
-    public E remove(int int_1) {
+    public ItemStack remove(int int_1) {
         if (Settings.optimizedInventories)
             throw new UnsupportedOperationException("Won't resize optimized inventory!");
         else

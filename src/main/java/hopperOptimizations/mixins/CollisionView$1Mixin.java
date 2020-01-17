@@ -17,7 +17,7 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 @Mixin(targets = "net.minecraft.world.ViewableWorld$1") //Spliterator Subclass
 public class CollisionView$1Mixin {
 
-    private boolean notifyHoppers; //every call newly created with false, temporary var to elimite check in the loop
+    private boolean notifyHoppers; //every call newly created with false, temporary var to eliminate check in the loop
 
     @Feature("optimizedEntityHopperInteraction")
     @Redirect(method = "tryAdvance(Ljava/util/function/Consumer;)Z", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/chunk/Chunk;getBlockState(Lnet/minecraft/util/math/BlockPos;)Lnet/minecraft/block/BlockState;"))
@@ -25,7 +25,7 @@ public class CollisionView$1Mixin {
         BlockState blockState = chunk.getBlockState(var1);
         if (!notifyHoppers) return blockState;
 
-        EntityHopperInteraction.checked = true;
+        EntityHopperInteraction.searchedForHoppers = true;
         if (blockState.getBlock() == Blocks.HOPPER)
             EntityHopperInteraction.hopperLocationsToNotify.add(var1.toImmutable());
 
@@ -34,8 +34,10 @@ public class CollisionView$1Mixin {
 
     @Redirect(method = "tryAdvance(Ljava/util/function/Consumer;)Z", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/Entity;getBoundingBox()Lnet/minecraft/util/math/Box;", ordinal = 0))
     private Box isClient_SpaghettiCall(Entity entity) {
+        //not have to check this condition on every advance -> only on the first
+        //can only set notify hoppers when entity is not null, which is intended
         World world = entity.getEntityWorld();
-        notifyHoppers = Settings.optimizedEntityHopperInteraction && EntityHopperInteraction.rememberHoppers && world != null && !world.isClient;
+        notifyHoppers = Settings.optimizedEntityHopperInteraction && EntityHopperInteraction.findHoppers && world != null && !world.isClient;
 
         return entity.getBoundingBox();
     }

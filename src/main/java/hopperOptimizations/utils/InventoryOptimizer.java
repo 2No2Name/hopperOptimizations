@@ -1,6 +1,7 @@
 package hopperOptimizations.utils;
 
 import carpet.CarpetServer;
+import hopperOptimizations.settings.Settings;
 import it.unimi.dsi.fastutil.HashCommon;
 import net.minecraft.block.entity.ShulkerBoxBlockEntity;
 import net.minecraft.inventory.Inventory;
@@ -30,12 +31,13 @@ public class InventoryOptimizer {
     private static final int filterLongCount = Math.max(1, (1 << maskLength) / 64); //256 bit total, 8 bits can address it
 
     //todo(unneccesary) recalculate Filters when 180+ Bits are set -> ~12% chance for false positive
-    private static boolean DEBUG = false; //nonfinal to be able to change with debugger
+    //private static boolean DEBUG = false; //nonfinal to be able to change with debugger
 
-    private final InventoryListOptimized<ItemStack> stackList;
+    private final InventoryListOptimized stackList;
     private final SidedInventory sidedInventory; //only use when required, inventory handling should be mostly independent from the container
     private final boolean itemRestrictions;
     private int inventoryChanges;
+    private int itemTypeChanges;
     private final long[] bloomFilter = new long[filterLongCount];
     private final long[] nonFullStackBloomFilter = new long[filterLongCount];
     private final long[] preEmptyNonFullStackBloomFilter = new long[filterLongCount];
@@ -52,14 +54,16 @@ public class InventoryOptimizer {
     private int firstOccupiedSlot;
     private int weightedItemCount;
 
-    private int fakeSignalStrength;
+    //saves how many inventory slots are occupied with stacks of a given size: e.g. 64->6, 16->1, 1->3
     private final Map<Integer, Integer> stackSizeToSlotCount = new HashMap<>();
+    //saves a lower signal strength for a short moment to make comparators send updates at their outputs
+    private int fakeSignalStrength;
 
     private boolean initialized;
     private boolean invalid;
     private int optimizedInventoryRuleChangeCounter;
 
-    public InventoryOptimizer(InventoryListOptimized<ItemStack> stackList, Inventory inventory) {
+    public InventoryOptimizer(InventoryListOptimized stackList, Inventory inventory) {
         this.stackList = stackList;
         this.sidedInventory = inventory instanceof SidedInventory ? (SidedInventory) inventory : null;
         this.itemRestrictions = this.sidedInventory != null;
@@ -77,6 +81,7 @@ public class InventoryOptimizer {
         fakeSignalStrength = -1;
         if (stackList == null) return;
         inventoryChanges = 0;
+        itemTypeChanges = 0;
         filterHits = 0;
         filterMisses = 0;
         filterTrueHits = 0;
@@ -104,6 +109,10 @@ public class InventoryOptimizer {
 
     public boolean isInvalid() {
         return this.invalid;
+    }
+
+    public boolean isInitialized() {
+        return this.initialized;
     }
 
     private void consistencyCheck() {
@@ -195,20 +204,19 @@ public class InventoryOptimizer {
         int count = itemStack.getCount();
 
         itemStack.setCount(1);
-        ItemStack prevStack = itemStack.copy();
+        ItemStack prevStack = itemStack.copy(); //copy fails to create a real copy when count is 0
         itemStack.setCount(count);
-
         prevStack.setCount(count - countChange);
 
         boolean wasEmpty = prevStack.isEmpty();
-        int max = itemStack.getMaxCount();
         boolean isEmpty = itemStack.isEmpty();
 
         if (!wasEmpty || !isEmpty) update(index, prevStack);
-        else {
+        else { //wasEmpty && isEmpty //todo why even do this?
+            int max = itemStack.getMaxCount();
             weightedItemCount += countChange * (int) (64F / max);
             inventoryChanges++;
-            if (DEBUG) consistencyCheck();
+            if (Settings.debugOptimizedInventories) consistencyCheck();
         }
     }
 
@@ -230,6 +238,10 @@ public class InventoryOptimizer {
         return occupiedSlots;
     }
 
+    public int getItemTypeChanges() {
+        return itemTypeChanges;
+    }
+
     /**
      * Find the first slot that a hopper can take items from.
      *
@@ -241,17 +253,9 @@ public class InventoryOptimizer {
         return firstOccupiedSlot;
     }
 
-    //old approach: something stupid about conservatively invalidating the bloomfilter everytime the inventory was accessed (bad idea)
-    //new approach: assume that nothing besides players and hoppers/droppers change inventory contents
+    //assume that nothing besides players and hoppers/droppers etc. change inventory contents
     //control their inventory accesses, notify of the inventory of hidden stacksize changes (see HopperBlockEntityMixin and InventoriesMixin)
-    /*/**
-     * Remembers that an item escaped to an unknown context. Going to assume its hash and count may change immediately, but not later again.
-     * This assumption may lead to incorrect results
-     * @param slot Location of the escaped Item
-     */
-    /*void markEscaped(int slot){
-        //possiblyOutdatedSlots |= (1 << slot);
-    }//*/
+
 
     /**
      * Update the bloom filter after a slot has been modified.
@@ -260,12 +264,16 @@ public class InventoryOptimizer {
      */
     void update(int slot, ItemStack prevStack) {
         if (!initialized || this.optimizedInventoryRuleChangeCounter != OptimizedInventoriesRule.ruleUpdates) return;
-        inventoryChanges++;
-
-
-        int oldFirstFreeSlot = firstFreeSlot;
 
         ItemStack newStack = stackList.get(slot);
+        if (prevStack == newStack) return;
+
+        if (prevStack.getItem() != newStack.getItem())
+            itemTypeChanges++;
+
+        inventoryChanges++;
+        int oldFirstFreeSlot = firstFreeSlot;
+
         long hash = hash(newStack);
         filterAdd(bloomFilter, hash);
         boolean flagRecalcFree = false;
@@ -311,7 +319,7 @@ public class InventoryOptimizer {
             recalcFirstFreeAndOccupiedSlots(oldFirstFreeSlot, flagRecalcFree, flagRecalcOccupied);
 
 
-        if (DEBUG) consistencyCheck();
+        if (Settings.debugOptimizedInventories) consistencyCheck();
     }
 
     private void recalcFirstFreeAndOccupiedSlots(int oldFirstFreeSlot, boolean flagRecalcFree, boolean flagRecalcOccupied) {
@@ -371,7 +379,7 @@ public class InventoryOptimizer {
         this.fakeSignalStrength = -1;
     }
 
-    boolean isOneItemAboveSignalStrength() {
+    boolean isOneItemAboveSignalStrength() { //todo what about doubleInventories
         int maxExtractableItemWeight = 0;
         for (Map.Entry<Integer, Integer> entry : stackSizeToSlotCount.entrySet())
             if (entry.getValue() > 0 && entry.getKey() > maxExtractableItemWeight)
@@ -522,6 +530,9 @@ public class InventoryOptimizer {
      * @return index of the stack object, -1 if none found.
      */
     public int indexOfObject(ItemStack stack) {
+        if (!initialized || this.optimizedInventoryRuleChangeCounter != OptimizedInventoriesRule.ruleUpdates)
+            recalculate();
+
         for (int i = 0; i < this.totalSlots; i++) {
             if (stack == this.stackList.get(i))
                 return i;
@@ -530,15 +541,16 @@ public class InventoryOptimizer {
     }
 
     /**
-     * Finds the first slot that matches stack and can be sucked by a hopper.
+     * Finds the first slot that matches stack.
+     * Not for use with SidedInventories
      *
      * @param stack to find a matching item for
      * @return index of the matching item, -1 if none found.
      */
-    private int indexOf_extractable(ItemStack stack) {
+    public int indexOf(ItemStack stack) {
         if (!initialized || this.optimizedInventoryRuleChangeCounter != OptimizedInventoriesRule.ruleUpdates)
             recalculate();
-        return indexOf_extractable_endIndex(stack, totalSlots);
+        return indexOf_extractable_endIndex(stack, getTotalSlots());
     }
 
     //Does not support unstackable items!
