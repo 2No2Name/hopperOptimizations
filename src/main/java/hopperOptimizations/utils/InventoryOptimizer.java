@@ -233,8 +233,7 @@ public class InventoryOptimizer {
     }
 
     public int getOccupiedSlots() {
-        if (!initialized || this.optimizedInventoryRuleChangeCounter != OptimizedInventoriesRule.ruleUpdates)
-            recalculate();
+        this.ensureInitialized();
         return occupiedSlots;
     }
 
@@ -248,8 +247,7 @@ public class InventoryOptimizer {
      * @return index of the first occupied slot a hopper can take from, -1 if none
      */
     public int getFirstOccupiedSlot_extractable() {
-        if (!initialized || this.optimizedInventoryRuleChangeCounter != OptimizedInventoriesRule.ruleUpdates)
-            recalculate();
+        this.ensureInitialized();
         return firstOccupiedSlot;
     }
 
@@ -447,21 +445,18 @@ public class InventoryOptimizer {
     }
 
     public int getFirstFreeSlot() {
-        if (!initialized || this.optimizedInventoryRuleChangeCounter != OptimizedInventoriesRule.ruleUpdates)
-            recalculate();
+        this.ensureInitialized();
         return firstFreeSlot;
     }
 
     public boolean isFull_insertable(Direction fromDirection) {
-        if (!initialized || this.optimizedInventoryRuleChangeCounter != OptimizedInventoriesRule.ruleUpdates)
-            recalculate();
+        this.ensureInitialized();
         return fullSlots >= totalSlots;
     }
 
     //Does not support unstackable items!
     private boolean maybeContains(ItemStack stack) {
-        if (!initialized || this.optimizedInventoryRuleChangeCounter != OptimizedInventoriesRule.ruleUpdates)
-            recalculate();
+        this.ensureInitialized();
 
         if (stack.isEmpty()) return getFirstFreeSlot() >= 0;
         if (occupiedSlots == 0) return false;
@@ -476,8 +471,7 @@ public class InventoryOptimizer {
     }
 
     private boolean maybeContainsNonFullStack_insertable(ItemStack stack, Direction fromDirection) {
-        if (!initialized || this.optimizedInventoryRuleChangeCounter != OptimizedInventoriesRule.ruleUpdates)
-            recalculate();
+        this.ensureInitialized();
 
         if (stack.isEmpty()) return getFirstFreeSlot() >= 0;
         if (occupiedSlots == 0) return false;
@@ -491,8 +485,7 @@ public class InventoryOptimizer {
     }
 
     private boolean canMaybeInsert(ItemStack stack, Direction fromDirection) {
-        if (!initialized || this.optimizedInventoryRuleChangeCounter != OptimizedInventoriesRule.ruleUpdates)
-            recalculate();
+        this.ensureInitialized();
 
         if (hasFreeSlots_insertable()) return true;
         if (isFull_insertable(fromDirection)) return false;
@@ -530,8 +523,7 @@ public class InventoryOptimizer {
      * @return index of the stack object, -1 if none found.
      */
     public int indexOfObject(ItemStack stack) {
-        if (!initialized || this.optimizedInventoryRuleChangeCounter != OptimizedInventoriesRule.ruleUpdates)
-            recalculate();
+        this.ensureInitialized();
 
         for (int i = 0; i < this.totalSlots; i++) {
             if (stack == this.stackList.get(i))
@@ -548,15 +540,13 @@ public class InventoryOptimizer {
      * @return index of the matching item, -1 if none found.
      */
     public int indexOf(ItemStack stack) {
-        if (!initialized || this.optimizedInventoryRuleChangeCounter != OptimizedInventoriesRule.ruleUpdates)
-            recalculate();
+        this.ensureInitialized();
         return indexOf_extractable_endIndex(stack, getTotalSlots());
     }
 
     //Does not support unstackable items!
     public int indexOf_extractable_endIndex(ItemStack stack, int stop) {
-        if (!initialized || this.optimizedInventoryRuleChangeCounter != OptimizedInventoriesRule.ruleUpdates)
-            recalculate();
+        this.ensureInitialized();
         if (stop == -1) stop = this.totalSlots;
         if (stack.isEmpty()) return -1;
         if (!maybeContains(stack)) return -1;
@@ -571,14 +561,12 @@ public class InventoryOptimizer {
     }
 
     public boolean hasFreeSlots_insertable() {
-        if (!initialized || this.optimizedInventoryRuleChangeCounter != OptimizedInventoriesRule.ruleUpdates)
-            recalculate();
+        this.ensureInitialized();
         return getFirstFreeSlot() >= 0;
     }
 
     public int findInsertSlot(ItemStack stack, Direction fromDirection) {
-        if (!initialized || this.optimizedInventoryRuleChangeCounter != OptimizedInventoriesRule.ruleUpdates)
-            recalculate();
+        this.ensureInitialized();
 
         //Empty slot available? Check for non full stacks before the empty slot.
         int firstFreeSlot = getFirstFreeSlot();
