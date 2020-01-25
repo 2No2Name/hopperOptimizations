@@ -46,7 +46,7 @@ public class HopperMinecartEntityMixin implements IHopper {
             return false;
         }
         if (previousExtract_causeMarkDirty && !Settings.failedTransferNoComparatorUpdates)
-            IHopper.markDirtyLikeHopperWould(other, otherOpt); //failed transfers sometimes cause comparator updates
+            IHopper.markDirtyLikeHopperWould(other, otherOpt, null); //failed transfers sometimes cause comparator updates
 
         return true;
     }

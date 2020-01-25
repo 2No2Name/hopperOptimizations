@@ -1,10 +1,15 @@
 package hopperOptimizations.utils;
 
+import net.minecraft.inventory.Inventory;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.math.Direction;
 
 //Don't store instances of InventoryOptimizer, unless you sync with the corresponding inventory!
 //DoubleInventoryOptimizer actually handles that in DoubleInventoryMixin
+
+//DO NOT STORE STATE IN DoubleInventoryOptimizer fields (also those inherited from InventoryOptimizer)
+//DoubleInventoryOptimizer objects may be discarded and recreated at any time!
+
 public class DoubleInventoryOptimizer extends InventoryOptimizer {
     private final OptimizedInventory first;
     private final InventoryOptimizer firstOpt;
@@ -21,6 +26,22 @@ public class DoubleInventoryOptimizer extends InventoryOptimizer {
 
     public boolean isInvalid() {
         return super.isInvalid() || firstOpt == null || firstOpt.isInvalid() || secondOpt == null || secondOpt.isInvalid();
+    }
+
+    Inventory getFirstInventory() {
+        return first;
+    }
+
+    Inventory getSecondInventory() {
+        return second;
+    }
+
+    InventoryOptimizer getFirstOptimizer() {
+        return firstOpt;
+    }
+
+    InventoryOptimizer getSecondOptimizer() {
+        return secondOpt;
     }
 
 
@@ -59,11 +80,6 @@ public class DoubleInventoryOptimizer extends InventoryOptimizer {
                 ret += first.getInvSize();
         }
         return ret;
-    }
-
-    @Override
-    public void recalculate() {
-        throw new UnsupportedOperationException("InventoryOptimizer parts have to be calculated individually.");
     }
 
     @Override
@@ -167,5 +183,47 @@ public class DoubleInventoryOptimizer extends InventoryOptimizer {
                 ret += first.getInvSize();
         }
         return ret;
+    }
+
+    public int getMinExtractableItemStackSize() {
+        int minStackSize = 2147483647;
+        int mineStackSize2 = 2147483647;
+
+        if (!firstOpt.isInvEmpty_Extractable())
+            minStackSize = firstOpt.getMinExtractableItemStackSize();
+        if (!secondOpt.isInvEmpty_Extractable())
+            mineStackSize2 = secondOpt.getMinExtractableItemStackSize();
+
+        return Math.min(minStackSize, mineStackSize2);
+    }
+
+    public void setInvalid() {
+        super.setInvalid();
+        firstOpt.setInvalid();
+        secondOpt.setInvalid();
+    }
+
+
+    //store state of take signal strength in first opt, as the double inventory optimizer should be stateless
+    public boolean hasFakeSignalStrength() {
+        return firstOpt.hasFakeSignalStrength();
+    }
+
+    public int getFakeSignalStrength() {
+        return firstOpt.getFakeSignalStrength();
+    }
+
+    //Used to trick comparators into sending block updates like in vanilla.
+    void setFakeReducedSignalStrength() {
+        this.ensureInitialized();
+        firstOpt.setFakeReducedSignalStrength();
+    }
+
+    void clearFakeChangedSignalStrength() {
+        firstOpt.clearFakeChangedSignalStrength();
+    }
+
+    boolean isInvEmpty_Extractable() {
+        return firstOpt.isInvEmpty_Extractable() && secondOpt.isInvEmpty_Extractable();
     }
 }

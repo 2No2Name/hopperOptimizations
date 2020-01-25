@@ -7,14 +7,24 @@ import net.minecraft.inventory.Inventory;
 public interface IHopper {
 
     @Feature("optimizedInventories")
-    static void markDirtyLikeHopperWould(Inventory inv, InventoryOptimizer opt) {
-        boolean fakeSignalStrengthChange = opt.isOneItemAboveSignalStrength();
+    static void markDirtyLikeHopperWould(Inventory inv, InventoryOptimizer opt, InventoryOptimizer masterOpt) {
+        if (masterOpt == null) masterOpt = opt;
+        if (opt instanceof DoubleInventoryOptimizer) {
+            //Double Inventories are handled like two seperate inventories in vanilla when sending useless comparator updates
+            markDirtyLikeHopperWould(((DoubleInventoryOptimizer) opt).getFirstInventory(), ((DoubleInventoryOptimizer) opt).getFirstOptimizer(), opt);
+            markDirtyLikeHopperWould(((DoubleInventoryOptimizer) opt).getSecondInventory(), ((DoubleInventoryOptimizer) opt).getSecondOptimizer(), opt);
+            return;
+        }
+        if (opt.getFirstOccupiedSlot_extractable() == -1)
+            return; //empty inventory halfs don't send updates
+
+        boolean fakeSignalStrengthChange = masterOpt.canOneExtractDecreaseSignalStrength();
         if (fakeSignalStrengthChange) {
             //crazy workaround to send stupid comparator updates to comparators and make the comparators send updates to even more redstone components
             //also required for comparator to schedule useless but detectable updates on themselves
-            opt.setFakeReducedSignalStrength();
+            masterOpt.setFakeReducedSignalStrength();
             inv.setInvStack(0, inv.getInvStack(0));
-            opt.clearFakeChangedSignalStrength();
+            masterOpt.clearFakeChangedSignalStrength();
         }
 
         inv.setInvStack(0, inv.getInvStack(0));

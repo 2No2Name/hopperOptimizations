@@ -280,7 +280,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
                     //Todo test whether barrels, composters, brewing stands, furnaces and shulkerboxes behave like vanilla here! Use comparator update detectors
                     if (getAvailableSlots(from, Direction.DOWN).anyMatch((int i) -> true)) {
                         if (!Settings.failedTransferNoComparatorUpdates)
-                            IHopper.markDirtyLikeHopperWould(from, fromOpt);
+                            IHopper.markDirtyLikeHopperWould(from, fromOpt, null);
                         ((IHopper) to).setMarkOtherDirty();
                     }
 
@@ -765,7 +765,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
             return false;
         }
         if (previousExtract_causeMarkDirty && !Settings.failedTransferNoComparatorUpdates)
-            IHopper.markDirtyLikeHopperWould(other, otherOpt); //failed transfers sometimes cause comparator updates
+            IHopper.markDirtyLikeHopperWould(other, otherOpt, null); //failed transfers sometimes cause comparator updates
 
         return true;
     }
