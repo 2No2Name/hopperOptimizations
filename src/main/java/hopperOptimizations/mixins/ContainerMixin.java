@@ -26,7 +26,7 @@ import java.util.List;
 public abstract class ContainerMixin {
     @Shadow
     @Final
-    public List<Slot> slotList;
+    public List<Slot> slots;
 
     @Inject(method = "calculateComparatorOutput(Lnet/minecraft/inventory/Inventory;)I", at = @At(value = "HEAD"), cancellable = true)
     private static void getFastOutputStrength(Inventory inventory_1, CallbackInfoReturnable<Integer> cir) {
@@ -70,7 +70,7 @@ public abstract class ContainerMixin {
     @Inject(method = "insertItem(Lnet/minecraft/item/ItemStack;IIZ)Z", at = @At(value = "INVOKE", target = "Lnet/minecraft/item/ItemStack;setCount(I)V", ordinal = 0, shift = At.Shift.AFTER), locals = LocalCapture.CAPTURE_FAILHARD)
     private void notifyInventory(ItemStack stack, int startIndex, int endIndex, boolean fromLast, CallbackInfoReturnable<Boolean> cir, boolean bl, int i, Slot slot, ItemStack itemStack, int j) {
         Inventory inventory;
-        if (Settings.optimizedInventories && (inventory = this.slotList.get(0).inventory) instanceof OptimizedInventory) {
+        if (Settings.optimizedInventories && (inventory = this.slots.get(0).inventory) instanceof OptimizedInventory) {
             expectInInventory = inventory != slot.inventory;
             InventoryOptimizer opt = ((OptimizedInventory) inventory).getOptimizer();
             if (opt != null && opt.isInitialized() && (expectInInventory || Settings.debugOptimizedInventories)) {
@@ -154,7 +154,7 @@ public abstract class ContainerMixin {
     @Inject(method = "insertItem(Lnet/minecraft/item/ItemStack;IIZ)Z", at = @At(value = "INVOKE", target = "Lnet/minecraft/item/ItemStack;decrement(I)V", shift = At.Shift.AFTER), locals = LocalCapture.CAPTURE_FAILHARD)
     private void notifyInventory2(ItemStack stack, int startIndex, int endIndex, boolean fromLast, CallbackInfoReturnable<Boolean> cir, boolean bl, int i, Slot slot, ItemStack itemStack, ItemStack var10, int var11) {
         Inventory inventory;
-        if (Settings.optimizedInventories && /*slot.inventory !=*/ (inventory = this.slotList.get(0).inventory) /*&& inventory*/ instanceof OptimizedInventory) {
+        if (Settings.optimizedInventories && /*slot.inventory !=*/ (inventory = this.slots.get(0).inventory) /*&& inventory*/ instanceof OptimizedInventory) {
             expectInInventory = inventory != slot.inventory;
             InventoryOptimizer opt = ((OptimizedInventory) inventory).getOptimizer();
             if (opt != null && opt.isInitialized() && (expectInInventory || Settings.debugOptimizedInventories)) {
@@ -177,7 +177,7 @@ public abstract class ContainerMixin {
     //Injecting at both ordinal 0 and 1
     @Inject(method = "insertItem(Lnet/minecraft/item/ItemStack;IIZ)Z", at = @At(value = "INVOKE", target = "Lnet/minecraft/item/ItemStack;split(I)Lnet/minecraft/item/ItemStack;", shift = At.Shift.BEFORE), locals = LocalCapture.CAPTURE_FAILHARD)
     private void helpNotifyInventory3(ItemStack stack, int startIndex, int endIndex, boolean fromLast, CallbackInfoReturnable<Boolean> cir, boolean bl, int i, Slot slot2) {
-        tmpInventory = this.slotList.get(0).inventory;
+        tmpInventory = this.slots.get(0).inventory;
         expectInInventory = tmpInventory != slot2.inventory;
     }
 
@@ -210,7 +210,7 @@ public abstract class ContainerMixin {
     @Inject(method = "onSlotClick", at = @At(value = "INVOKE", target = "Lnet/minecraft/item/ItemStack;increment(I)V", ordinal = 0, shift = At.Shift.AFTER), locals = LocalCapture.CAPTURE_FAILHARD)
     private void notifyInventory(int slotId, int clickData, SlotActionType actionType, PlayerEntity playerEntity, CallbackInfoReturnable<ItemStack> cir, ItemStack itemStack, PlayerInventory playerInventory, Slot slot4, ItemStack itemStack7, ItemStack itemStack8, int p) {
         Inventory inventory;
-        if (Settings.optimizedInventories && (inventory = this.slotList.get(0).inventory) instanceof OptimizedInventory) {
+        if (Settings.optimizedInventories && (inventory = this.slots.get(0).inventory) instanceof OptimizedInventory) {
             InventoryOptimizer opt = ((OptimizedInventory) inventory).getOptimizer();
             if (opt != null) {
                 opt.onItemStackCountChanged(slotId, p);
