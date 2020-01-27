@@ -87,8 +87,9 @@ public class InventoryOptimizer {
     }
 
     private static long hash(ItemStack stack) {
+        //itemstacks caching their hash might be useful
+
         //Empty and Unstackables don't go into the bloom filter
-        //todo itemstacks caching their hash might be useful
         if (stack.isEmpty() || stack.getMaxCount() <= 1) return 0;
         long hash = HashCommon.mix((long) stack.getItem().hashCode());
         hash ^= HashCommon.mix((long) stack.getDamage());
@@ -96,7 +97,7 @@ public class InventoryOptimizer {
         return hash == 0 ? 1 : hash;
     }
 
-    private static boolean areItemsAndTagsEqual(ItemStack a, ItemStack b) {
+    public static boolean areItemsAndTagsEqual(ItemStack a, ItemStack b) {
         if (!ItemStack.areItemsEqual(a, b)) return false;
         return ItemStack.areTagsEqual(a, b);
     }
@@ -198,7 +199,7 @@ public class InventoryOptimizer {
     public void onItemStackCountChanged(int index, int countChange) {
         if (!initialized || this.optimizedInventoryRuleChangeCounter != OptimizedInventoriesRule.ruleUpdates) return;
 
-        //assume never increasing count of empty stack //todo logic here
+        //should never increase count of empty stacks
 
         ItemStack itemStack = getSlot(index);
         int count = itemStack.getCount();
@@ -209,7 +210,7 @@ public class InventoryOptimizer {
         prevStack.setCount(count - countChange);
 
         boolean wasEmpty = prevStack.isEmpty();
-        //assert !wasEmpty; //todo test this
+        //assert !wasEmpty;
         boolean isEmpty = itemStack.isEmpty();
 
         if (!wasEmpty || !isEmpty) update(index, prevStack);

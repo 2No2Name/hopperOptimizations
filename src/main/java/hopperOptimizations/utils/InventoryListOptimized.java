@@ -40,7 +40,6 @@ public class InventoryListOptimized extends DefaultedList<ItemStack> {
             this.optimizer = new InventoryOptimizer(this, inventory);
         }
         if (this.optimizer.isInvalid()) {
-            System.out.println("Invalid Optimizer! BAD");
             this.optimizer = null;
         }
         return this.optimizer;
@@ -93,7 +92,7 @@ public class InventoryListOptimized extends DefaultedList<ItemStack> {
     }
 
     public void clear() {
-        this.invalidateOptimizer(); //todo find out what clear is used for
+        this.invalidateOptimizer();
         super.clear();
     }
 
