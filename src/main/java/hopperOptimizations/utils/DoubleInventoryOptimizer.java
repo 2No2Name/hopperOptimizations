@@ -185,16 +185,13 @@ public class DoubleInventoryOptimizer extends InventoryOptimizer {
         return ret;
     }
 
-    public int getMinExtractableItemStackSize() {
-        int minStackSize = 2147483647;
-        int mineStackSize2 = 2147483647;
+    public int getMinExtractableItemStackSize(InventoryOptimizer pulledFrom) {
+        if (firstOpt == pulledFrom && !firstOpt.isInvEmpty_Extractable())
+            return firstOpt.getMinExtractableItemStackSize(pulledFrom);
+        if (secondOpt == pulledFrom && !secondOpt.isInvEmpty_Extractable())
+            return secondOpt.getMinExtractableItemStackSize(pulledFrom);
 
-        if (!firstOpt.isInvEmpty_Extractable())
-            minStackSize = firstOpt.getMinExtractableItemStackSize();
-        if (!secondOpt.isInvEmpty_Extractable())
-            mineStackSize2 = secondOpt.getMinExtractableItemStackSize();
-
-        return Math.min(minStackSize, mineStackSize2);
+        throw new IllegalArgumentException("InventoryOptimizer must be child of this.");
     }
 
     public void setInvalid() {
@@ -216,7 +213,10 @@ public class DoubleInventoryOptimizer extends InventoryOptimizer {
     //Used to trick comparators into sending block updates like in vanilla.
     void setFakeReducedSignalStrength() {
         this.ensureInitialized();
-        firstOpt.setFakeReducedSignalStrength();
+        if (this.hasFakeSignalStrength()) throw new IllegalStateException("Already spoofing signal strength");
+
+        int i = this.getSignalStrength();
+        firstOpt.setFakeReducedSignalStrength(i - 1);
     }
 
     void clearFakeChangedSignalStrength() {

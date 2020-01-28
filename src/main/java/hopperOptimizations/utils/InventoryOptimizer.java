@@ -394,12 +394,21 @@ public class InventoryOptimizer {
         if (fakeSignalStrength == -1) fakeSignalStrength = 0;
     }
 
+    void setFakeReducedSignalStrength(int i) {
+        assert !(this instanceof DoubleInventoryOptimizer);
+        this.ensureInitialized();
+        this.fakeSignalStrength = i;
+    }
+
     void clearFakeChangedSignalStrength() {
         assert !(this instanceof DoubleInventoryOptimizer);
         this.fakeSignalStrength = -1;
     }
 
-    public int getMinExtractableItemStackSize() {
+    public int getMinExtractableItemStackSize(InventoryOptimizer pulledFrom) {
+        //Override in DoubleInventoryOptimizer
+        if (pulledFrom != this) throw new IllegalArgumentException("InventoryOptimizer must be this.");
+
         int minExtractableItemStackSize = 2147483647;
 
         int stackSize;
@@ -411,10 +420,10 @@ public class InventoryOptimizer {
     }
 
     //No override in DoubleInventoryOptimizer required
-    boolean canOneExtractDecreaseSignalStrength() {
+    boolean canOneExtractDecreaseSignalStrength(InventoryOptimizer pulledFrom) {
         if (getOccupiedSlots() == 0) return false;
 
-        int maxExtractableItemWeight = (int) (64F / getMinExtractableItemStackSize());
+        int maxExtractableItemWeight = (int) (64F / getMinExtractableItemStackSize(pulledFrom));
 
         //calculate signal strength as if one most heavy item was taken out
         int weightedItemCount = getWeightedItemCount();

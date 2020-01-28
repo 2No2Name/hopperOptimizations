@@ -46,7 +46,8 @@ public class InventoryListOptimized extends DefaultedList<ItemStack> {
     }
 
     public InventoryOptimizer getOrRemoveOptimizer() {
-        if (!Settings.optimizedInventories) return this.optimizer = null;
+        if (!Settings.optimizedInventories || this.optimizer == null || this.optimizer.isInvalid())
+            return this.optimizer = null;
         return optimizer;
     }
 
