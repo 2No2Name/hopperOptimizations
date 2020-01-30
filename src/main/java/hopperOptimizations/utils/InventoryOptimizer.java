@@ -70,7 +70,7 @@ public class InventoryOptimizer {
         this.sidedInventory = inventory instanceof SidedInventory ? (SidedInventory) inventory : null;
         this.itemRestrictions = this.sidedInventory != null;
 
-        if (this.itemRestrictions && !(this.sidedInventory instanceof ShulkerBoxBlockEntity))
+        if (Settings.debugOptimizedInventories && this.itemRestrictions && !(this.sidedInventory instanceof ShulkerBoxBlockEntity))
             //Shulkerbox restrictions are slot independent.
             //Slot dependent restrictions aren't checked atm, since there is no large inventory that has those.
             //OptimizedInventory doesn't seem viable for small inventories. - maybe add a version without bloom filters for those
@@ -407,7 +407,8 @@ public class InventoryOptimizer {
 
     public int getMinExtractableItemStackSize(InventoryOptimizer pulledFrom) {
         //Override in DoubleInventoryOptimizer
-        if (pulledFrom != this) throw new IllegalArgumentException("InventoryOptimizer must be this.");
+        if (Settings.debugOptimizedInventories && pulledFrom != this)
+            throw new IllegalArgumentException("InventoryOptimizer must be this.");
 
         int minExtractableItemStackSize = 2147483647;
 

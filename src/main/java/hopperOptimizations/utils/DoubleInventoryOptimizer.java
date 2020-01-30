@@ -1,5 +1,6 @@
 package hopperOptimizations.utils;
 
+import hopperOptimizations.settings.Settings;
 import net.minecraft.inventory.Inventory;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.math.Direction;
@@ -213,10 +214,10 @@ public class DoubleInventoryOptimizer extends InventoryOptimizer {
     //Used to trick comparators into sending block updates like in vanilla.
     void setFakeReducedSignalStrength() {
         this.ensureInitialized();
-        if (this.hasFakeSignalStrength()) throw new IllegalStateException("Already spoofing signal strength");
+        if (Settings.debugOptimizedInventories && this.hasFakeSignalStrength())
+            throw new IllegalStateException("Already using fake signal strength");
 
-        int i = this.getSignalStrength();
-        firstOpt.setFakeReducedSignalStrength(i - 1);
+        firstOpt.setFakeReducedSignalStrength(this.getSignalStrength() - 1);
     }
 
     void clearFakeChangedSignalStrength() {
