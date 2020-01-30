@@ -276,13 +276,12 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
                         }
                     }
 
-                    //If someone adds an Inventory Block that calls markDirty on setInvStack, but also implements canExtract behaviors this might be incorrect
-                    //Todo test whether barrels, composters, brewing stands, furnaces and shulkerboxes behave like vanilla here! Use comparator update detectors
-                    if (getAvailableSlots(from, Direction.DOWN).anyMatch((int i) -> true)) {
-                        if (!Settings.failedTransferNoComparatorUpdates)
-                            IHopper.markDirtyLikeHopperWould(from, fromOpt);
-                        ((IHopper) to).setMarkOtherDirty();
-                    }
+                    //For Inventory Blocks that calls markDirty on setInvStack, but also implements canExtract behaviors this might be incorrect
+                    //if (getAvailableSlots(from, Direction.DOWN).anyMatch((int i) -> true)) { //this is true for any optimized inventory, no sided inventories besides shulkerboxes
+                    if (!Settings.failedTransferNoComparatorUpdates)
+                        IHopper.markDirtyLikeHopperWould(from, fromOpt, null);
+                    ((IHopper) to).setMarkOtherDirty();
+                    //}
 
                     cir.setReturnValue(false);
                 }
@@ -294,10 +293,17 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
     @Feature("optimizedInventories")
     private static void transferOneItem_knownSuccessful(Inventory to, int toSlot, Inventory from, int fromSlot) {
         //assume stack sizes were checked, assume item types were already compared
-        //todo validate inputs if debugOptimizedInventories
 
         ItemStack fromStack = from.getInvStack(fromSlot);
         ItemStack toStack = to.getInvStack(toSlot);
+
+        if (Settings.debugOptimizedInventories) {
+            if (!InventoryOptimizer.areItemsAndTagsEqual(fromStack, toStack) && !toStack.isEmpty() || fromStack.isEmpty()) {
+                throw new IllegalArgumentException("Item transfer with non matching items");
+            } else if (toStack.getCount() >= toStack.getMaxCount()) {
+                throw new IllegalArgumentException("Item transfer to already full item stack");
+            }
+        }
 
         boolean replacedToStack = false;
         boolean replacedFromStack = false;
@@ -768,7 +774,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
             return false;
         }
         if (previousExtract_causeMarkDirty && !Settings.failedTransferNoComparatorUpdates)
-            IHopper.markDirtyLikeHopperWould(other, otherOpt); //failed transfers sometimes cause comparator updates
+            IHopper.markDirtyLikeHopperWould(other, otherOpt, null); //failed transfers sometimes cause comparator updates
 
         return true;
     }

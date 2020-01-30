@@ -26,14 +26,21 @@ public class InventoryOptimizer {
     //Decided on going for a high estimate, as a larger bloom filter probably won't be a lag causer, but can still help
     //Estimate useful for 27 slot inventory
     private static final int hashBits = 6;
-    private static final int maskLength = 8;
+    private static final int maskLength = 8; // 8 -> 256 bits in filter -> 4 longs or 6 -> 64 bits -> 1 long
     private static final long mask = (1L << maskLength) - 1;
     private static final int filterLongCount = Math.max(1, (1 << maskLength) / 64); //256 bit total, 8 bits can address it
+
+    //usage stats
+    private static int filterPositives;
+    private static int filterNegatives;
+    private static int filterTruePositives;
+    private static int filterEdits;
 
     //todo(unneccesary) recalculate Filters when 180+ Bits are set -> ~12% chance for false positive
     //private static boolean DEBUG = false; //nonfinal to be able to change with debugger
 
     private final InventoryListOptimized stackList;
+
     private final SidedInventory sidedInventory; //only use when required, inventory handling should be mostly independent from the container
     private final boolean itemRestrictions;
     private int inventoryChanges;
@@ -41,11 +48,6 @@ public class InventoryOptimizer {
     private final long[] bloomFilter = new long[filterLongCount];
     private final long[] nonFullStackBloomFilter = new long[filterLongCount];
     private final long[] preEmptyNonFullStackBloomFilter = new long[filterLongCount];
-
-    private int filterHits;
-    private int filterMisses;
-    private int filterTrueHits;
-    private int filterEdits;
 
     private int occupiedSlots;
     private int fullSlots;
@@ -68,7 +70,7 @@ public class InventoryOptimizer {
         this.sidedInventory = inventory instanceof SidedInventory ? (SidedInventory) inventory : null;
         this.itemRestrictions = this.sidedInventory != null;
 
-        if (this.itemRestrictions && !(this.sidedInventory instanceof ShulkerBoxBlockEntity))
+        if (Settings.debugOptimizedInventories && this.itemRestrictions && !(this.sidedInventory instanceof ShulkerBoxBlockEntity))
             //Shulkerbox restrictions are slot independent.
             //Slot dependent restrictions aren't checked atm, since there is no large inventory that has those.
             //OptimizedInventory doesn't seem viable for small inventories. - maybe add a version without bloom filters for those
@@ -82,15 +84,12 @@ public class InventoryOptimizer {
         if (stackList == null) return;
         inventoryChanges = 0;
         itemTypeChanges = 0;
-        filterHits = 0;
-        filterMisses = 0;
-        filterTrueHits = 0;
-        filterEdits = 0;
     }
 
     private static long hash(ItemStack stack) {
+        //itemstacks caching their hash might be useful
+
         //Empty and Unstackables don't go into the bloom filter
-        //todo itemstacks caching their hash might be useful
         if (stack.isEmpty() || stack.getMaxCount() <= 1) return 0;
         long hash = HashCommon.mix((long) stack.getItem().hashCode());
         hash ^= HashCommon.mix((long) stack.getDamage());
@@ -98,7 +97,7 @@ public class InventoryOptimizer {
         return hash == 0 ? 1 : hash;
     }
 
-    private static boolean areItemsAndTagsEqual(ItemStack a, ItemStack b) {
+    public static boolean areItemsAndTagsEqual(ItemStack a, ItemStack b) {
         if (!ItemStack.areItemsEqual(a, b)) return false;
         return ItemStack.areTagsEqual(a, b);
     }
@@ -116,6 +115,7 @@ public class InventoryOptimizer {
     }
 
     private void consistencyCheck() {
+        assert !(this instanceof DoubleInventoryOptimizer);
         //this is code from recalculate, but instead of changing anything, we just check if the results are conflicting
         if (!initialized || this.optimizedInventoryRuleChangeCounter != OptimizedInventoriesRule.ruleUpdates) return;
         try {
@@ -181,6 +181,7 @@ public class InventoryOptimizer {
     }
 
     private int calculateComparatorOutput() {
+        assert !(this instanceof DoubleInventoryOptimizer);
         int int_1 = 0;
         float float_1 = 0.0F;
 
@@ -198,7 +199,7 @@ public class InventoryOptimizer {
     public void onItemStackCountChanged(int index, int countChange) {
         if (!initialized || this.optimizedInventoryRuleChangeCounter != OptimizedInventoriesRule.ruleUpdates) return;
 
-        //assume never increasing count of empty stack //todo logic here
+        //should never increase count of empty stacks
 
         ItemStack itemStack = getSlot(index);
         int count = itemStack.getCount();
@@ -209,6 +210,7 @@ public class InventoryOptimizer {
         prevStack.setCount(count - countChange);
 
         boolean wasEmpty = prevStack.isEmpty();
+        //assert !wasEmpty;
         boolean isEmpty = itemStack.isEmpty();
 
         if (!wasEmpty || !isEmpty) update(index, prevStack);
@@ -233,9 +235,13 @@ public class InventoryOptimizer {
     }
 
     public int getOccupiedSlots() {
-        if (!initialized || this.optimizedInventoryRuleChangeCounter != OptimizedInventoriesRule.ruleUpdates)
-            recalculate();
+        this.ensureInitialized();
         return occupiedSlots;
+    }
+
+    boolean isInvEmpty_Extractable() {
+        this.ensureInitialized();
+        return occupiedSlots == 0;
     }
 
     public int getItemTypeChanges() {
@@ -248,8 +254,7 @@ public class InventoryOptimizer {
      * @return index of the first occupied slot a hopper can take from, -1 if none
      */
     public int getFirstOccupiedSlot_extractable() {
-        if (!initialized || this.optimizedInventoryRuleChangeCounter != OptimizedInventoriesRule.ruleUpdates)
-            recalculate();
+        this.ensureInitialized();
         return firstOccupiedSlot;
     }
 
@@ -263,6 +268,7 @@ public class InventoryOptimizer {
      * @param slot Index of the modified slot
      */
     void update(int slot, ItemStack prevStack) {
+        assert !(this instanceof DoubleInventoryOptimizer);
         if (!initialized || this.optimizedInventoryRuleChangeCounter != OptimizedInventoriesRule.ruleUpdates) return;
 
         ItemStack newStack = stackList.get(slot);
@@ -323,6 +329,7 @@ public class InventoryOptimizer {
     }
 
     private void recalcFirstFreeAndOccupiedSlots(int oldFirstFreeSlot, boolean flagRecalcFree, boolean flagRecalcOccupied) {
+        assert !(this instanceof DoubleInventoryOptimizer);
         this.totalSlots = size();
         if (flagRecalcOccupied)
             firstOccupiedSlot = -1;
@@ -348,9 +355,20 @@ public class InventoryOptimizer {
         }
     }
 
+    public boolean hasFakeSignalStrength() {
+        return fakeSignalStrength != -1;
+    }
+
+    public int getFakeSignalStrength() {
+        return fakeSignalStrength;
+    }
+
+    //does not need override in DoubleInventoryOptimizer
     public int getSignalStrength() {
-        if (fakeSignalStrength != -1) {
-            return fakeSignalStrength;
+        this.ensureInitialized();
+
+        if (hasFakeSignalStrength()) {
+            return getFakeSignalStrength();
         }
         return (int) ((this.getWeightedItemCount() / ((float) this.getTotalSlots() * 64)) * 14) + (this.getOccupiedSlots() == 0 ? 0 : 1);
     }
@@ -370,39 +388,63 @@ public class InventoryOptimizer {
 
     //Used to trick comparators into sending block updates like in vanilla.
     void setFakeReducedSignalStrength() {
+        assert !(this instanceof DoubleInventoryOptimizer);
         this.ensureInitialized();
         this.fakeSignalStrength = this.getSignalStrength() - 1;
         if (fakeSignalStrength == -1) fakeSignalStrength = 0;
     }
 
+    void setFakeReducedSignalStrength(int i) {
+        assert !(this instanceof DoubleInventoryOptimizer);
+        this.ensureInitialized();
+        this.fakeSignalStrength = i;
+    }
+
     void clearFakeChangedSignalStrength() {
+        assert !(this instanceof DoubleInventoryOptimizer);
         this.fakeSignalStrength = -1;
     }
 
-    boolean isOneItemAboveSignalStrength() { //todo what about doubleInventories
-        int maxExtractableItemWeight = 0;
-        for (Map.Entry<Integer, Integer> entry : stackSizeToSlotCount.entrySet())
-            if (entry.getValue() > 0 && entry.getKey() > maxExtractableItemWeight)
-                maxExtractableItemWeight = entry.getKey();
+    public int getMinExtractableItemStackSize(InventoryOptimizer pulledFrom) {
+        //Override in DoubleInventoryOptimizer
+        if (Settings.debugOptimizedInventories && pulledFrom != this)
+            throw new IllegalArgumentException("InventoryOptimizer must be this.");
 
-        boolean wouldBeEmpty = occupiedSlots == 0 || this.weightedItemCount <= maxExtractableItemWeight;
-        int minOneLessItemSignalStrength = (int) ((this.weightedItemCount - maxExtractableItemWeight / ((float) this.totalSlots * 64)) * 14) + (wouldBeEmpty ? 0 : 1);
+        int minExtractableItemStackSize = 2147483647;
+
+        int stackSize;
+        for (Map.Entry<Integer, Integer> entry : stackSizeToSlotCount.entrySet()) {
+            if (entry.getValue() > 0 && (stackSize = entry.getKey()) < minExtractableItemStackSize)
+                minExtractableItemStackSize = stackSize;
+        }
+        return minExtractableItemStackSize;
+    }
+
+    //No override in DoubleInventoryOptimizer required
+    boolean canOneExtractDecreaseSignalStrength(InventoryOptimizer pulledFrom) {
+        if (getOccupiedSlots() == 0) return false;
+
+        int maxExtractableItemWeight = (int) (64F / getMinExtractableItemStackSize(pulledFrom));
+
+        //calculate signal strength as if one most heavy item was taken out
+        int weightedItemCount = getWeightedItemCount();
+        boolean wouldBeEmpty = weightedItemCount <= maxExtractableItemWeight;
+        int minOneLessItemSignalStrength = (int) (((weightedItemCount - maxExtractableItemWeight) / ((float) getTotalSlots() * 64)) * 14) + (wouldBeEmpty ? 0 : 1);
 
         return minOneLessItemSignalStrength != this.getSignalStrength();
     }
 
     private void clearFilters() {
+        assert !(this instanceof DoubleInventoryOptimizer);
         for (int i = 0; i < filterLongCount; i++) {
             bloomFilter[i] = 0;
             nonFullStackBloomFilter[i] = 0;
             preEmptyNonFullStackBloomFilter[i] = 0;
         }
-
-        if (filterEdits > 0)
-            System.out.println("Filterstats: Edits: " + filterEdits + " Misses: " + filterMisses + " Hits: " + filterHits + " TrueHits " + filterTrueHits);
     }
 
-    public void recalculate() {
+    private void recalculate() {
+        assert !(this instanceof DoubleInventoryOptimizer);
         clearFilters();
 
         int occupiedSlots = 0;
@@ -447,57 +489,45 @@ public class InventoryOptimizer {
     }
 
     public int getFirstFreeSlot() {
-        if (!initialized || this.optimizedInventoryRuleChangeCounter != OptimizedInventoriesRule.ruleUpdates)
-            recalculate();
+        this.ensureInitialized();
         return firstFreeSlot;
     }
 
     public boolean isFull_insertable(Direction fromDirection) {
-        if (!initialized || this.optimizedInventoryRuleChangeCounter != OptimizedInventoriesRule.ruleUpdates)
-            recalculate();
+        this.ensureInitialized();
         return fullSlots >= totalSlots;
     }
 
     //Does not support unstackable items!
     private boolean maybeContains(ItemStack stack) {
-        if (!initialized || this.optimizedInventoryRuleChangeCounter != OptimizedInventoriesRule.ruleUpdates)
-            recalculate();
+        assert !(this instanceof DoubleInventoryOptimizer);
+        this.ensureInitialized();
 
         if (stack.isEmpty()) return getFirstFreeSlot() >= 0;
         if (occupiedSlots == 0) return false;
         long hash = hash(stack);
 
-        boolean ret = filterContains(bloomFilter, hash);
-        if (ret)
-            filterHits++;
-        else
-            filterMisses++;
-        return ret;
+        return filterContains(bloomFilter, hash);
     }
 
     private boolean maybeContainsNonFullStack_insertable(ItemStack stack, Direction fromDirection) {
-        if (!initialized || this.optimizedInventoryRuleChangeCounter != OptimizedInventoriesRule.ruleUpdates)
-            recalculate();
+        this.ensureInitialized();
 
         if (stack.isEmpty()) return getFirstFreeSlot() >= 0;
         if (occupiedSlots == 0) return false;
         if (isFull_insertable(fromDirection)) return false;
-        boolean ret = filterContains(nonFullStackBloomFilter, hash(stack));
-        if (ret)
-            filterHits++;
-        else
-            filterMisses++;
-        return ret;
+        return filterContains(nonFullStackBloomFilter, hash(stack));
     }
 
+    /*
     private boolean canMaybeInsert(ItemStack stack, Direction fromDirection) {
-        if (!initialized || this.optimizedInventoryRuleChangeCounter != OptimizedInventoriesRule.ruleUpdates)
-            recalculate();
+        this.ensureInitialized();
 
         if (hasFreeSlots_insertable()) return true;
         if (isFull_insertable(fromDirection)) return false;
         return maybeContainsNonFullStack_insertable(stack, fromDirection);
     }
+    */
 
     private boolean filterContains(long[] bloomFilter, long hash) {
         if (hash == 0) return false;
@@ -506,8 +536,12 @@ public class InventoryOptimizer {
         //Use the lowest maskLength bits of the hash, hashBits times checking a bit in the filter
         for (int i = 0; i < hashBits && ret; ++i) {
             long hIndex = (hash & (mask << (i * maskLength))) >> (i * maskLength);
+            //use the bits of the hash as number as index in the bloom filter
             ret = (bloomFilter[((int) hIndex) / 64] & (1L << (hIndex % 64))) != 0;
         }
+        if (ret) filterPositives++;
+        else filterNegatives++;
+
         return ret;
     }
 
@@ -530,8 +564,8 @@ public class InventoryOptimizer {
      * @return index of the stack object, -1 if none found.
      */
     public int indexOfObject(ItemStack stack) {
-        if (!initialized || this.optimizedInventoryRuleChangeCounter != OptimizedInventoriesRule.ruleUpdates)
-            recalculate();
+        assert !(this instanceof DoubleInventoryOptimizer);
+        this.ensureInitialized();
 
         for (int i = 0; i < this.totalSlots; i++) {
             if (stack == this.stackList.get(i))
@@ -547,23 +581,22 @@ public class InventoryOptimizer {
      * @param stack to find a matching item for
      * @return index of the matching item, -1 if none found.
      */
+    //does not require override in DoubleInventoryOptimizer
     public int indexOf(ItemStack stack) {
-        if (!initialized || this.optimizedInventoryRuleChangeCounter != OptimizedInventoriesRule.ruleUpdates)
-            recalculate();
+        this.ensureInitialized();
         return indexOf_extractable_endIndex(stack, getTotalSlots());
     }
 
     //Does not support unstackable items!
     public int indexOf_extractable_endIndex(ItemStack stack, int stop) {
-        if (!initialized || this.optimizedInventoryRuleChangeCounter != OptimizedInventoriesRule.ruleUpdates)
-            recalculate();
+        this.ensureInitialized();
         if (stop == -1) stop = this.totalSlots;
         if (stack.isEmpty()) return -1;
         if (!maybeContains(stack)) return -1;
         for (int i = firstOccupiedSlot; i < stop; i++) {
             ItemStack slot = getSlot(i);
             if (areItemsAndTagsEqual(stack, slot)) {
-                filterTrueHits++;
+                filterTruePositives++;
                 return i;
             }
         }
@@ -571,33 +604,30 @@ public class InventoryOptimizer {
     }
 
     public boolean hasFreeSlots_insertable() {
-        if (!initialized || this.optimizedInventoryRuleChangeCounter != OptimizedInventoriesRule.ruleUpdates)
-            recalculate();
+        this.ensureInitialized();
         return getFirstFreeSlot() >= 0;
     }
 
     public int findInsertSlot(ItemStack stack, Direction fromDirection) {
-        if (!initialized || this.optimizedInventoryRuleChangeCounter != OptimizedInventoriesRule.ruleUpdates)
-            recalculate();
+        this.ensureInitialized();
 
-        //Empty slot available? Check for non full stacks before the empty slot.
         int firstFreeSlot = getFirstFreeSlot();
         if ((firstFreeSlot == 0 || stack.getMaxCount() == 1))
+            //return the first free slot when the item is not stackable. (edge case: shulker box into shulker box)
             return this.itemRestrictions && !this.sidedInventory.canInsertInvStack(firstFreeSlot, stack, fromDirection) ? -1 : firstFreeSlot;
         else if (firstFreeSlot > 0) {
+            //Check for matching non full stacks before the empty slot.
             long hash = hash(stack);
             if (filterContains(preEmptyNonFullStackBloomFilter, hash)) {
-                filterHits++;
-
                 for (int i = 0; i < firstFreeSlot; i++) {
                     ItemStack slot = getSlot(i);
                     if (slot.getCount() >= slot.getMaxCount()) continue;
                     if (areItemsAndTagsEqual(stack, slot)) {
-                        filterTrueHits++;
+                        filterTruePositives++;
                         return i;
                     }
                 }
-            } else filterMisses++;
+            }
             return firstFreeSlot;
         }
 
@@ -609,7 +639,7 @@ public class InventoryOptimizer {
             ItemStack slot = getSlot(i);
             if (slot.getCount() >= slot.getMaxCount()) continue;
             if (areItemsAndTagsEqual(stack, slot)) {
-                filterTrueHits++;
+                filterTruePositives++;
                 return i;
             }
         }

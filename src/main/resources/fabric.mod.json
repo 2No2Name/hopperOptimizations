@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "hopperoptimizations",
-  "version": "0.1.11",
+  "version": "0.1.13",
   "name": "Hopper Optimizations",
   "description": "Optimization Mod for hoppers and everything that interacts with it.",
   "authors": [
