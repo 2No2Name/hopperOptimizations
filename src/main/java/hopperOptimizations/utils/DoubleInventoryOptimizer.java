@@ -192,7 +192,10 @@ public class DoubleInventoryOptimizer extends InventoryOptimizer {
         if (secondOpt == pulledFrom && !secondOpt.isInvEmpty_Extractable())
             return secondOpt.getMinExtractableItemStackSize(pulledFrom);
 
-        throw new IllegalArgumentException("InventoryOptimizer must be child of this.");
+        if (Settings.debugOptimizedInventories)
+            throw new IllegalArgumentException("InventoryOptimizer must be child of this.");
+        else
+            return 64;
     }
 
     public void setInvalid() {

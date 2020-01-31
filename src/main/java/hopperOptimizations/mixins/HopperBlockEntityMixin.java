@@ -1063,7 +1063,8 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
     //When the hopper is in lazy chunks, caching doesn't work when entities suddenly can appear from dispensers, destroyed blocks etc.
     //Chunks should maybe cache whether they are ticking, this will cost some lag otherwise
     private boolean doAllNearbyEntitiesTick() {
-        if (this.world == null || this.world.isClient()) throw new UnsupportedOperationException();
+        if (Settings.debugOptimizedInventories && this.world == null || this.world.isClient())
+            throw new UnsupportedOperationException();
 
         int x = this.getPos().getX() - 2;
         int z = this.getPos().getZ() - 2;
