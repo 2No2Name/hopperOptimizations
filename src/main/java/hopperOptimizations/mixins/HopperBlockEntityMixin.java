@@ -415,7 +415,8 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
         if (skipGetBlockInventoryAt) inventory = null;
         else {
             inventory = getBlockInventoryAt(world, ((HopperBlockEntityMixin) hopper).getPos().up());
-            ((HopperBlockEntityMixin) hopper).hasToCheckForInputInventory = false;
+            if (inventory == null /*implicit || inventory instanceof OptimizedInventory, but value is only used in the null or non optimizedInventory case*/)
+                ((HopperBlockEntityMixin) hopper).hasToCheckForInputInventory = false;
         }
 
         if (inventory == null) {
@@ -654,6 +655,8 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
 
     @Feature("optimizedInventories")
     private boolean inventoryCacheValid(Inventory cachedInv, BlockPos cachedInvPos, boolean extracting) {
+        if (Settings.inventoryCheckOnBlockUpdate && cachedInv == null)
+            return extracting ? !hasToCheckForInputInventory : !hasToCheckForOutputInventory;
         if (cachedInv instanceof BlockEntity) {
             if (!((BlockEntity) cachedInv).isInvalid() &&
                     ((BlockEntity) cachedInv).getPos().equals(cachedInvPos)) {
@@ -665,8 +668,6 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
         if (cachedInv instanceof DoubleInventory && cachedInv instanceof OptimizedInventory) {
             return ((OptimizedInventory) cachedInv).isStillValid();
         }
-        if (Settings.inventoryCheckOnBlockUpdate && cachedInv == null)
-            return extracting ? !hasToCheckForInputInventory : !hasToCheckForOutputInventory;
         return false; //never cache Entity Inventories, the entity might have moved away or a Blockentity might have been placed
     }
 
@@ -989,7 +990,8 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
             } else if (ret != null) return ret;
         }
 
-        if (!Settings.optimizedEntityHopperInteraction) return this.getOutputInventory();
+        if (!Settings.optimizedEntityHopperInteraction)
+            return this.getOutputInventory(); //todo only get entity inventory if skipGetBlockInventoryAt is true
 
         World world = hopper.getWorld();
         if (world == null) return null;
@@ -999,7 +1001,8 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
         if (skipGetBlockInventoryAt) inventory = null;
         else {
             inventory = getBlockInventoryAt(world, hopper.getPos().offset(outputDirection));
-            hasToCheckForOutputInventory = false;
+            if (inventory == null /*implicit || inventory instanceof OptimizedInventory, but value is only used in the null or non optimizedInventory case*/)
+                hasToCheckForOutputInventory = false;
         }
         if (inventory == null) {
             this.invalidateEntityCacheIfNecessary();
@@ -1066,7 +1069,8 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
     //When the hopper is in lazy chunks, caching doesn't work when entities suddenly can appear from dispensers, destroyed blocks etc.
     //Chunks should maybe cache whether they are ticking, this will cost some lag otherwise
     private boolean doAllNearbyEntitiesTick() {
-        if (this.world == null || this.world.isClient()) throw new UnsupportedOperationException();
+        if (Settings.debugOptimizedInventories && this.world == null || this.world.isClient())
+            throw new UnsupportedOperationException();
 
         int x = this.getPos().getX() - 2;
         int z = this.getPos().getZ() - 2;

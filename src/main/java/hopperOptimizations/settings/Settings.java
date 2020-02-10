@@ -39,7 +39,7 @@ public class Settings {
             category = {OPTIMIZATION, FEATURE, "hopperoptimizations"})
     public static boolean failedTransferNoComparatorUpdates = false;
 
-    @Rule(desc = "Disable optimized inventories when players interact with them. Not an optimization.", category = {"hopperoptimizations"})
+    @Rule(desc = "Disable optimized inventories when players interact with them. Not an optimization, for debugging only.", category = {"hopperoptimizations"})
     public static boolean playerInventoryDeoptimization = false;
 
     @Rule(desc = "Search for errors in optimized inventories on every known inventory modification. Prints errors in chat and resets the optimization state in case any error is detected. Massive lag, only enable for debugging. Partially requires assertions.", category = {"hopperoptimizations"})
@@ -48,9 +48,8 @@ public class Settings {
     @Rule(desc = "Search for errors in optimized entity-hopper-interaction on every entity search. Prints errors in chat and resets the optimization state in case any error is detected. Massive lag, only enable for debugging.", category = {"hopperoptimizations"})
     public static boolean debugOptimizedEntityHopperInteraction = false;
 
-    //doesn't work without entityhopperinteraction yet. breaks on fill without blockupdates/update suppression
     @Rule(desc = "Make hoppers only check for newly created blockentities when receiving a block update. Requires optimizedEntityHopperInteraction.",
-            category = {"hopperoptimizations"}, validate = EntityHopperInteraction.class)
+            category = {OPTIMIZATION, "hopperoptimizations"}, validate = EntityHopperInteraction.class)
     //Using the EntityHopperInteraction counter to invalidate entity caches on pickup box change.
     public static boolean inventoryCheckOnBlockUpdate = false;
 

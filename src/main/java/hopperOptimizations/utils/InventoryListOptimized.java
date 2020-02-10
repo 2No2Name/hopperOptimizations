@@ -79,14 +79,14 @@ public class InventoryListOptimized extends DefaultedList<ItemStack> {
     */
 
     public void add(int int_1, ItemStack object_1) {
-        if (Settings.optimizedInventories)
+        if (Settings.debugOptimizedInventories && Settings.optimizedInventories)
             throw new UnsupportedOperationException("Won't resize optimized inventory!");
         else
             super.add(int_1, object_1);
     }
 
     public ItemStack remove(int int_1) {
-        if (Settings.optimizedInventories)
+        if (Settings.debugOptimizedInventories && Settings.optimizedInventories)
             throw new UnsupportedOperationException("Won't resize optimized inventory!");
         else
             return super.remove(int_1);
