@@ -37,7 +37,6 @@ public class InventoryOptimizer {
     private static int filterEdits;
 
     //todo(unneccesary) recalculate Filters when 180+ Bits are set -> ~12% chance for false positive
-    //private static boolean DEBUG = false; //nonfinal to be able to change with debugger
 
     private final InventoryListOptimized stackList;
 
