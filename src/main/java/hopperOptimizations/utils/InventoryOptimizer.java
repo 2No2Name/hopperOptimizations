@@ -333,7 +333,7 @@ public class InventoryOptimizer {
             if (slot == firstOccupiedSlot)
                 flagRecalcOccupied = true;
         }
-        if (oldFirstFreeSlot > firstFreeSlot || flagRecalcFree || flagRecalcOccupied)
+        if (oldFirstFreeSlot < firstFreeSlot || flagRecalcFree || flagRecalcOccupied)
             recalcFirstFreeAndOccupiedSlots(oldFirstFreeSlot, flagRecalcFree, flagRecalcOccupied);
 
 
