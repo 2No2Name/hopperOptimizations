@@ -60,7 +60,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
     //intended to improve performance when a lot of non-fitting item entities are on top of a hopper
     private LinkedHashSet<ItemEntity> fittingItems;
     //countdown after fittingItems becomes invalid: when the hopper is constantly changing, the overhead of recalculating fitting items doesn't result in any speedup, so don't reinitialize then
-    private int transferAttemptsBeforeReinitFittingItems;
+    private int transferAttemptsBeforeReinitializeFittingItems;
     //value of the counter when fittingItems was initialized. a change of the item types means that fitting items is outdated
     private int lastItemTypeChangeCount; //when this.getOptimizer().itemTypeChanges increments, invalidate reachableFittingItems
 
@@ -70,6 +70,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
     private boolean itemEntityCacheInvalid = true;
     private boolean inputInventoryEntityCacheInvalid = true;
     private boolean outputInventoryEntityCacheInvalid = true;
+    //used to invalidate caches that are unused for a longer time
     private long lastTickTime_usedItemEntityCache;
     private long lastTickTime_usedInputInventoryEntityCache;
     private long lastTickTime_usedOutputInventoryEntityCache;
@@ -520,7 +521,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
             //invalidate the fitting items set when the item types the hopper can pick up changed
             if (Settings.optimizedInventories && this.lastItemTypeChangeCount != opt.getItemTypeChanges()) {
                 this.fittingItems = null;
-                this.transferAttemptsBeforeReinitFittingItems = 5;
+                this.transferAttemptsBeforeReinitializeFittingItems = 5;
                 this.lastItemTypeChangeCount = opt.getItemTypeChanges();
             }
 
@@ -550,7 +551,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
         this.lastTickTime_usedItemEntityCache = this.lastTickTime;
 
         //reinitialize fitting items if not invalidated during this transfer attempt (would happen every time when transferring nonstackable items)
-        if (opt != null && this.lastItemTypeChangeCount == opt.getItemTypeChanges() && this.transferAttemptsBeforeReinitFittingItems == 0 && this.fittingItems == null && !opt.hasFreeSlots_insertable()) {
+        if (opt != null && this.lastItemTypeChangeCount == opt.getItemTypeChanges() && this.transferAttemptsBeforeReinitializeFittingItems == 0 && this.fittingItems == null && !opt.hasFreeSlots_insertable()) {
             this.fittingItems = new LinkedHashSet<>(this.reachableItems);
             //Assume hoppers are no SidedInventory due to some other mod!
             assert !(this instanceof SidedInventory);
@@ -560,8 +561,8 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
                 //the set is supposed to be only recalculated when the item types the hopper can pick up change
                 return -1 == opt.indexOf(itemEntity.getStack());
             });
-        } else if (this.transferAttemptsBeforeReinitFittingItems > 0)
-            --this.transferAttemptsBeforeReinitFittingItems;
+        } else if (this.transferAttemptsBeforeReinitializeFittingItems > 0)
+            --this.transferAttemptsBeforeReinitializeFittingItems;
 
 
         LinkedHashSet<ItemEntity> itemsToTransfer = this.fittingItems == null ? this.reachableItems : this.fittingItems;
@@ -1104,7 +1105,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
         itemEntityCacheInvalid = true;
         reachableItems = null;
         fittingItems = null;
-        transferAttemptsBeforeReinitFittingItems = 5;
+        transferAttemptsBeforeReinitializeFittingItems = 5;
     }
 
     private void clearInputInventoryEntityCache() {
