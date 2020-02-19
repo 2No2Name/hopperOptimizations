@@ -9,7 +9,6 @@ import net.minecraft.block.entity.*;
 import net.minecraft.block.enums.ChestType;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.ItemEntity;
-import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.inventory.DoubleInventory;
 import net.minecraft.inventory.Inventory;
 import net.minecraft.inventory.SidedInventory;
@@ -905,6 +904,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
     }
 
     //@Inject(method = "onInvOpen(Lnet/minecraft/entity/player/PlayerEntity;)V", at = @At(value = "HEAD"))
+    /*
     public void onInvOpen(PlayerEntity playerEntity_1) {
         if (!playerEntity_1.isSpectator()) {
             viewerCount++;
@@ -921,11 +921,11 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
                 viewerCount = 0;
             }
         }
-    }
+    }*/
 
     @Override
     public boolean mayHaveOptimizer() {
-        return !this.world.isClient && (!Settings.playerInventoryDeoptimization || viewerCount <= 0);
+        return this.world != null && !this.world.isClient;// && (!Settings.playerInventoryDeoptimization || viewerCount <= 0);
     }
 
     private Box inputBox() {

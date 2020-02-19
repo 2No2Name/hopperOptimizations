@@ -1,12 +1,10 @@
 package hopperOptimizations.mixins;
 
 
-import hopperOptimizations.settings.Settings;
 import hopperOptimizations.utils.InventoryListOptimized;
 import hopperOptimizations.utils.InventoryOptimizer;
 import hopperOptimizations.utils.OptimizedInventory;
 import net.minecraft.entity.EntityType;
-import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.vehicle.AbstractMinecartEntity;
 import net.minecraft.entity.vehicle.StorageMinecartEntity;
 import net.minecraft.item.ItemStack;
@@ -65,6 +63,7 @@ public abstract class StorageMinecartEntityMixin extends AbstractMinecartEntity 
         if (inventory instanceof InventoryListOptimized) ((InventoryListOptimized) inventory).invalidateOptimizer();
     }
 
+    /*
     public void onInvOpen(PlayerEntity playerEntity_1) {
         if (!playerEntity_1.isSpectator()) {
             if (Settings.playerInventoryDeoptimization)
@@ -83,11 +82,11 @@ public abstract class StorageMinecartEntityMixin extends AbstractMinecartEntity 
                 }
             }
         }
-    }
+    }*/
 
     @Override
     public boolean mayHaveOptimizer() {
-        return !this.world.isClient && (!Settings.playerInventoryDeoptimization || viewerCount <= 0);
+        return !this.world.isClient;// && (!Settings.playerInventoryDeoptimization || viewerCount <= 0);
     }
 
     /* //replaced with code in EntityMixin
