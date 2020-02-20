@@ -21,14 +21,15 @@ public class EntityMixin {
 
     @Inject(method = "move(Lnet/minecraft/entity/MovementType;Lnet/minecraft/util/math/Vec3d;)V", at = @At(value = "HEAD"))
     private void rememberNearbyHoppers(MovementType type, Vec3d movement, CallbackInfo ci) {
-        if (this.world.isClient || !EntityHopperInteraction.canInteractWithHopper(this)) return;
-        EntityHopperInteraction.findHoppers = Settings.optimizedEntityHopperInteraction;
+        if (!this.world.isClient && EntityHopperInteraction.canInteractWithHopper(this)) {
+            EntityHopperInteraction.findHoppers = Settings.optimizedEntityHopperInteraction;
+        }
     }
 
     @Inject(method = "move(Lnet/minecraft/entity/MovementType;Lnet/minecraft/util/math/Vec3d;)V", at = @At(value = "RETURN"))
     private void notifyHoppersOfExistence(CallbackInfo ci) {
-        if (!EntityHopperInteraction.findHoppers || this.world.isClient || !Settings.optimizedEntityHopperInteraction)
-            return;
-        EntityHopperInteraction.notifyHoppersObj(this);
+        if (EntityHopperInteraction.findHoppers && !this.world.isClient && Settings.optimizedEntityHopperInteraction) {
+            EntityHopperInteraction.notifyHoppersObj(this);
+        }
     }
 }
