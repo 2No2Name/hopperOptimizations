@@ -208,6 +208,13 @@ public class InventoryOptimizer {
 
     public void onItemStackCountChanged(int index, int countChange) {
         if (!initialized || this.optimizedInventoryRuleChangeCounter != OptimizedInventoriesRule.ruleUpdates) return;
+        if (index >= totalSlots) {
+            if (Settings.debugOptimizedInventories) {
+                Text text = new LiteralText("Detected too large index in InventoryOptimizer.onItemStackCountChanged");
+                CarpetServer.minecraft_server.getPlayerManager().broadcastChatMessage(text, false);
+            }
+            return;
+        }
 
         //should never increase count of empty stacks
 
@@ -602,7 +609,7 @@ public class InventoryOptimizer {
     //Does not support unstackable items!
     public int indexOf_extractable_endIndex(ItemStack stack, int stop) {
         this.ensureInitialized();
-        if (stop == -1) stop = this.totalSlots;
+        if (stop == -1 || stop > this.totalSlots) stop = this.totalSlots;
         if (stack.isEmpty()) return -1;
         if (!maybeContains(stack)) return -1;
         for (int i = firstOccupiedSlot; i < stop; i++) {
