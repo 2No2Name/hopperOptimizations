@@ -1,14 +1,12 @@
 package hopperOptimizations.mixins;
 
 import hopperOptimizations.annotation.Feature;
-import hopperOptimizations.settings.Settings;
 import hopperOptimizations.utils.InventoryListOptimized;
 import hopperOptimizations.utils.InventoryOptimizer;
 import hopperOptimizations.utils.OptimizedInventory;
 import net.minecraft.block.entity.BarrelBlockEntity;
 import net.minecraft.block.entity.BlockEntityType;
 import net.minecraft.block.entity.LootableContainerBlockEntity;
-import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.DefaultedList;
 import org.spongepowered.asm.mixin.Mixin;
@@ -61,14 +59,15 @@ public abstract class BarrelBlockEntityMixin extends LootableContainerBlockEntit
         if (inventory instanceof InventoryListOptimized) ((InventoryListOptimized) inventory).invalidateOptimizer();
     }
 
+    /*
     @Inject(method = "onInvOpen(Lnet/minecraft/entity/player/PlayerEntity;)V", at = @At(value = "HEAD"))
     private void onInventoryOpened(PlayerEntity playerEntity_1, CallbackInfo ci) {
         if (Settings.playerInventoryDeoptimization && !playerEntity_1.isSpectator())
             invalidateOptimizer();
-    }
+    }*/
 
     @Override
     public boolean mayHaveOptimizer() {
-        return !this.world.isClient && (!Settings.playerInventoryDeoptimization || viewerCount <= 0);
+        return this.world != null && !this.world.isClient;// && (!Settings.playerInventoryDeoptimization || viewerCount <= 0);
     }
 }

@@ -37,32 +37,42 @@ public class InventoryOptimizer {
     private static int filterEdits;
 
     //todo(unneccesary) recalculate Filters when 180+ Bits are set -> ~12% chance for false positive
-    //private static boolean DEBUG = false; //nonfinal to be able to change with debugger
 
     private final InventoryListOptimized stackList;
 
     private final SidedInventory sidedInventory; //only use when required, inventory handling should be mostly independent from the container
+    //do any item restrictions exist e.g. cannot insert shulker boxes into this inventory
     private final boolean itemRestrictions;
-    private int inventoryChanges;
-    private int itemTypeChanges;
+    //number of inventory slots are occupied with stacks of a given size: e.g. 64->6, 16->1, 1->3
+    private final Map<Integer, Integer> stackSizeToSlotCount = new HashMap<>();
+
     private final long[] bloomFilter = new long[filterLongCount];
     private final long[] nonFullStackBloomFilter = new long[filterLongCount];
     private final long[] preEmptyNonFullStackBloomFilter = new long[filterLongCount];
-
-    private int occupiedSlots;
-    private int fullSlots;
+    //number of slots
     private int totalSlots;
+    //number of changes to the inventory contents - useful for realizing inventory hasn't changed
+    private int inventoryChanges;
+    //number of changes of the item types in the inventory - useful for realizing item entities still don't fit
+    private int itemTypeChanges;
+    //number of slots that are occupied = not empty
+    private int occupiedSlots;
+    //number of slots that are completely full
+    private int fullSlots;
+    //index of the first slot that is empty
     private int firstFreeSlot;
+    //index of the first slot that is not empty
     private int firstOccupiedSlot;
+    //item count for comparators, items with <64 max stack size already weighted higher
     private int weightedItemCount;
-
-    //saves how many inventory slots are occupied with stacks of a given size: e.g. 64->6, 16->1, 1->3
-    private final Map<Integer, Integer> stackSizeToSlotCount = new HashMap<>();
-    //saves a lower signal strength for a short moment to make comparators send updates at their outputs
+    //lower signal strength override for a short moment to make comparators send updates at their outputs
     private int fakeSignalStrength;
 
+    //whether all the variables above are initialized
     private boolean initialized;
+    //whether this optimizer shall no longer be used
     private boolean invalid;
+    //counter to detect that the optimizedInventory rule changed - for invalidating cached data
     private int optimizedInventoryRuleChangeCounter;
 
     public InventoryOptimizer(InventoryListOptimized stackList, Inventory inventory) {
@@ -198,6 +208,13 @@ public class InventoryOptimizer {
 
     public void onItemStackCountChanged(int index, int countChange) {
         if (!initialized || this.optimizedInventoryRuleChangeCounter != OptimizedInventoriesRule.ruleUpdates) return;
+        if (index >= totalSlots) {
+            if (Settings.debugOptimizedInventories) {
+                Text text = new LiteralText("Detected too large index in InventoryOptimizer.onItemStackCountChanged");
+                CarpetServer.minecraft_server.getPlayerManager().broadcastChatMessage(text, false);
+            }
+            return;
+        }
 
         //should never increase count of empty stacks
 
@@ -287,6 +304,7 @@ public class InventoryOptimizer {
 
         int prevC, prevMaxC, newC, newMaxC;
 
+        //Update fullSlots
         if ((prevC = prevStack.getCount()) >= (prevMaxC = prevStack.getMaxCount())) {
             --fullSlots;
         }
@@ -321,7 +339,7 @@ public class InventoryOptimizer {
             if (slot == firstOccupiedSlot)
                 flagRecalcOccupied = true;
         }
-        if (oldFirstFreeSlot > firstFreeSlot || flagRecalcFree || flagRecalcOccupied)
+        if (oldFirstFreeSlot < firstFreeSlot || flagRecalcFree || flagRecalcOccupied)
             recalcFirstFreeAndOccupiedSlots(oldFirstFreeSlot, flagRecalcFree, flagRecalcOccupied);
 
 
@@ -582,6 +600,7 @@ public class InventoryOptimizer {
      * @return index of the matching item, -1 if none found.
      */
     //does not require override in DoubleInventoryOptimizer
+    //Does not support unstackable items!
     public int indexOf(ItemStack stack) {
         this.ensureInitialized();
         return indexOf_extractable_endIndex(stack, getTotalSlots());
@@ -590,7 +609,7 @@ public class InventoryOptimizer {
     //Does not support unstackable items!
     public int indexOf_extractable_endIndex(ItemStack stack, int stop) {
         this.ensureInitialized();
-        if (stop == -1) stop = this.totalSlots;
+        if (stop == -1 || stop > this.totalSlots) stop = this.totalSlots;
         if (stack.isEmpty()) return -1;
         if (!maybeContains(stack)) return -1;
         for (int i = firstOccupiedSlot; i < stop; i++) {

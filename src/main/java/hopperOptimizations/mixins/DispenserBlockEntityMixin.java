@@ -1,14 +1,12 @@
 package hopperOptimizations.mixins;
 
 import hopperOptimizations.annotation.Feature;
-import hopperOptimizations.settings.Settings;
 import hopperOptimizations.utils.InventoryListOptimized;
 import hopperOptimizations.utils.InventoryOptimizer;
 import hopperOptimizations.utils.OptimizedInventory;
 import net.minecraft.block.entity.BlockEntityType;
 import net.minecraft.block.entity.DispenserBlockEntity;
 import net.minecraft.block.entity.LootableContainerBlockEntity;
-import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.DefaultedList;
 import org.spongepowered.asm.mixin.Mixin;
@@ -64,14 +62,15 @@ public abstract class DispenserBlockEntityMixin extends LootableContainerBlockEn
     }
 
     //@Inject(method = "onInvOpen(Lnet/minecraft/entity/player/PlayerEntity;)V", at = @At(value = "HEAD"))
+    /*
     public void onInvOpen(PlayerEntity playerEntity_1) {
         if (!playerEntity_1.isSpectator()) {
             viewerCount++;
             if (Settings.playerInventoryDeoptimization)
                 invalidateOptimizer();
         }
-    }
-
+    }*/
+/*
     public void onInvClose(PlayerEntity playerEntity_1) {
         if (!playerEntity_1.isSpectator()) {
             viewerCount--;
@@ -80,11 +79,11 @@ public abstract class DispenserBlockEntityMixin extends LootableContainerBlockEn
                 viewerCount = 0;
             }
         }
-    }
+    }*/
 
     @Override
     public boolean mayHaveOptimizer() {
-        return !this.world.isClient && (!Settings.playerInventoryDeoptimization || viewerCount <= 0);
+        return this.world != null && !this.world.isClient;// && (!Settings.playerInventoryDeoptimization || viewerCount <= 0);
     }
 
 }
