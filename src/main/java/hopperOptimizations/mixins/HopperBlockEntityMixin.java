@@ -150,7 +150,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
             InventoryOptimizer toOpt = ((OptimizedInventory) to).getOptimizer();
             if (toOpt == null) return;
             while (!stack.isEmpty()) {
-                int toSlot = toOpt.findInsertSlot(stack, fromDirection);
+                int toSlot = toOpt.findInsertSlot(stack, fromDirection, to);
                 if (toSlot == -1) break;
                 int count = stack.getCount();
                 stack = transfer(from, to, stack, toSlot, fromDirection);
@@ -245,7 +245,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
 
                         //Find the slot in the hopper, which might be before the first empty slot due to stacking items
                         ItemStack stack = from.getInvStack(firstOccupiedSlot);
-                        int toSlot = toOpt.findInsertSlot(stack, null);
+                        int toSlot = toOpt.findInsertSlot(stack, null, to);
                         //if (toSlot == -1) throw new ThisNeverHappensException(); //empty slot always exists
                         transferOneItem_knownSuccessful(to, toSlot, from, firstOccupiedSlot);
                         from.markDirty();
@@ -878,7 +878,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
                         ItemStack stack = this.getInvStack(fromSlot);
                         if (!stack.isEmpty()) {
                             --transferAttempts;
-                            int toSlot = toOpt.findInsertSlot(stack, insertFromDirection);
+                            int toSlot = toOpt.findInsertSlot(stack, insertFromDirection, to);
                             if (toSlot == -1) continue;
 
                             boolean wasEmpty = toOpt.getFirstOccupiedSlot_extractable() == -1;
