@@ -2,7 +2,7 @@ package hopperOptimizations.mixins;
 
 import hopperOptimizations.annotation.Feature;
 import hopperOptimizations.settings.Settings;
-import hopperOptimizations.utils.EntityHopperInteraction;
+import hopperOptimizations.workarounds.EntityHopperInteraction;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.entity.Entity;

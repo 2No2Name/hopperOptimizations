@@ -22,7 +22,10 @@
     "HopperBlockMixin",
     "WorldChunkMixin",
     "EntityMixin",
-    "TeleportCommandMixin"
+    "TeleportCommandMixin",
+    "ComposterBlockFullComposterInventoryMixin",
+    "ComposterBlockComposterInventoryMixin",
+    "ComposterBlockDummyInventoryMixin"
   ],
   "client": [
     "MinecraftClient_noopMixin"
