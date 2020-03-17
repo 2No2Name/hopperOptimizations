@@ -627,27 +627,30 @@ public class InventoryOptimizer {
         return getFirstFreeSlot() >= 0;
     }
 
-    public int findInsertSlot(ItemStack stack, Direction fromDirection) {
+    public int findInsertSlot(ItemStack stack, Direction fromDirection, Inventory inventory) {
         this.ensureInitialized();
 
         int firstFreeSlot = getFirstFreeSlot();
-        if ((firstFreeSlot == 0 || stack.getMaxCount() == 1))
+        if ((firstFreeSlot == 0 || stack.getMaxCount() == 1)) {
             //return the first free slot when the item is not stackable. (edge case: shulker box into shulker box)
-            return this.itemRestrictions && !this.sidedInventory.canInsertInvStack(firstFreeSlot, stack, fromDirection) ? -1 : firstFreeSlot;
+            int i = this.itemRestrictions && !this.sidedInventory.canInsertInvStack(firstFreeSlot, stack, fromDirection) ? -1 : firstFreeSlot;
+            return checkFallbackToVanillaInsert(i, stack, inventory);
+        }
         else if (firstFreeSlot > 0) {
             //Check for matching non full stacks before the empty slot.
             long hash = hash(stack);
             if (filterContains(preEmptyNonFullStackBloomFilter, hash)) {
                 for (int i = 0; i < firstFreeSlot; i++) {
-                    ItemStack slot = getSlot(i);
-                    if (slot.getCount() >= slot.getMaxCount()) continue;
-                    if (areItemsAndTagsEqual(stack, slot)) {
+                    ItemStack slotItem = getSlot(i);
+                    if (slotItem.getCount() >= slotItem.getMaxCount()) continue;
+                    if (areItemsAndTagsEqual(stack, slotItem)) {
                         filterTruePositives++;
+                        i = checkFallbackToVanillaInsert(i, stack, inventory);
                         return i;
                     }
                 }
             }
-            return firstFreeSlot;
+            return checkFallbackToVanillaInsert(this.firstFreeSlot, stack, inventory);
         }
 
         //No empty Slot, search everything if there may be a fitting non full stack
@@ -659,9 +662,24 @@ public class InventoryOptimizer {
             if (slot.getCount() >= slot.getMaxCount()) continue;
             if (areItemsAndTagsEqual(stack, slot)) {
                 filterTruePositives++;
+                i = checkFallbackToVanillaInsert(i, stack, inventory);
                 return i;
             }
         }
-        return -1;
+        return checkFallbackToVanillaInsert(-1, stack, inventory);
+    }
+
+    //Workaround for mods that overwrite isValidInvStack without implementing SidedInventory
+    private int checkFallbackToVanillaInsert(int i, ItemStack stack, Inventory inventory) {
+        if (inventory.isValidInvStack(i, stack)) {
+            return i;
+        } else {
+            for (int j = 0; j < inventory.getInvSize(); j++) {
+                if (inventory.isValidInvStack(j, stack)) {
+                    return j;
+                }
+            }
+            return -1;
+        }
     }
 }
