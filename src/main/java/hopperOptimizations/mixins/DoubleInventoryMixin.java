@@ -8,6 +8,7 @@ import hopperOptimizations.utils.OptimizedInventory;
 import net.minecraft.block.entity.ChestBlockEntity;
 import net.minecraft.inventory.DoubleInventory;
 import net.minecraft.inventory.Inventory;
+import net.minecraft.inventory.SidedInventory;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -81,7 +82,7 @@ public abstract class DoubleInventoryMixin implements OptimizedInventory {
     @Override
     @Nullable
     public InventoryOptimizer getOptimizer() {
-        return mayHaveOptimizer() ? getCreateOrRemoveOptimizer() : null;
+        return !(this instanceof SidedInventory) && Settings.optimizedInventories && mayHaveOptimizer() ? getCreateOrRemoveOptimizer() : null;
     }
 
     @Override

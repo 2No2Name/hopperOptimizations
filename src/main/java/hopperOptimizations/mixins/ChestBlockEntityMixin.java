@@ -1,12 +1,14 @@
 package hopperOptimizations.mixins;
 
 import hopperOptimizations.annotation.Feature;
+import hopperOptimizations.settings.Settings;
 import hopperOptimizations.utils.InventoryListOptimized;
 import hopperOptimizations.utils.InventoryOptimizer;
 import hopperOptimizations.utils.OptimizedInventory;
 import net.minecraft.block.entity.BlockEntityType;
 import net.minecraft.block.entity.ChestBlockEntity;
 import net.minecraft.block.entity.LootableContainerBlockEntity;
+import net.minecraft.inventory.SidedInventory;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.DefaultedList;
 import net.minecraft.util.Tickable;
@@ -52,7 +54,7 @@ public abstract class ChestBlockEntityMixin extends LootableContainerBlockEntity
 
     @Nullable
     public InventoryOptimizer getOptimizer() {
-        return mayHaveOptimizer() && inventory instanceof InventoryListOptimized ? ((InventoryListOptimized) inventory).getCreateOrRemoveOptimizer(this) : null;
+        return !(this instanceof SidedInventory) && Settings.optimizedInventories && mayHaveOptimizer() && inventory instanceof InventoryListOptimized ? ((InventoryListOptimized) inventory).getCreateOrRemoveOptimizer(this) : null;
     }
 
     @Override
@@ -75,12 +77,11 @@ public abstract class ChestBlockEntityMixin extends LootableContainerBlockEntity
 
     //Making sure that DoubleInventories don't act on invalid chest halfs using counter comparison.
     public void markRemoved() {
-        this.invalidCount++;
-        if (invalidCount == 0) invalidCount = -1;
+        if (this.invalidCount != -1) ++this.invalidCount;
         super.markRemoved();
     }
 
     public int getInvalidCount() {
-        return invalidCount;
+        return this.invalidCount;
     }
 }
