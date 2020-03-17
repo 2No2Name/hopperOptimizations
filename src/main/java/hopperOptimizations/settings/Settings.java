@@ -1,8 +1,8 @@
 package hopperOptimizations.settings;
 
 import carpet.settings.Rule;
-import hopperOptimizations.utils.EntityHopperInteraction;
 import hopperOptimizations.utils.OptimizedInventoriesRule;
+import hopperOptimizations.workarounds.EntityHopperInteraction;
 
 import static carpet.settings.RuleCategory.*;
 
@@ -40,7 +40,7 @@ public class Settings {
     public static boolean failedTransferNoComparatorUpdates = false;
 
     //@Rule(desc = "Disable optimized inventories when players interact with them. Not an optimization, for debugging only.", category = {"hopperoptimizations"})
-    public static final boolean playerInventoryDeoptimization = false;
+    //public static final boolean playerInventoryDeoptimization = false;
 
     @Rule(desc = "Search for errors in optimized inventories on every known inventory modification. Prints errors in chat and resets the optimization state in case any error is detected. Massive lag, only enable for debugging. Partially requires assertions.", category = {"hopperoptimizations"})
     public static boolean debugOptimizedInventories = false;

@@ -1,7 +1,7 @@
 package hopperOptimizations.mixins;
 
 import hopperOptimizations.annotation.Feature;
-import hopperOptimizations.utils.EntityHopperInteraction;
+import hopperOptimizations.workarounds.EntityHopperInteraction;
 import net.minecraft.entity.Entity;
 import net.minecraft.world.chunk.WorldChunk;
 import org.spongepowered.asm.mixin.Mixin;

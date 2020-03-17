@@ -4,6 +4,8 @@ import hopperOptimizations.annotation.Feature;
 import net.minecraft.entity.Entity;
 import net.minecraft.inventory.Inventory;
 
+import javax.annotation.Nullable;
+
 public interface IHopper {
 
     @Feature("optimizedInventories")
@@ -68,6 +70,12 @@ public interface IHopper {
      */
     @Feature("optimizedInventories")
     boolean tryShortcutFailedInsert(InventoryOptimizer thisOpt, Inventory other, InventoryOptimizer otherOpt);
+
+    @Feature("optimizedInventories")
+    void cacheInputInventoryBlock(Inventory other, @Nullable InventoryOptimizer otherOpt);
+
+    void cacheOutputInventoryBlock(Inventory other, @Nullable InventoryOptimizer otherOpt);
+
 
     @Feature("optimizedEntityHopperInteraction")
     default void notifyOfNearbyEntity(Entity entity) {
