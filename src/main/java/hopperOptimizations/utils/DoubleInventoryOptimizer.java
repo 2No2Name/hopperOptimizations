@@ -74,9 +74,9 @@ public class DoubleInventoryOptimizer extends InventoryOptimizer {
 
     public int findInsertSlot(ItemStack stack, Direction fromDirection) {
         ensureInitialized();
-        int ret = firstOpt.findInsertSlot(stack, fromDirection);
+        int ret = firstOpt.findInsertSlot(stack, fromDirection, first);
         if (ret == -1) {
-            ret = secondOpt.findInsertSlot(stack, fromDirection);
+            ret = secondOpt.findInsertSlot(stack, fromDirection, second);
             if (ret != -1)
                 ret += first.getInvSize();
         }
