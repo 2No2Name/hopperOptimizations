@@ -671,7 +671,7 @@ public class InventoryOptimizer {
 
     //Workaround for mods that overwrite isValidInvStack without implementing SidedInventory
     private int checkFallbackToVanillaInsert(int i, ItemStack stack, Inventory inventory) {
-        if (inventory.isValidInvStack(i, stack)) {
+        if (i == -1 || inventory.isValidInvStack(i, stack)) {
             return i;
         } else {
             for (int j = 0; j < inventory.getInvSize(); j++) {

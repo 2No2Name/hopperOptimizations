@@ -25,6 +25,7 @@ public class DoubleInventoryOptimizer extends InventoryOptimizer {
         this.secondOpt = second.getOptimizer();
     }
 
+    @Override
     public boolean isInvalid() {
         return super.isInvalid() || firstOpt == null || firstOpt.isInvalid() || secondOpt == null || secondOpt.isInvalid();
     }
@@ -56,6 +57,7 @@ public class DoubleInventoryOptimizer extends InventoryOptimizer {
         }
     }
 
+    @Override
     public int indexOf_extractable_endIndex(ItemStack stack, int stop) {
         ensureInitialized();
         int ret = firstOpt.indexOf_extractable_endIndex(stack, stop);
@@ -67,12 +69,14 @@ public class DoubleInventoryOptimizer extends InventoryOptimizer {
         return ret;
     }
 
+    @Override
     public boolean hasFreeSlots_insertable() {
         ensureInitialized();
         return firstOpt.hasFreeSlots_insertable() || secondOpt.hasFreeSlots_insertable();
     }
 
-    public int findInsertSlot(ItemStack stack, Direction fromDirection) {
+    @Override
+    public int findInsertSlot(ItemStack stack, Direction fromDirection, Inventory inventory) {
         ensureInitialized();
         int ret = firstOpt.findInsertSlot(stack, fromDirection, first);
         if (ret == -1) {
@@ -133,6 +137,7 @@ public class DoubleInventoryOptimizer extends InventoryOptimizer {
         return firstOpt.getItemTypeChanges() + secondOpt.getItemTypeChanges();
     }
 
+    @Override
     public int getFirstOccupiedSlot_extractable() {
         ensureInitialized();
         int ret = firstOpt.getFirstOccupiedSlot_extractable();
@@ -150,21 +155,25 @@ public class DoubleInventoryOptimizer extends InventoryOptimizer {
         //return this.first == ((DoubleInventoryOptimizer) other).first && this.second == ((DoubleInventoryOptimizer) other).second;
     }*/
 
+    @Override
     public int getInventoryChangeCount() {
         ensureInitialized();
         return firstOpt.getInventoryChangeCount() + secondOpt.getInventoryChangeCount();
     }
 
+    @Override
     void ensureInitialized() {
         firstOpt.ensureInitialized();
         secondOpt.ensureInitialized();
     }
 
+    @Override
     int getWeightedItemCount() {
         ensureInitialized();
         return firstOpt.getWeightedItemCount() + secondOpt.getWeightedItemCount();
     }
 
+    @Override
     int getTotalSlots() {
         ensureInitialized();
         return firstOpt.getTotalSlots() + secondOpt.getTotalSlots();
@@ -175,6 +184,7 @@ public class DoubleInventoryOptimizer extends InventoryOptimizer {
      *
      * @return index of the stack object, -1 if none found.
      */
+    @Override
     public int indexOfObject(ItemStack stack) {
         ensureInitialized();
         int ret = firstOpt.indexOfObject(stack);
@@ -186,6 +196,7 @@ public class DoubleInventoryOptimizer extends InventoryOptimizer {
         return ret;
     }
 
+    @Override
     public int getMinExtractableItemStackSize(InventoryOptimizer pulledFrom) {
         if (firstOpt == pulledFrom && !firstOpt.isInvEmpty_Extractable())
             return firstOpt.getMinExtractableItemStackSize(pulledFrom);
@@ -206,15 +217,18 @@ public class DoubleInventoryOptimizer extends InventoryOptimizer {
 
 
     //store state of take signal strength in first opt, as the double inventory optimizer should be stateless
+    @Override
     public boolean hasFakeSignalStrength() {
         return firstOpt.hasFakeSignalStrength();
     }
 
+    @Override
     public int getFakeSignalStrength() {
         return firstOpt.getFakeSignalStrength();
     }
 
     //Used to trick comparators into sending block updates like in vanilla.
+    @Override
     void setFakeReducedSignalStrength() {
         this.ensureInitialized();
         if (Settings.debugOptimizedInventories && this.hasFakeSignalStrength())
@@ -223,10 +237,12 @@ public class DoubleInventoryOptimizer extends InventoryOptimizer {
         firstOpt.setFakeReducedSignalStrength(this.getSignalStrength() - 1);
     }
 
+    @Override
     void clearFakeChangedSignalStrength() {
         firstOpt.clearFakeChangedSignalStrength();
     }
 
+    @Override
     boolean isInvEmpty_Extractable() {
         return firstOpt.isInvEmpty_Extractable() && secondOpt.isInvEmpty_Extractable();
     }
