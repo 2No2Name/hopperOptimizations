@@ -675,7 +675,8 @@ public class InventoryOptimizer {
             return i;
         } else {
             for (int j = 0; j < inventory.getInvSize(); j++) {
-                if (inventory.isValidInvStack(j, stack)) {
+                ItemStack invStack = inventory.getInvStack(j);
+                if (inventory.isValidInvStack(j, stack) && (invStack.isEmpty() || ((invStack.getMaxCount() > invStack.getCount()) && areItemsAndTagsEqual(stack, invStack)))) {
                     return j;
                 }
             }
