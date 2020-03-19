@@ -26,7 +26,8 @@
 
   "depends": {
     "fabricloader": ">=0.4.0",
-    "carpet": "*"
+    "carpet": "*",
+    "lithium": "*"
   },
   "suggests": {
     "flamingo": "*"

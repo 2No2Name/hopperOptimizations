@@ -25,7 +25,8 @@
     "TeleportCommandMixin",
     "ComposterBlockFullComposterInventoryMixin",
     "ComposterBlockComposterInventoryMixin",
-    "ComposterBlockDummyInventoryMixin"
+    "ComposterBlockDummyInventoryMixin",
+    "BlockEntityMixin"
   ],
   "client": [
     "MinecraftClient_noopMixin"

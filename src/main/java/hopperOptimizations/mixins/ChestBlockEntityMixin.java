@@ -62,18 +62,10 @@ public abstract class ChestBlockEntityMixin extends LootableContainerBlockEntity
         if (inventory instanceof InventoryListOptimized) ((InventoryListOptimized) inventory).invalidateOptimizer();
     }
 
-    /*
-    @Inject(method = "onInvOpen(Lnet/minecraft/entity/player/PlayerEntity;)V", at = @At(value = "HEAD"))
-    private void onInventoryOpened(PlayerEntity playerEntity_1, CallbackInfo ci) {
-        if (Settings.playerInventoryDeoptimization && !playerEntity_1.isSpectator())
-            invalidateOptimizer();
-    }*/
-
     @Override
     public boolean mayHaveOptimizer() {
-        return this.world != null && !this.world.isClient;// && (!Settings.playerInventoryDeoptimization || viewerCount <= 0);
+        return this.world != null && !this.world.isClient;
     }
-
 
     //Making sure that DoubleInventories don't act on invalid chest halfs using counter comparison.
     public void markRemoved() {
