@@ -231,12 +231,12 @@ public abstract class HopperHelper {
         inv.setInvStack(0, inv.getInvStack(0));
     }
 
-    public static void debugCompareInventoryEntities(HopperBlockEntity hopper, NearbyHopperInventoriesTracker tracker, World world, double x, double y, double z) {
+    public static void debugCompareInventoryEntities(Hopper hopper, NearbyHopperInventoriesTracker tracker, World world, double x, double y, double z) {
         try {
             List<Entity> inventoryEntities = tracker.getAllForDebug();
             inventoryEntities.removeIf((Entity inv) -> inv.removed);
 
-            List<Entity> inventoriesVanilla = world.getEntities((Entity) null, new Box(x - 0.5D, y + 1.0D - 0.5D, z - 0.5D, x + 0.5D, y + 1.0D + 0.5D, z + 0.5D), EntityPredicates.VALID_INVENTORIES);
+            List<Entity> inventoriesVanilla = world.getEntities((Entity) null, new Box(x - 0.5D, y - 0.5D, z - 0.5D, x + 0.5D, y + 0.5D, z + 0.5D), EntityPredicates.VALID_INVENTORIES);
             if (!inventoryEntities.containsAll(inventoriesVanilla)) {
                 throw new IllegalStateException("HopperOptimizations did not find inventory entity/entities that vanilla found.");
             }

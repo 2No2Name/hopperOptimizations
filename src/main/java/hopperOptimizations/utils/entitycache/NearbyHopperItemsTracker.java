@@ -2,6 +2,7 @@ package hopperOptimizations.utils.entitycache;
 
 import it.unimi.dsi.fastutil.longs.Long2ObjectAVLTreeMap;
 import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
+import net.minecraft.block.entity.Hopper;
 import net.minecraft.block.entity.HopperBlockEntity;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityDimensions;
@@ -67,9 +68,10 @@ public class NearbyHopperItemsTracker extends NearbyEntityTrackerBox<ItemEntity>
     //Other mods that want to use the list differently than vanilla might be surprised and will lead to a crash
     private IteratorWrapperList<ItemEntity> iteratorWrapperList = new IteratorWrapperList<>();
 
-    public NearbyHopperItemsTracker(BlockPos hopperPos, HopperBlockEntity hopper) {
+    public NearbyHopperItemsTracker(BlockPos hopperPos, Hopper hopper) {
         super(ItemEntity.class);
-        this.myHopper = hopper;
+        assert hopper instanceof HopperBlockEntity;
+        this.myHopper = (HopperBlockEntity) hopper;
         this.init(hopperPos);
     }
 
@@ -103,8 +105,8 @@ public class NearbyHopperItemsTracker extends NearbyEntityTrackerBox<ItemEntity>
 //            return Iterators.filter(this.withinAreaSorted.values().iterator(),
 //                    (ItemEntity o) -> !this.withinAreaNotFittingItemType.contains(o));
 //        } else {
-        if (this.withinSubchunksObjectToKey.isEmpty()) {
-            return null;
+        if (this.withinSubchunksObjectToKey == null || this.withinSubchunksObjectToKey.isEmpty()) {
+            return EMPTY_LIST.iterator();
         }
 //            if (--this.nonFittingItemTypeFilterCooldown < 0 ) {
 //                this.nonFittingItemTypeFilterActive = true;
@@ -138,13 +140,13 @@ public class NearbyHopperItemsTracker extends NearbyEntityTrackerBox<ItemEntity>
 
 
         if (this.chunkXZYBits > 1 || this.boxBits != 1) {
-            if (this.chunkXZYBits * 3 + this.boxBits > 6) {
-                //20+ bits for entity counter recommended. millions of items should be indexable at once, vanilla probably has a higher limit!
+            if (this.chunkXZYBits * 3 + this.boxBits > 30) {
+                //30+ bits for entity counter recommended. billions of items should be indexable at once, vanilla probably has a high or no limit besides lag!
                 System.out.println("Hopper pickup area very complex or huge. This can lead to problems when many items gather on top of a hopper.");
             }
         }
 
-        this.entitySubchunkCounterMaxValue = (1 << (63 - 1 - this.boxBits - 3 * this.chunkXZYBits)) - 1;
+        this.entitySubchunkCounterMaxValue = (1L << (63 - 1 - this.boxBits - 3 * this.chunkXZYBits)) - 1;
         this.entityChangedSubchunkCounter = 0; //any entity counter, unused until it is reset at initialization
 
     }
@@ -171,12 +173,12 @@ public class NearbyHopperItemsTracker extends NearbyEntityTrackerBox<ItemEntity>
             ++i;
 
             //use vanilla listening box size, as otherwise lazy pushed entities might behave differently!
-            this.chunkX1 = Math.min(this.chunkX1, (MathHelper.floor((box.x1 - 2.0D) / 16.0D)));
-            this.chunkX2 = Math.max(this.chunkX2, (MathHelper.ceil((box.x2 + 2.0D) / 16.0D)));
-            this.chunkY1 = Math.min(this.chunkY1, (MathHelper.floor((box.y1 - 2.0D) / 16.0D)));
-            this.chunkY2 = Math.max(this.chunkY2, (MathHelper.floor((box.y2 + 2.0D) / 16.0D))) + 1;
-            this.chunkZ1 = Math.min(this.chunkZ1, (MathHelper.floor((box.z1 - 2.0D) / 16.0D)));
-            this.chunkZ2 = Math.max(this.chunkZ2, (MathHelper.ceil((box.z2 + 2.0D) / 16.0D)));
+            this.chunkX1 = Math.min(this.chunkX1, (MathHelper.floor((x1 - 2.0D) / 16.0D)));
+            this.chunkX2 = Math.max(this.chunkX2, (MathHelper.ceil((x2 + 2.0D) / 16.0D)));
+            this.chunkY1 = Math.min(this.chunkY1, (MathHelper.floor((y1 - 2.0D) / 16.0D)));
+            this.chunkY2 = Math.max(this.chunkY2, (MathHelper.floor((y2 + 2.0D) / 16.0D))) + 1;
+            this.chunkZ1 = Math.min(this.chunkZ1, (MathHelper.floor((z1 - 2.0D) / 16.0D)));
+            this.chunkZ2 = Math.max(this.chunkZ2, (MathHelper.ceil((z2 + 2.0D) / 16.0D)));
         }
 
         this.boxBits = 1;
@@ -219,10 +221,10 @@ public class NearbyHopperItemsTracker extends NearbyEntityTrackerBox<ItemEntity>
             //todo all kinds of stuff to make sure this.withinSubchunksObjectToKey is consistent
         }
         long totalIndex = 0;
-        int boxIndex = this.getBoxIndex(entity);
-        int subChunkIndex = this.getSubchunkIndex(entity);
+        long boxIndex = this.getBoxIndex(entity);
+        long subChunkIndex = this.getSubchunkIndex(entity);
         if (boxIndex <= -1) {
-            totalIndex |= 0x80000000; //set MSB because entity is not inside area
+            totalIndex |= 0x8000000000000000L; //set MSB because entity is not inside area
         } else {
             totalIndex |= boxIndex << (63 - this.boxBits);
         }
@@ -232,8 +234,8 @@ public class NearbyHopperItemsTracker extends NearbyEntityTrackerBox<ItemEntity>
 
         this.withinSubchunksObjectToKey.put((ItemEntity) entity, totalIndex);
         if (boxIndex >= 0) {
-            //reverse the number order, because the datastructure sorts lowest first, but we need highest first
-            this.withinAreaSorted.put(Long.MAX_VALUE - totalIndex, (ItemEntity) entity);
+            this.withinAreaSorted.put(totalIndex, (ItemEntity) entity);
+            this.newEntityCount++;
         }
     }
 
@@ -253,7 +255,7 @@ public class NearbyHopperItemsTracker extends NearbyEntityTrackerBox<ItemEntity>
         }
         final long oldPriority = this.withinSubchunksObjectToKey.getLong(entity);
         boolean wasInside = (oldPriority & (1L << 63)) == 0;
-        int newBoxIndex = this.getBoxIndex(entity);
+        long newBoxIndex = this.getBoxIndex(entity);
         if (newBoxIndex >= 0) {
             long prevBoxIndex = (oldPriority & ~(1L << 63)) >> (63 - this.boxBits);
             if (wasInside && prevBoxIndex == newBoxIndex) {
@@ -276,7 +278,7 @@ public class NearbyHopperItemsTracker extends NearbyEntityTrackerBox<ItemEntity>
         }
         //entity left the pickup area
         //we only change the inside pickup area bit and the box index
-        long newPriority = oldPriority & ((1 << (63 - this.boxBits)) - 1); //cut off inside bit and boxBits
+        long newPriority = oldPriority & ((1L << (63 - this.boxBits)) - 1); //cut off inside bit and boxBits
         newPriority |= 1L << 63; //attach inside bit (1 / not inside)
         //no box bit to attach, as the value is not valid anyways
 
@@ -290,7 +292,7 @@ public class NearbyHopperItemsTracker extends NearbyEntityTrackerBox<ItemEntity>
     }
 
     @Deprecated
-    private void addEntity(ItemEntity entity, int priority, boolean isNew) {
+    private void addEntity(ItemEntity entity, long priority, boolean isNew) {
         this.withinAreaSorted.put(priority, entity);
         this.withinSubchunksObjectToKey.put(entity, priority);
         if (isNew) {
@@ -299,8 +301,8 @@ public class NearbyHopperItemsTracker extends NearbyEntityTrackerBox<ItemEntity>
     }
 
     private void removeEntity(ItemEntity entity, long priority) {
-        if ((priority & 0x80000000) == 0) {
-            this.withinAreaSorted.remove(Integer.MAX_VALUE - priority);
+        if ((priority & 0x8000000000000000L) == 0) {
+            this.withinAreaSorted.remove(priority);
         }
         this.withinSubchunksObjectToKey.remove(entity, priority);
     }
@@ -445,7 +447,10 @@ public class NearbyHopperItemsTracker extends NearbyEntityTrackerBox<ItemEntity>
         return this.newEntityCount;
     }
 
-    public Entity[] getAllForDebug() {
-        return (Entity[]) this.withinAreaSorted.values().toArray();
+    public Object[] getAllForDebug() {
+        if (this.withinAreaSorted != null) {
+            return this.withinAreaSorted.values().toArray();
+        }
+        return new Object[0];
     }
 }

@@ -250,21 +250,21 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
         if (Settings.debugOptimizedEntityHopperInteraction) {
             try {
                 List<ItemEntity> itemEntities = HopperBlockEntity.getInputItemEntities(hopper);
-                ItemEntity pickedUp = ((HopperBlockEntityMixin) hopper).optimizeItemPickup((HopperBlockEntity) hopper, cir);
+
+                ItemEntity pickedUp = ((HopperBlockEntityMixin) hopper).optimizeItemPickup(cir);
                 if (pickedUp == null) {
                     pickedUp = HopperHelper.vanillaPickupItem(hopper, itemEntities.iterator());
                     if (pickedUp != null)
                         throw new IllegalStateException("HopperOptimizations picked up no item even though vanilla could pick up: " + pickedUp.toString());
                 } else if (!itemEntities.contains(pickedUp))
                     throw new IllegalStateException("HopperOptimizations picked up an item that vanilla couldn't pick up: " + pickedUp.toString());
-
-                if (!itemEntities.containsAll(Arrays.asList(((HopperBlockEntityMixin) hopper).inputItemEntities.getAllForDebug()))) {
-                    throw new IllegalStateException("HopperOptimizations found item(s) that vanilla did not find.");
-                }
-
-                if (!(Arrays.asList(((HopperBlockEntityMixin) hopper).inputItemEntities.getAllForDebug()).containsAll(itemEntities))) {
-                    throw new IllegalStateException("HopperOptimizations did not find item(s) that vanilla found.");
-                }
+//
+//                if (!itemEntities.containsAll(Arrays.asList(itemEntities2))) {
+//                    throw new IllegalStateException("HopperOptimizations found item(s) that vanilla did not find.");
+//                }
+//                if (!(Arrays.asList(((HopperBlockEntityMixin) hopper).inputItemEntities.getAllForDebug()).containsAll(itemEntities))) {
+//                    throw new IllegalStateException("HopperOptimizations did not find item(s) that vanilla found.");
+//                }
             } catch (IllegalStateException e) {
                 ((HopperBlockEntityMixin) hopper).invalidateEntityHopperInteractionCache();
                 Text text = new LiteralText("Detected wrong entity hopper interaction ( " + e.getMessage() + ")!");
@@ -272,15 +272,14 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
                 e.printStackTrace();
             }
         } else {
-            ((HopperBlockEntityMixin) hopper).optimizeItemPickup((HopperBlockEntity) hopper, cir);
+            ((HopperBlockEntityMixin) hopper).optimizeItemPickup(cir);
         }
     }
 
     @Feature("optimizedEntityHopperInteraction")
     @Redirect(method = "extract(Lnet/minecraft/block/entity/Hopper;)Z", at = @At(value = "INVOKE", target = "Lnet/minecraft/block/entity/HopperBlockEntity;getInputInventory(Lnet/minecraft/block/entity/Hopper;)Lnet/minecraft/inventory/Inventory;"))
     private static Inventory getInputInventoryFromCache(Hopper hopper) {
-
-        if (!(hopper instanceof HopperBlockEntityMixin) || !(hopper instanceof HopperBlockEntity))
+        if (!(hopper instanceof HopperBlockEntity))
             return HopperBlockEntity.getInputInventory(hopper); //Hopper Minecarts do not cache Inventories
 
         Inventory inventory;
@@ -314,7 +313,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
             ((HopperBlockEntityMixin) hopper).lastTickTime_used_InputInventoryEntityCache = ((HopperBlockEntityMixin) hopper).lastTickTime;
 
             if (Settings.debugOptimizedEntityHopperInteraction) {
-                HopperHelper.debugCompareInventoryEntities((HopperBlockEntity) hopper, ((HopperBlockEntityMixin) hopper).inputInventoryEntities, world, hopper.getHopperX(), hopper.getHopperY() + 1.0D, hopper.getHopperZ());
+                HopperHelper.debugCompareInventoryEntities(hopper, ((HopperBlockEntityMixin) hopper).inputInventoryEntities, world, hopper.getHopperX(), hopper.getHopperY() + 1.0D, hopper.getHopperZ());
             }
 
             inventory = ((HopperBlockEntityMixin) hopper).inputInventoryEntities.getRandomInventoryEntity(world.random);
@@ -322,7 +321,6 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
         } else {
             return HopperHelper.vanillaGetEntityInventory(hopper.getWorld(), ((HopperBlockEntityMixin) hopper).pos.up());
         }
-
     }
 
     /**
@@ -440,8 +438,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
     @Shadow
     protected abstract boolean isFull();
 
-    private ItemEntity optimizeItemPickup(HopperBlockEntity thisCasted, CallbackInfoReturnable<Boolean> cir) {
-        assert this == (Object) thisCasted;
+    private ItemEntity optimizeItemPickup(CallbackInfoReturnable<Boolean> cir) {
         this.invalidateEntityCacheIfNecessary();
 
         //get the optimizer of this hopper
@@ -453,7 +450,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
         //fix the entity cache in case it is not initialized
         if (this.inputItemEntities == null) {
             //keep a set of reachable items to be faster next time
-            this.inputItemEntities = new NearbyHopperItemsTracker(this.pos, thisCasted);
+            this.inputItemEntities = new NearbyHopperItemsTracker(this.pos, this);
             this.inputItemEntities.registerToEntityTracker(this.world);
             this.this_lastChangeCount_Pickup = 0;
         } else {
@@ -842,7 +839,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
         if (hasCachedBlockOutputInventory()) {
             inventory = getCachedBlockOutputInventory();
         } else {
-            inventory = HopperHelper.vanillaGetBlockInventory(this.world, hopper.getPos().offset(this.direction));
+            inventory = HopperHelper.vanillaGetBlockInventory(this.world, hopper.getPos().offset(this.getDirection()));
             if (Settings.optimizedInventories)
                 this.cacheOutputInventoryBlock(inventory);
             if (inventory != null && Settings.optimizedEntityHopperInteraction) {
@@ -856,7 +853,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
         //get inventory entities (minecarts)
 
         if (!Settings.optimizedEntityHopperInteraction)
-            return HopperHelper.vanillaGetEntityInventory(this.world, hopper.getPos().offset(this.direction));
+            return HopperHelper.vanillaGetEntityInventory(this.world, hopper.getPos().offset(this.getDirection()));
 
         this.invalidateEntityCacheIfNecessary();
         if (this.outputInventoryEntities == null) {
@@ -867,7 +864,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
 
 
         if (Settings.debugOptimizedEntityHopperInteraction) {
-            BlockPos pos = this.pos.offset(this.direction);
+            BlockPos pos = this.pos.offset(this.getDirection());
             double double_1 = pos.getX() + 0.5D;
             double double_2 = pos.getY() + 0.5D;
             double double_3 = pos.getZ() + 0.5D;
@@ -892,18 +889,24 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
     }
 
     private void clearInputItemEntityCache() {
-        this.inputItemEntities.removeFromEntityTracker(this.world);
-        this.inputItemEntities = null;
+        if (this.inputItemEntities != null) {
+            this.inputItemEntities.removeFromEntityTracker(this.world);
+            this.inputItemEntities = null;
+        }
     }
 
     private void clearInputInventoryEntityCache() {
-        inputInventoryEntities.removeFromEntityTracker(this.world);
-        inputInventoryEntities = null;
+        if (this.inputInventoryEntities != null) {
+            this.inputInventoryEntities.removeFromEntityTracker(this.world);
+            this.inputInventoryEntities = null;
+        }
     }
 
     private void clearOutputInventoryEntityCache() {
-        outputInventoryEntities.removeFromEntityTracker(this.world);
-        outputInventoryEntities = null;
+        if (this.outputInventoryEntities != null) {
+            outputInventoryEntities.removeFromEntityTracker(this.world);
+            outputInventoryEntities = null;
+        }
     }
 
     private void invalidateEntityHopperInteractionCache() {

@@ -25,8 +25,11 @@ public class NearbyHopperInventoriesTracker extends NearbyEntityTrackerBox<Inven
     }
 
     public Inventory getRandomInventoryEntity(Random random) {
-        while (withinBox2.size() > 0) {
-            Entity e = withinBox2.get(random.nextInt(withinBox2.size()));
+        if (this.withinBox2 == null) {
+            return null;
+        }
+        while (this.withinBox2.size() > 0) {
+            Entity e = this.withinBox2.get(random.nextInt(this.withinBox2.size()));
             if (!e.isAlive()) {
                 this.removeEntity((Inventory) e);
             } else {
@@ -37,20 +40,23 @@ public class NearbyHopperInventoriesTracker extends NearbyEntityTrackerBox<Inven
     }
 
     public List<Entity> getAllForDebug() {
-        return (ArrayList<Entity>) (withinBox2.clone());
+        if (this.withinBox2 != null) {
+            return (ArrayList<Entity>) (this.withinBox2.clone());
+        }
+        return new ArrayList<>(0);
     }
 
     @Override
     Collection<Inventory> createCollection() {
-        withinBox2 = new ArrayList<>();
-        withinBox1 = new HashMap<>();
+        this.withinBox2 = new ArrayList<>();
+        this.withinBox1 = new HashMap<>();
         return null;
     }
 
     @SuppressWarnings("unchecked")
     @Override
     public void onEntityEnteredTrackedSubchunk(Entity entity) {
-        if (!(entity instanceof Inventory) || withinBox1.containsKey(entity)) {
+        if (!(entity instanceof Inventory) || this.withinBox1.containsKey(entity)) {
             return;
         }
         if (this.box.intersects(entity.getBoundingBox())) {
