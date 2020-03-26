@@ -1,6 +1,8 @@
 package hopperOptimizations.utils;
 
+import carpet.CarpetServer;
 import hopperOptimizations.settings.Settings;
+import hopperOptimizations.utils.entitycache.NearbyHopperInventoriesTracker;
 import hopperOptimizations.workarounds.BlockEntityInterface;
 import hopperOptimizations.workarounds.IValidInventoryUntilBlockUpdate;
 import net.minecraft.block.Block;
@@ -18,6 +20,8 @@ import net.minecraft.inventory.DoubleInventory;
 import net.minecraft.inventory.Inventory;
 import net.minecraft.item.ItemStack;
 import net.minecraft.predicate.entity.EntityPredicates;
+import net.minecraft.text.LiteralText;
+import net.minecraft.text.Text;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
 import net.minecraft.world.World;
@@ -225,5 +229,27 @@ public abstract class HopperHelper {
         }
 
         inv.setInvStack(0, inv.getInvStack(0));
+    }
+
+    public static void debugCompareInventoryEntities(HopperBlockEntity hopper, NearbyHopperInventoriesTracker tracker, World world, double x, double y, double z) {
+        try {
+            List<Entity> inventoryEntities = tracker.getAllForDebug();
+            inventoryEntities.removeIf((Entity inv) -> inv.removed);
+
+            List<Entity> inventoriesVanilla = world.getEntities((Entity) null, new Box(x - 0.5D, y + 1.0D - 0.5D, z - 0.5D, x + 0.5D, y + 1.0D + 0.5D, z + 0.5D), EntityPredicates.VALID_INVENTORIES);
+            if (!inventoryEntities.containsAll(inventoriesVanilla)) {
+                throw new IllegalStateException("HopperOptimizations did not find inventory entity/entities that vanilla found.");
+            }
+            if (!inventoriesVanilla.containsAll(inventoryEntities)) {
+                throw new IllegalStateException("HopperOptimizations found inventory entity/entities that vanilla did not find.");
+            }
+            if (inventoriesVanilla.size() != inventoryEntities.size()) {
+                throw new IllegalStateException("HopperOptimizations did not find the same number of entities as vanilla."); //duplicate entries!
+            }
+        } catch (IllegalStateException e) {
+            Text text = new LiteralText("Detected wrong entity hopper interaction ( " + e.getMessage() + ")!");
+            CarpetServer.minecraft_server.getPlayerManager().broadcastChatMessage(text, false);
+            e.printStackTrace();
+        }
     }
 }

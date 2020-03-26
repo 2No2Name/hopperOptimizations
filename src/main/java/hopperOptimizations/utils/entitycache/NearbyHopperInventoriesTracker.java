@@ -5,10 +5,7 @@ import net.minecraft.entity.EntityDimensions;
 import net.minecraft.inventory.Inventory;
 import net.minecraft.util.math.Box;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Random;
+import java.util.*;
 
 /**
  * Maintains a collection of all entities of a given type that collide with the box of this listener.
@@ -27,16 +24,20 @@ public class NearbyHopperInventoriesTracker extends NearbyEntityTrackerBox<Inven
         super(clazz, box, entityDimensions);
     }
 
-    public Entity getRandomInventoryEntity(Random random) {
+    public Inventory getRandomInventoryEntity(Random random) {
         while (withinBox2.size() > 0) {
             Entity e = withinBox2.get(random.nextInt(withinBox2.size()));
             if (!e.isAlive()) {
                 this.removeEntity((Inventory) e);
             } else {
-                return e;
+                return (Inventory) e;
             }
         }
         return null;
+    }
+
+    public List<Entity> getAllForDebug() {
+        return (ArrayList<Entity>) (withinBox2.clone());
     }
 
     @Override
@@ -88,7 +89,7 @@ public class NearbyHopperInventoriesTracker extends NearbyEntityTrackerBox<Inven
     }
 
     @Override
-    public void onEntityMovedAnyDistance(double prevX, double prevY, double prevZ, Entity entity) {
+    public void onEntityMovedAnyDistance(Entity entity) {
         if (!(entity instanceof Inventory)) {
             return;
         }

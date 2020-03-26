@@ -11,14 +11,15 @@ import java.util.ListIterator;
  *
  * @author 2No2Name
  */
-public class ListIteratorWrapper<T> implements List<T> {
+public class IteratorWrapperList<T> implements List<T> {
 
     private Iterator<T> wrappedIterator;
     private boolean usable = false;
 
-    public void setWrappedIterator(Iterator<T> wrappedIterator) {
+    public IteratorWrapperList<T> setWrappedIterator(Iterator<T> wrappedIterator) {
         this.wrappedIterator = wrappedIterator;
         this.usable = true;
+        return this;
     }
 
     @Override
@@ -93,6 +94,7 @@ public class ListIteratorWrapper<T> implements List<T> {
 
     @Override
     public void clear() {
+        throw new UnsupportedOperationException();
     }
 
     @Override
@@ -117,6 +119,7 @@ public class ListIteratorWrapper<T> implements List<T> {
 
     @Override
     public void add(int i, T t) {
+        throw new UnsupportedOperationException();
     }
 
     @Override

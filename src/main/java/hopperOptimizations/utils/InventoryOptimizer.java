@@ -54,7 +54,7 @@ public class InventoryOptimizer {
     //number of changes to the inventory contents - useful for realizing inventory hasn't changed
     private int inventoryChanges;
     //number of changes of the item types in the inventory - useful for realizing item entities still don't fit
-    private int itemTypeChanges;
+    //private int itemTypeChanges;//unused now
     //number of slots that are occupied = not empty
     private int occupiedSlots;
     //number of slots that are completely full
@@ -93,7 +93,7 @@ public class InventoryOptimizer {
         fakeSignalStrength = -1;
         if (stackList == null) return;
         inventoryChanges = 0;
-        itemTypeChanges = 0;
+        //itemTypeChanges = 0;
     }
 
     private static long hash(ItemStack stack) {
@@ -261,9 +261,9 @@ public class InventoryOptimizer {
         return occupiedSlots == 0;
     }
 
-    public int getItemTypeChanges() {
-        return itemTypeChanges;
-    }
+//    public int getItemTypeChanges() {
+//        return itemTypeChanges;
+//    }
 
     /**
      * Find the first slot that a hopper can take items from.
@@ -291,8 +291,8 @@ public class InventoryOptimizer {
         ItemStack newStack = stackList.get(slot);
         if (prevStack == newStack) return;
 
-        if (prevStack.getItem() != newStack.getItem())
-            itemTypeChanges++;
+//        if (prevStack.getItem() != newStack.getItem())
+//            itemTypeChanges++;
 
         inventoryChanges++;
         int oldFirstFreeSlot = firstFreeSlot;
@@ -627,14 +627,20 @@ public class InventoryOptimizer {
         return getFirstFreeSlot() >= 0;
     }
 
-    public int findInsertSlot(ItemStack stack, Direction fromDirection, Inventory inventory) {
+    /**
+     * @param stack         the item stack to be transferred (one item transfer possible at least)
+     * @param fromDirection direction the item is coming from
+     * @param thisInventory the inventory this is the optimizer of
+     * @return first slot the stack can be transferred to, -1 if none found, -2 if inventory is filled with different item types only
+     */
+    public int findInsertSlot(ItemStack stack, Direction fromDirection, Inventory thisInventory) {
         this.ensureInitialized();
 
         int firstFreeSlot = getFirstFreeSlot();
         if ((firstFreeSlot == 0 || stack.getMaxCount() == 1)) {
             //return the first free slot when the item is not stackable. (edge case: shulker box into shulker box)
             int i = this.itemRestrictions && !this.sidedInventory.canInsertInvStack(firstFreeSlot, stack, fromDirection) ? -1 : firstFreeSlot;
-            return checkFallbackToVanillaInsert(i, stack, inventory);
+            return checkFallbackToVanillaInsert(i, stack, thisInventory);
         }
         else if (firstFreeSlot > 0) {
             //Check for matching non full stacks before the empty slot.
@@ -645,12 +651,12 @@ public class InventoryOptimizer {
                     if (slotItem.getCount() >= slotItem.getMaxCount()) continue;
                     if (areItemsAndTagsEqual(stack, slotItem)) {
                         filterTruePositives++;
-                        i = checkFallbackToVanillaInsert(i, stack, inventory);
+                        i = checkFallbackToVanillaInsert(i, stack, thisInventory);
                         return i;
                     }
                 }
             }
-            return checkFallbackToVanillaInsert(this.firstFreeSlot, stack, inventory);
+            return checkFallbackToVanillaInsert(this.firstFreeSlot, stack, thisInventory);
         }
 
         //No empty Slot, search everything if there may be a fitting non full stack
@@ -662,11 +668,11 @@ public class InventoryOptimizer {
             if (slot.getCount() >= slot.getMaxCount()) continue;
             if (areItemsAndTagsEqual(stack, slot)) {
                 filterTruePositives++;
-                i = checkFallbackToVanillaInsert(i, stack, inventory);
+                i = checkFallbackToVanillaInsert(i, stack, thisInventory);
                 return i;
             }
         }
-        return checkFallbackToVanillaInsert(-1, stack, inventory);
+        return checkFallbackToVanillaInsert(-1, stack, thisInventory);
     }
 
     //Workaround for mods that overwrite isValidInvStack without implementing SidedInventory

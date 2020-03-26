@@ -1,7 +1,7 @@
 package hopperOptimizations.utils.entitycache;
 
-import it.unimi.dsi.fastutil.ints.Int2ObjectAVLTreeMap;
-import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
+import it.unimi.dsi.fastutil.longs.Long2ObjectAVLTreeMap;
+import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
 import net.minecraft.block.entity.HopperBlockEntity;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityDimensions;
@@ -11,10 +11,10 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.shape.VoxelShape;
-import org.apache.logging.log4j.LogManager;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 
 /**
@@ -26,35 +26,46 @@ import java.util.List;
  */
 public class NearbyHopperItemsTracker extends NearbyEntityTrackerBox<ItemEntity> {
     private static List<ItemEntity> EMPTY_LIST = new ArrayList<>(0);
-    private static boolean detectedOtherModdedChange = false;
     private static VoxelShape inputAreaShape;
     private static List<Box> boxes;
-
     static {
         inputAreaShape = new HopperBlockEntity().getInputAreaShape();
         boxes = inputAreaShape.getBoundingBoxes();
     }
 
-
-    private HopperBlockEntity myHopper;
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    //Fields that are practically final after their first initialization
+    private final HopperBlockEntity myHopper;
     private Box[] collectionArea;
-
-    private Int2ObjectAVLTreeMap<ItemEntity> withinAreaSorted;
-    private Object2IntOpenHashMap<ItemEntity> withinAreaObjectToKey;
-
     private int boxBits;
     private int chunkXZYBits;
-    private int entityCounterMaxValue;
-    private int entityCounter;
+    private long entitySubchunkCounterMaxValue;
 
-    private boolean hasToInitializeEntities = false;
+    //Other fields
+
+    //Set that contains all entities within the pickup area of the hopper
+    //Entities sorted by integer keys so that the order of the values iterator is the order in which vanilla picks up items
+    private Long2ObjectAVLTreeMap<ItemEntity> withinAreaSorted;
+    //Keys are created so that a higher key means that the hopper will try to pick the item up earlier in vanilla
+    //Negative keys mean that the entity does not collide with the pickup area.
+    //Keys saved: - MSB (bit 1 << 31): whether the entity is outside the pickup area (1 for outside, 0 for inside)
+    //            - Next bits for the box: 1 bit for which hopper pickup area box we are inside (different bit amount possible if box modded by other mod)
+    //            - Bits after: 3 bits for the subchunk number, equivalent to the priority (different bit amount possible if box size modded by other mod)
+    //            - All other bits for increasing counter to remember order in which entities entered their subchunk
+    private Object2LongOpenHashMap<ItemEntity> withinSubchunksObjectToKey;
+    private long entityChangedSubchunkCounter;
+
+    //counter to be able to shortcut item transfer attempts when both hopper and possible items to pick up haven't changed
+    private int newEntityCount;
+
     private boolean initialized = false;
+    private boolean searchEntitiesAfterInitialization = false;
 
 
     //Wrap our iterator in a list object, so we can return it in a mixin to the hopper.
     //The object is only used in an for(ItemEntity e : list) call, so we only need the iterator.
     //Other mods that want to use the list differently than vanilla might be surprised and will lead to a crash
-    private ListIteratorWrapper<ItemEntity> iteratorWrapperList = new ListIteratorWrapper<>();
+    private IteratorWrapperList<ItemEntity> iteratorWrapperList = new IteratorWrapperList<>();
 
     public NearbyHopperItemsTracker(BlockPos hopperPos, HopperBlockEntity hopper) {
         super(ItemEntity.class);
@@ -63,9 +74,7 @@ public class NearbyHopperItemsTracker extends NearbyEntityTrackerBox<ItemEntity>
     }
 
     public List<ItemEntity> getUseOnceIteratorWrapperList() {
-
-        //Either uncomment the following code or keep MixinItemEntity that sets the stack of dead item entities to EMPTY
-        /*
+        /* Either uncomment the following code or keep ItemEntityMixin that sets the stack of dead item entities to EMPTY
         //Filter out non alive entities, no way to not have to do it, as another hopper could have just killed some entity
         //The alternative is making removed item entites set themselves to have an empty stack
         ObjectIterator<Object2IntMap.Entry<ItemEntity>> it = this.withinAreaObjectToKey.object2IntEntrySet().iterator();
@@ -77,9 +86,32 @@ public class NearbyHopperItemsTracker extends NearbyEntityTrackerBox<ItemEntity>
             }
         }
         */
+        Iterator<ItemEntity> entityIterator = this.getItemEntityIterator();
+        if (entityIterator == null) {
+            return EMPTY_LIST;
+        } else {
+            return this.iteratorWrapperList.setWrappedIterator(entityIterator);
+        }
+    }
 
-        this.iteratorWrapperList.setWrappedIterator(this.withinAreaSorted.values().iterator());
-        return this.iteratorWrapperList;
+    public Iterator<ItemEntity> getItemEntityIterator() {
+//        if (this.nonFittingItemTypeFilterActive && this.withinAreaNotFittingItemType != null) {
+//            if(this.withinAreaObjectToKey.size() <= this.withinAreaNotFittingItemType.size()){
+//                return null;
+//            }
+//
+//            return Iterators.filter(this.withinAreaSorted.values().iterator(),
+//                    (ItemEntity o) -> !this.withinAreaNotFittingItemType.contains(o));
+//        } else {
+        if (this.withinSubchunksObjectToKey.isEmpty()) {
+            return null;
+        }
+//            if (--this.nonFittingItemTypeFilterCooldown < 0 ) {
+//                this.nonFittingItemTypeFilterActive = true;
+//            }
+
+        return this.withinAreaSorted.values().iterator();
+//        }
     }
 
     private void init(BlockPos hopperPos) {
@@ -106,17 +138,14 @@ public class NearbyHopperItemsTracker extends NearbyEntityTrackerBox<ItemEntity>
 
 
         if (this.chunkXZYBits > 1 || this.boxBits != 1) {
-            //if (!detectedOtherModdedChange) {
-            //    //System.out.println("Unexpected hopper pickup area, different from vanilla, but likely manageable.");
-            //    detectedOtherModdedChange = true;
-            //}
-            if (this.chunkXZYBits * 3 + this.boxBits > 22) {
-                System.out.println("Hopper pickup area very complex or huge. This can lead to problems.");
+            if (this.chunkXZYBits * 3 + this.boxBits > 6) {
+                //20+ bits for entity counter recommended. millions of items should be indexable at once, vanilla probably has a higher limit!
+                System.out.println("Hopper pickup area very complex or huge. This can lead to problems when many items gather on top of a hopper.");
             }
         }
 
-        this.entityCounterMaxValue = (1 << (30 - this.boxBits - 3 * this.chunkXZYBits)) - 1; //using 30 instead of 31 to not have to deal with negative
-        this.entityCounter = 0; //any entity counter, unused until it is reset at initialization
+        this.entitySubchunkCounterMaxValue = (1 << (63 - 1 - this.boxBits - 3 * this.chunkXZYBits)) - 1;
+        this.entityChangedSubchunkCounter = 0; //any entity counter, unused until it is reset at initialization
 
     }
 
@@ -125,7 +154,7 @@ public class NearbyHopperItemsTracker extends NearbyEntityTrackerBox<ItemEntity>
         List<Box> boxes = this.myHopper.getInputAreaShape() == NearbyHopperItemsTracker.inputAreaShape
                 ? NearbyHopperItemsTracker.boxes : this.myHopper.getInputAreaShape().getBoundingBoxes();
 
-        int widthHalfCeil = MathHelper.ceil(entityDimensions.width / 2D + 1e-7);
+        //int widthHalfCeil = MathHelper.ceil(entityDimensions.width / 2D + 1e-7);
         this.collectionArea = new Box[boxes.size()];
         int i = 0;
         for (Box box : boxes) {
@@ -141,12 +170,13 @@ public class NearbyHopperItemsTracker extends NearbyEntityTrackerBox<ItemEntity>
             this.collectionArea[i] = new Box(x1, y1, z1, x2, y2, z2);
             ++i;
 
-            this.chunkX1 = Math.min(this.chunkX1, (MathHelper.floor(box.x1) - widthHalfCeil) >> 4);
-            this.chunkX2 = Math.max(this.chunkX2, (MathHelper.floor(box.x2) + widthHalfCeil) >> 4);
-            this.chunkY1 = Math.min(this.chunkY1, (MathHelper.floor(box.y1) - MathHelper.ceil(entityDimensions.height + 1e-7)) >> 4);
-            this.chunkY2 = Math.max(this.chunkY2, (MathHelper.floor(box.y2)) >> 4);
-            this.chunkZ1 = Math.min(this.chunkZ1, (MathHelper.floor(box.z1) - widthHalfCeil) >> 4);
-            this.chunkZ2 = Math.max(this.chunkZ2, (MathHelper.floor(box.z2) + widthHalfCeil) >> 4);
+            //use vanilla listening box size, as otherwise lazy pushed entities might behave differently!
+            this.chunkX1 = Math.min(this.chunkX1, (MathHelper.floor((box.x1 - 2.0D) / 16.0D)));
+            this.chunkX2 = Math.max(this.chunkX2, (MathHelper.ceil((box.x2 + 2.0D) / 16.0D)));
+            this.chunkY1 = Math.min(this.chunkY1, (MathHelper.floor((box.y1 - 2.0D) / 16.0D)));
+            this.chunkY2 = Math.max(this.chunkY2, (MathHelper.floor((box.y2 + 2.0D) / 16.0D))) + 1;
+            this.chunkZ1 = Math.min(this.chunkZ1, (MathHelper.floor((box.z1 - 2.0D) / 16.0D)));
+            this.chunkZ2 = Math.max(this.chunkZ2, (MathHelper.ceil((box.z2 + 2.0D) / 16.0D)));
         }
 
         this.boxBits = 1;
@@ -155,27 +185,20 @@ public class NearbyHopperItemsTracker extends NearbyEntityTrackerBox<ItemEntity>
     }
 
     private void initCollection(boolean searchForEntities) {
-        if (this.withinAreaObjectToKey == null) {
-            this.withinAreaObjectToKey = new Object2IntOpenHashMap<>();
-            this.withinAreaObjectToKey.defaultReturnValue(Integer.MAX_VALUE);
-            this.withinAreaSorted = new Int2ObjectAVLTreeMap<>();
+        if (this.withinSubchunksObjectToKey == null) {
+            this.withinSubchunksObjectToKey = new Object2LongOpenHashMap<>();
+            this.withinSubchunksObjectToKey.defaultReturnValue(Long.MAX_VALUE);
+            this.withinAreaSorted = new Long2ObjectAVLTreeMap<>();
         } else {
             withinAreaSorted.clear();
-            withinAreaObjectToKey.clear();
+            withinSubchunksObjectToKey.clear();
         }
-        this.entityCounter = 0;
+        this.entityChangedSubchunkCounter = 0;
 
         if (searchForEntities) {
             List<ItemEntity> entityList = HopperBlockEntity.getInputItemEntities(this.myHopper);
-            int previousPriority = Integer.MAX_VALUE;
             for (ItemEntity entity : entityList) {
-                int priority = this.getPriorityNumber(entity, true, Integer.MAX_VALUE);
-                if (priority >= previousPriority) {
-                    LogManager.getLogger().warn("[Lithium/2No2Name] Hopper item pickup order is different from vanilla.");
-                }
-                if (priority != Integer.MAX_VALUE) {
-                    this.addEntity(entity, priority);
-                }
+                this.onEntityEnteredTrackedSubchunk(entity);
             }
         }
 
@@ -183,59 +206,82 @@ public class NearbyHopperItemsTracker extends NearbyEntityTrackerBox<ItemEntity>
 
     @Override
     public void onEntityEnteredTrackedSubchunk(Entity entity) {
-        if (!(entity instanceof ItemEntity) || (!this.initialized && this.hasToInitializeEntities)) {
+        if (!(entity instanceof ItemEntity)) {
+            return;
+        } else if (!this.initialized) {
+            this.searchEntitiesAfterInitialization = true;
             return;
         }
-        int b = this.withinAreaObjectToKey == null ? Integer.MAX_VALUE : this.withinAreaObjectToKey.getInt(entity);
-        if (b != Integer.MAX_VALUE) {
-            this.withinAreaSorted.remove(b);
-            this.withinAreaObjectToKey.remove(entity, b);
+        if (this.withinSubchunksObjectToKey == null) {
+            this.initCollection(false);
+        } else if (this.entityChangedSubchunkCounter > this.entitySubchunkCounterMaxValue) {
+            //this.initCollection(true);
+            //todo all kinds of stuff to make sure this.withinSubchunksObjectToKey is consistent
         }
-        int priority = getPriorityNumber((ItemEntity) entity, true, b);
+        long totalIndex = 0;
+        int boxIndex = this.getBoxIndex(entity);
+        int subChunkIndex = this.getSubchunkIndex(entity);
+        if (boxIndex <= -1) {
+            totalIndex |= 0x80000000; //set MSB because entity is not inside area
+        } else {
+            totalIndex |= boxIndex << (63 - this.boxBits);
+        }
+        totalIndex |= subChunkIndex << (63 - this.boxBits - 3 * this.chunkXZYBits);
+        totalIndex |= this.entityChangedSubchunkCounter;
+        this.entityChangedSubchunkCounter++;
 
-        if (priority != Integer.MAX_VALUE) {
-            if (this.withinAreaObjectToKey == null) {
-                if (this.initialized) {
-                    this.initCollection(false);
-                } else {
-                    this.hasToInitializeEntities = true;
-                    return; //don't accept hashmap iterator ordered item entities, use our own initialization later
-                }
-            }
-            this.addEntity((ItemEntity) entity, b);
+        this.withinSubchunksObjectToKey.put((ItemEntity) entity, totalIndex);
+        if (boxIndex >= 0) {
+            //reverse the number order, because the datastructure sorts lowest first, but we need highest first
+            this.withinAreaSorted.put(Long.MAX_VALUE - totalIndex, (ItemEntity) entity);
         }
     }
 
     @Override
     public void onEntityLeftTrackedSubchunk(Entity entity) {
-        if (!(entity instanceof ItemEntity) || this.withinAreaObjectToKey == null) {
+        if (!(entity instanceof ItemEntity) || this.withinSubchunksObjectToKey == null) {
             return;
         }
-        int b = this.withinAreaObjectToKey.getInt(entity);
-        if (b != Integer.MAX_VALUE) {
-            this.withinAreaSorted.remove(b);
-            this.withinAreaObjectToKey.remove(entity, b);
-        }
+        long b = this.withinSubchunksObjectToKey.getLong(entity);
+        this.removeEntity((ItemEntity) entity, b);
     }
 
     @Override
-    public void onEntityMovedAnyDistance(double prevX, double prevY, double prevZ, Entity entity) {
-        if (!(entity instanceof ItemEntity) || this.withinAreaObjectToKey == null) {
+    public void onEntityMovedAnyDistance(Entity entity) {
+        if (!(entity instanceof ItemEntity) || this.withinSubchunksObjectToKey == null) {
             return;
         }
-        int p = this.withinAreaObjectToKey.getInt(entity);
-        if (p != Integer.MAX_VALUE) {
-            int q = this.getPriorityNumber((ItemEntity) entity, false, p);
-            if (p != q) {
-                this.withinAreaSorted.remove(p);
-                if (q == Integer.MAX_VALUE) {
-                    this.withinAreaObjectToKey.remove(entity, q);
-                } else {
-                    this.withinAreaSorted.put(q, (ItemEntity) entity);
-                    this.withinAreaObjectToKey.put((ItemEntity) entity, q);
-                }
+        final long oldPriority = this.withinSubchunksObjectToKey.getLong(entity);
+        boolean wasInside = (oldPriority & (1L << 63)) == 0;
+        int newBoxIndex = this.getBoxIndex(entity);
+        if (newBoxIndex >= 0) {
+            long prevBoxIndex = (oldPriority & ~(1L << 63)) >> (63 - this.boxBits);
+            if (wasInside && prevBoxIndex == newBoxIndex) {
+                return; //was inside same box already
             }
+            //entity newly entered a pickup area box
+            //we only change the inside pickup area bit and the box index
+            long newPriority = oldPriority & ((1L << (63 - this.boxBits)) - 1); //cut off inside bit and boxBits
+            newPriority |= newBoxIndex << (1L << (63 - this.boxBits)); //attach new inside bit (0) and boxBits
+            this.withinSubchunksObjectToKey.put((ItemEntity) entity, newPriority);
+            this.withinAreaSorted.put(newPriority, (ItemEntity) entity);
+            if (oldPriority < 0) {
+                this.newEntityCount++;
+            }
+            return;
         }
+
+        if (oldPriority < 0) {
+            return; //is outside and was outside area
+        }
+        //entity left the pickup area
+        //we only change the inside pickup area bit and the box index
+        long newPriority = oldPriority & ((1 << (63 - this.boxBits)) - 1); //cut off inside bit and boxBits
+        newPriority |= 1L << 63; //attach inside bit (1 / not inside)
+        //no box bit to attach, as the value is not valid anyways
+
+        this.withinSubchunksObjectToKey.put((ItemEntity) entity, newPriority);
+        this.withinAreaSorted.remove(oldPriority);
     }
 
     @Override
@@ -243,10 +289,22 @@ public class NearbyHopperItemsTracker extends NearbyEntityTrackerBox<ItemEntity>
         throw new UnsupportedOperationException();
     }
 
-    private void addEntity(ItemEntity entity, int priority) {
+    @Deprecated
+    private void addEntity(ItemEntity entity, int priority, boolean isNew) {
         this.withinAreaSorted.put(priority, entity);
-        this.withinAreaObjectToKey.put(entity, priority);
+        this.withinSubchunksObjectToKey.put(entity, priority);
+        if (isNew) {
+            ++this.newEntityCount;
+        }
     }
+
+    private void removeEntity(ItemEntity entity, long priority) {
+        if ((priority & 0x80000000) == 0) {
+            this.withinAreaSorted.remove(Integer.MAX_VALUE - priority);
+        }
+        this.withinSubchunksObjectToKey.remove(entity, priority);
+    }
+
 
 
     @Override
@@ -260,37 +318,25 @@ public class NearbyHopperItemsTracker extends NearbyEntityTrackerBox<ItemEntity>
     }
 
 
-    /**
-     * Generate a number for each entity so that when the entities are sorted by their number, the sorting is
-     * like the order in which hoppers pick up items in vanilla.
-     *
-     * @param entity    the entity we need an index of
-     * @param forceNew  if we need to get a new index, for example when the entity changed the chunk section
-     * @param oldNumber previous number of the entity, can possibly be reused
-     * @return priority number, Integer.MAX_VALUE if no priority can be assigned because the entity is not in the tracked area
-     */
-    private int getPriorityNumber(ItemEntity entity, boolean forceNew, int oldNumber) {
-        if (!forceNew && this.withinAreaObjectToKey != null && this.withinAreaObjectToKey.containsKey(entity)) {
-            return this.withinAreaObjectToKey.getInt(entity);
-        }
-
-        int oldBoxIndexShifted;
+//    /**
+//     * Generate a number for each entity so that when the entities are sorted by their number, the sorting is
+//     * like the order in which hoppers pick up items in vanilla.
+//     *
+//     * @param entity    the entity we need an index of
+//     * @param changedSubchunk  if we need to get a new index because the entity changed the chunk section
+//     * @param oldNumber previous number of the entity, can possibly be reused
+//     * @return priority number, Integer.MAX_VALUE if no priority can be assigned because the entity is not in the tracked area
+//     */
+    /*
+    private int getPriorityNumber(ItemEntity entity, boolean changedSubchunk, int oldNumber) {
+        int oldBoxBits;
         oldNumber = -(oldNumber - Integer.MAX_VALUE);
-        //                                |---mask for boxBits----|    shift pos like in loop
-        oldBoxIndexShifted = oldNumber & (((1 << this.boxBits) - 1) << (31 - this.boxBits));
-
-
-        int priority = 0;
-        final Box entityBox = entity.getBoundingBox();
-        //get the highest bits of the priority for the box the entity collides with, as this is the primary sorting key
-        boolean inArea = false;
-        for (int i = 0; i < this.collectionArea.length; ++i) {
-            if (this.collectionArea[i].intersects(entityBox)) {
-                priority = i << (31 - this.boxBits); //using 31 instead of 32 to not have to deal with negative numbers
-                inArea = true;
-                break;
-            }
+        if(!changedSubchunk) {
+            //                                |---mask for boxBits----|    shift pos like in loop
+            oldBoxBits = oldNumber & (((1 << this.boxBits) - 1) << (31 - this.boxBits));
         }
+
+
         if (!inArea) {
             return Integer.MAX_VALUE;
         } //MAX_VALUE: code for "not in area", won't be returned otherwise
@@ -301,30 +347,22 @@ public class NearbyHopperItemsTracker extends NearbyEntityTrackerBox<ItemEntity>
         }
 
 
-        if (oldNumber != 0 && oldBoxIndexShifted != priority) {
-            forceNew = true;
+        if (oldNumber != 0 && oldBoxBits != priority) {
+            changedSubchunk = true;
         }
 
-        //get the next bits for x,z,y chunk position
-        if (this.chunkXZYBits > 0) {
-            int b = (this.chunkX2 - MathHelper.floor(entity.getX()) >> 4);
-            priority |= b << (31 - this.boxBits - this.chunkXZYBits);
-            b = (this.chunkY2 - MathHelper.floor(entity.getY()) >> 4);
-            priority |= b << (31 - this.boxBits - (2 * this.chunkXZYBits));
-            b = (this.chunkZ2 - MathHelper.floor(entity.getZ()) >> 4);
-            priority |= b << (31 - this.boxBits - (3 * this.chunkXZYBits));
-        }
 
-        if (oldNumber != Integer.MAX_VALUE && !forceNew) {
-            //keep the old entitycounter value for the entity,
+
+        if (oldNumber != Integer.MAX_VALUE && !changedSubchunk) {
+            //keep the old entitycounter value for the entity, if it did not move to another subchunk
             return Integer.MAX_VALUE - ((oldNumber & (-1 >>> (1 + this.boxBits + 3 * this.chunkXZYBits))) | priority);
         }
 
         this.entityCounter++;
-        if (this.entityCounter >= this.entityCounterMaxValue) {
+        if (this.entityCounter >= this.entitySubchunkCounterMaxValue) {
             this.initCollection(true); //resets the collection
-            if (this.withinAreaObjectToKey.containsKey(entity)) {
-                return this.withinAreaObjectToKey.getInt(entity);
+            if (this.withinSubchunksObjectToKey.containsKey(entity)) {
+                return this.withinSubchunksObjectToKey.getInt(entity);
             } else {
                 return Integer.MAX_VALUE;
             }
@@ -333,13 +371,81 @@ public class NearbyHopperItemsTracker extends NearbyEntityTrackerBox<ItemEntity>
         priority += this.entityCounter; //priority >= 1, as entityCounter++ before
 
         return Integer.MAX_VALUE - priority; //backwards, as the smallest number is first in our datastructure
+    }*/
+
+    /**
+     * The RETURN VALUE of this method is ONLY VALID WHEN onEntityEnteredTrackedSubchunk was just called!
+     * If it wasn't just called, use Entity.chunkX/Y/Z instead of entity.getX/Y/Z >> 4
+     *
+     * @param entity the entity
+     * @return index for the subchunk ordering. expected to be a 3 bit or 0 bit number unless another mod changed the collection area of the hopper
+     */
+    //sorted by LOWEST X, then LOWEST Z, then LOWEST Y first
+    //return higher number for first / lower ones
+    private int getSubchunkIndex(Entity entity) {
+        int index = 0;
+        //get the bits for x,z,y chunk position
+        if (this.chunkXZYBits > 0) {
+            int b = (this.chunkX2 - MathHelper.floor(entity.getX()) >> 4); //high for low chunkX index
+            index |= b << (2 * this.chunkXZYBits);                         //stored in highest bits
+            b = (this.chunkZ2 - MathHelper.floor(entity.getZ()) >> 4);     //high for low chunkZ index
+            index |= b << (this.chunkXZYBits);                             //stored in the next bits
+            b = (this.chunkY2 - MathHelper.floor(entity.getY()) >> 4);     //high for low chunkY index
+            index |= b;                                                    //stored in the lowest bits
+        }
+        assert index >= 0 && index < (1 << 3 * this.chunkXZYBits);
+
+        return index;
     }
+
+    /**
+     * Gets the index of the first box the given entity collides with
+     *
+     * @param entity the entity
+     * @return the index or -1 when not colliding with any box
+     */
+    private int getBoxIndex(Entity entity) {
+        final Box entityBox = entity.getBoundingBox();
+        for (int i = 0; i < this.collectionArea.length; ++i) {
+            if (this.collectionArea[i].intersects(entityBox)) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+
 
     @Override
     public void onInitialEntitiesReceived() {
         this.initialized = true;
-        if (this.hasToInitializeEntities) {
+        if (this.searchEntitiesAfterInitialization) {
             this.initCollection(true);
         }
+    }
+
+//    public void resetNonFittingItems(int cooldown) {
+//        this.nonFittingItemTypeFilterActive = false;
+//        this.nonFittingItemTypeFilterCooldown = cooldown;
+//        if (this.withinAreaNotFittingItemType != null) {
+//            this.withinAreaNotFittingItemType.clear();
+//        }
+//    }
+
+//    public void setItemEntityNotFitting(ItemEntity notFittingItemEntity) {
+//        if (this.nonFittingItemTypeFilterActive) {
+//            if (this.withinAreaNotFittingItemType == null) {
+//                this.withinAreaNotFittingItemType = new HashSet<>();
+//            }
+//            this.withinAreaNotFittingItemType.add(notFittingItemEntity);
+//        }
+//    }
+
+    public int getNewEntityCounter() {
+        return this.newEntityCount;
+    }
+
+    public Entity[] getAllForDebug() {
+        return (Entity[]) this.withinAreaSorted.values().toArray();
     }
 }

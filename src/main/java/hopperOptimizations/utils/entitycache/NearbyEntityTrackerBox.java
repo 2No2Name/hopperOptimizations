@@ -1,9 +1,11 @@
 package hopperOptimizations.utils.entitycache;
 
+import me.jellysquid.mods.lithium.common.entity.tracker.nearby.ExactPositionListener;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityDimensions;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.MathHelper;
+import net.minecraft.world.World;
 
 import java.util.Collection;
 import java.util.HashSet;
@@ -135,10 +137,10 @@ public class NearbyEntityTrackerBox<T> implements ExactPositionListener {
         return this.withinBox.contains(entity);
     }
 
-    @Override
-    public boolean isSubchunkInRange(int x, int y, int z) {
-        return x >= this.chunkX1 && x <= this.chunkX2 && y >= this.chunkY1 && y <= this.chunkY2 && z >= this.chunkZ1 && z <= this.chunkZ2;
-    }
+//    @Override
+//    public boolean isSubchunkInRange(int x, int y, int z) {
+//        return x >= this.chunkX1 && x <= this.chunkX2 && y >= this.chunkY1 && y <= this.chunkY2 && z >= this.chunkZ1 && z <= this.chunkZ2;
+//    }
 
     @Override
     public int getChunkRange() {
@@ -169,7 +171,7 @@ public class NearbyEntityTrackerBox<T> implements ExactPositionListener {
 
     @SuppressWarnings("unchecked")
     @Override
-    public void onEntityMovedAnyDistance(double prevX, double prevY, double prevZ, Entity entity) {
+    public void onEntityMovedAnyDistance(Entity entity) {
         if (!this.clazz.isInstance(entity)) {
             return;
         }
@@ -181,8 +183,31 @@ public class NearbyEntityTrackerBox<T> implements ExactPositionListener {
         }
     }
 
-    @Override
-    public int subchunksInRange() {
-        return numSubchunks;
+//    @Override
+//    public int subchunksInRange() {
+//        return numSubchunks;
+//    }
+
+    public void registerToEntityTracker(World world) {
+        int[] xs = new int[this.numSubchunks];
+        int[] ys = new int[this.numSubchunks];
+        int[] zs = new int[this.numSubchunks];
+
+        int i = 0;
+        for (int x = this.chunkX1; x <= this.chunkX2; x++) {
+            for (int y = this.chunkY1; y <= this.chunkY2; y++) {
+                for (int z = this.chunkZ1; z <= this.chunkZ2; z++) {
+                    xs[i] = x;
+                    ys[i] = y;
+                    zs[i] = z;
+                    i++;
+                }
+            }
+        }
+        this.registerToEntityTrackerEngine(world, xs, ys, zs);
+    }
+
+    public void removeFromEntityTracker(World world) {
+        this.deregisterFromEntityTrackerEngine(world);
     }
 }

@@ -4,6 +4,8 @@ import carpet.CarpetServer;
 import hopperOptimizations.annotation.Feature;
 import hopperOptimizations.settings.Settings;
 import hopperOptimizations.utils.*;
+import hopperOptimizations.utils.entitycache.NearbyHopperInventoriesTracker;
+import hopperOptimizations.utils.entitycache.NearbyHopperItemsTracker;
 import hopperOptimizations.workarounds.BlockEntityInterface;
 import hopperOptimizations.workarounds.EntityHopperInteraction;
 import hopperOptimizations.workarounds.INoExtractInventoryUntilBlockUpdate;
@@ -11,11 +13,11 @@ import net.minecraft.block.Block;
 import net.minecraft.block.HopperBlock;
 import net.minecraft.block.entity.*;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.EntityType;
 import net.minecraft.entity.ItemEntity;
 import net.minecraft.inventory.Inventory;
 import net.minecraft.inventory.SidedInventory;
 import net.minecraft.item.ItemStack;
-import net.minecraft.predicate.entity.EntityPredicates;
 import net.minecraft.text.LiteralText;
 import net.minecraft.text.Text;
 import net.minecraft.util.DefaultedList;
@@ -34,13 +36,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
 
 import javax.annotation.Nullable;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.LinkedHashSet;
+import java.util.Iterator;
 import java.util.List;
-import java.util.stream.Collectors;
-
-import static net.minecraft.block.entity.HopperBlockEntity.getInputItemEntities;
 
 @Mixin(HopperBlockEntity.class)
 public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntity implements OptimizedInventory, IHopper, Hopper {
@@ -56,31 +54,35 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
     //when they move away or die the hopper has to remove them again
     //the set only exists/is valid when the hopper is not interacting with an inventory instead
     //getting entities from this set instead of the world improves performance by a lot
-    private LinkedHashSet<ItemEntity> reachableItems;
+    //private LinkedHashSet<ItemEntity> inputItemEntities;
     //separate set for entities that have an item type that matches an inventory slot. It becomes invalid when not all hopper slots occupied or hopper slot item types change
     //intended to improve performance when a lot of non-fitting item entities are on top of a hopper
-    private LinkedHashSet<ItemEntity> fittingItems;
-    //countdown after fittingItems becomes invalid: when the hopper is constantly changing, the overhead of recalculating fitting items doesn't result in any speedup, so don't reinitialize then
-    private int transferAttemptsBeforeReinitializeFittingItems;
-    //value of the counter when fittingItems was initialized. a change of the item types means that fitting items is outdated
-    private int lastItemTypeChangeCount; //when this.getOptimizer().itemTypeChanges increments, invalidate reachableFittingItems
+    //private LinkedHashSet<ItemEntity> fittingItems;
 
-    //lists (not set, random choosing is required) for inventory entities that are in range
-    private List<Entity> reachableInputInventoryEntities;
-    private List<Entity> reachableOutputInventoryEntities;
-    private boolean itemEntityCacheInvalid = true;
-    private boolean inputInventoryEntityCacheInvalid = true;
-    private boolean outputInventoryEntityCacheInvalid = true;
+    //value of the counter when fittingItems was initialized. a change of the item types means that fitting items is outdated
+    //private int lastItemTypeChangeCount; //when this.getOptimizer().itemTypeChanges increments, invalidate reachableFittingItems
+
+
+    private NearbyHopperItemsTracker inputItemEntities;
+    //change counter value at the last time the input area was checked
+    //counter of the input area
+    private int inputItemEntities_changeCount;
+    //counter of this hopper
+    private int this_lastChangeCount_Pickup;
+
+    private NearbyHopperInventoriesTracker inputInventoryEntities;
+    private NearbyHopperInventoriesTracker outputInventoryEntities;
+    //private boolean itemEntityCacheInvalid = true;
+    //private boolean inputInventoryEntityCacheInvalid = true;
+    //private boolean outputInventoryEntityCacheInvalid = true;
     //used to invalidate caches that are unused for a longer time
-    private long lastTickTime_usedItemEntityCache;
-    private long lastTickTime_usedInputInventoryEntityCache;
-    private long lastTickTime_usedOutputInventoryEntityCache;
+    private long lastTickTime_used_ItemEntityCache;
+    private long lastTickTime_used_InputInventoryEntityCache;
+    private long lastTickTime_used_OutputInventoryEntityCache;
 
 
     private int ruleUpdates = -1;
-    private long lastLazyChunkCheckTick = -1;
     //-----------------------------------------------
-    private List<Box> inputArea = null;
     //-----------------------------------------------
     //Fields for optimizedInventories
     private int this_lastChangeCount_Insert; //last change count of this hopper
@@ -106,10 +108,9 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
     private boolean previousExtract_causeMarkDirty;
 
     private Direction direction;
+    @Shadow
+    private int transferCooldown;
 
-    protected HopperBlockEntityMixin(BlockEntityType<?> blockEntityType_1) {
-        super(blockEntityType_1);
-    }
 
     @Shadow
     private long lastTickTime;
@@ -120,9 +121,8 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
         throw new AssertionError();
     }
 
-    @Shadow
-    public static Inventory getInputInventory(Hopper hopper) {
-        throw new AssertionError();
+    public HopperBlockEntityMixin() {
+        super(BlockEntityType.HOPPER);
     }
 
     /**
@@ -140,7 +140,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
             if (toOpt == null) return;
             while (!stack.isEmpty()) {
                 int toSlot = toOpt.findInsertSlot(stack, fromDirection, to);
-                if (toSlot == -1) break;
+                if (toSlot < 0) break;
                 int count = stack.getCount();
                 stack = transfer(from, to, stack, toSlot, fromDirection);
                 if (stack.getCount() == count) break;
@@ -186,7 +186,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
                         //Find the slot in the hopper, which might be before the first empty slot due to stacking items
                         ItemStack stack = from.getInvStack(firstOccupiedSlot);
                         int toSlot = toOpt.findInsertSlot(stack, null, to);
-                        //if (toSlot == -1) throw new ThisNeverHappensException(); //empty slot always exists
+                        //if (toSlot < 0) throw new ThisNeverHappensException(); //empty slot always exists
                         HopperHelper.transferOneItem_knownSuccessful(to, toSlot, from, firstOccupiedSlot);
                         from.markDirty();
                         cir.setReturnValue(true);
@@ -243,15 +243,14 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
      */
     @Inject(method = "extract(Lnet/minecraft/block/entity/Hopper;)Z", at = @At(value = "INVOKE", target = "Lnet/minecraft/block/entity/HopperBlockEntity;getInputItemEntities(Lnet/minecraft/block/entity/Hopper;)Ljava/util/List;", shift = At.Shift.BEFORE), locals = LocalCapture.CAPTURE_FAILHARD, cancellable = true)
     private static void optimizeItemPickupMixin(Hopper hopper, CallbackInfoReturnable<Boolean> cir) {
-        if (!Settings.optimizedEntityHopperInteraction || !(hopper instanceof HopperBlockEntity)) {
+        if (!Settings.optimizedEntityHopperInteraction || !(hopper instanceof HopperBlockEntityMixin)) {
             return; //use vanilla code when optimization is off or this is a hopper minecart
         }
-        assert hopper instanceof HopperBlockEntityMixin; //at runtime: assert hopper instanceof HopperBlockEntity;
 
         if (Settings.debugOptimizedEntityHopperInteraction) {
             try {
                 List<ItemEntity> itemEntities = HopperBlockEntity.getInputItemEntities(hopper);
-                ItemEntity pickedUp = ((HopperBlockEntityMixin) hopper).optimizeItemPickup(cir);
+                ItemEntity pickedUp = ((HopperBlockEntityMixin) hopper).optimizeItemPickup((HopperBlockEntity) hopper, cir);
                 if (pickedUp == null) {
                     pickedUp = HopperHelper.vanillaPickupItem(hopper, itemEntities.iterator());
                     if (pickedUp != null)
@@ -259,11 +258,11 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
                 } else if (!itemEntities.contains(pickedUp))
                     throw new IllegalStateException("HopperOptimizations picked up an item that vanilla couldn't pick up: " + pickedUp.toString());
 
-                if (!itemEntities.containsAll(((HopperBlockEntityMixin) hopper).reachableItems)) {
+                if (!itemEntities.containsAll(Arrays.asList(((HopperBlockEntityMixin) hopper).inputItemEntities.getAllForDebug()))) {
                     throw new IllegalStateException("HopperOptimizations found item(s) that vanilla did not find.");
                 }
 
-                if (!((HopperBlockEntityMixin) hopper).reachableItems.containsAll(itemEntities)) {
+                if (!(Arrays.asList(((HopperBlockEntityMixin) hopper).inputItemEntities.getAllForDebug()).containsAll(itemEntities))) {
                     throw new IllegalStateException("HopperOptimizations did not find item(s) that vanilla found.");
                 }
             } catch (IllegalStateException e) {
@@ -273,7 +272,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
                 e.printStackTrace();
             }
         } else {
-            ((HopperBlockEntityMixin) hopper).optimizeItemPickup(cir);
+            ((HopperBlockEntityMixin) hopper).optimizeItemPickup((HopperBlockEntity) hopper, cir);
         }
     }
 
@@ -281,13 +280,12 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
     @Redirect(method = "extract(Lnet/minecraft/block/entity/Hopper;)Z", at = @At(value = "INVOKE", target = "Lnet/minecraft/block/entity/HopperBlockEntity;getInputInventory(Lnet/minecraft/block/entity/Hopper;)Lnet/minecraft/inventory/Inventory;"))
     private static Inventory getInputInventoryFromCache(Hopper hopper) {
 
-        if (!(hopper instanceof HopperBlockEntity))
-            return getInputInventory(hopper); //Hopper Minecarts do not cache Inventories
-
-        assert hopper instanceof HopperBlockEntityMixin; //at runtime: assert hopper instanceof HopperBlockEntity;
+        if (!(hopper instanceof HopperBlockEntityMixin) || !(hopper instanceof HopperBlockEntity))
+            return HopperBlockEntity.getInputInventory(hopper); //Hopper Minecarts do not cache Inventories
 
         Inventory inventory;
         World world = ((HopperBlockEntityMixin) hopper).getWorld();
+        if (world == null) return null;
 
         if (((HopperBlockEntityMixin) hopper).isInputBlockInventoryCacheValid()) {
             inventory = ((HopperBlockEntityMixin) hopper).getCachedBlockInputInventory();
@@ -306,46 +304,21 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
         //if the inventory is null, we cached that there is no inventory block until the next block update
         //get inventory entities (minecarts)
 
-        if (Settings.optimizedEntityHopperInteraction) {//Use the entity cache to find minecarts
+        if (Settings.optimizedEntityHopperInteraction) { //Use the entity cache to find minecarts
             ((HopperBlockEntityMixin) hopper).invalidateEntityCacheIfNecessary();
-            if (((HopperBlockEntityMixin) hopper).inputInventoryEntityCacheInvalid) {
-                ((HopperBlockEntityMixin) hopper).reachableInputInventoryEntities = world.getEntities((Entity) null, ((HopperBlockEntityMixin) hopper).inputBox(), EntityPredicates.VALID_INVENTORIES);
-                ((HopperBlockEntityMixin) hopper).inputInventoryEntityCacheInvalid = false;
+            if (((HopperBlockEntityMixin) hopper).inputInventoryEntities == null) {
+                ((HopperBlockEntityMixin) hopper).inputInventoryEntities = new NearbyHopperInventoriesTracker(Inventory.class,
+                        ((HopperBlockEntityMixin) hopper).inputBox(), EntityType.CHEST_MINECART.getDimensions());
+                ((HopperBlockEntityMixin) hopper).inputInventoryEntities.registerToEntityTracker(((HopperBlockEntityMixin) hopper).world);
             }
-            ((HopperBlockEntityMixin) hopper).lastTickTime_usedInputInventoryEntityCache = ((HopperBlockEntityMixin) hopper).lastTickTime;
-
-            if (((HopperBlockEntityMixin) hopper).reachableInputInventoryEntities.isEmpty())
-                return null;
-
-            List<Entity> inventoryEntities = ((HopperBlockEntityMixin) hopper).reachableInputInventoryEntities;
-            Box inputBox = ((HopperBlockEntityMixin) hopper).inputBox();
-            inventoryEntities.removeIf((Entity inv) -> inv.removed || !inv.getBoundingBox().intersects(inputBox));
+            ((HopperBlockEntityMixin) hopper).lastTickTime_used_InputInventoryEntityCache = ((HopperBlockEntityMixin) hopper).lastTickTime;
 
             if (Settings.debugOptimizedEntityHopperInteraction) {
-                try {
-                    List<Entity> inventoriesVanilla = world.getEntities((Entity) null, new Box(hopper.getHopperX() - 0.5D, hopper.getHopperY() + 1.0D - 0.5D, hopper.getHopperZ() - 0.5D, hopper.getHopperX() + 0.5D, hopper.getHopperY() + 1.0D + 0.5D, hopper.getHopperZ() + 0.5D), EntityPredicates.VALID_INVENTORIES);
-                    if (!inventoryEntities.containsAll(inventoriesVanilla)) {
-                        throw new IllegalStateException("HopperOptimizations did not find inventory entity/entities that vanilla found.");
-                    }
-                    if (!inventoriesVanilla.containsAll(inventoryEntities)) {
-                        throw new IllegalStateException("HopperOptimizations found inventory entity/entities that vanilla did not find.");
-                    }
-                    if (inventoriesVanilla.size() != inventoryEntities.size()) {
-                        throw new IllegalStateException("HopperOptimizations did not find the same number of entities as vanilla."); //duplicate entries!
-                    }
-                } catch (IllegalStateException e) {
-                    ((HopperBlockEntityMixin) hopper).invalidateEntityHopperInteractionCache();
-                    Text text = new LiteralText("Detected wrong entity hopper interaction ( " + e.getMessage() + ")!");
-                    CarpetServer.minecraft_server.getPlayerManager().broadcastChatMessage(text, false);
-                    e.printStackTrace();
-                }
+                HopperHelper.debugCompareInventoryEntities((HopperBlockEntity) hopper, ((HopperBlockEntityMixin) hopper).inputInventoryEntities, world, hopper.getHopperX(), hopper.getHopperY() + 1.0D, hopper.getHopperZ());
             }
 
-            if (!inventoryEntities.isEmpty()) {
-                ((HopperBlockEntityMixin) hopper).clearInputItemEntityCache();
-                return (Inventory) inventoryEntities.get(world.random.nextInt(inventoryEntities.size()));
-            }
-            return null;
+            inventory = ((HopperBlockEntityMixin) hopper).inputInventoryEntities.getRandomInventoryEntity(world.random);
+            return inventory;
         } else {
             return HopperHelper.vanillaGetEntityInventory(hopper.getWorld(), ((HopperBlockEntityMixin) hopper).pos.up());
         }
@@ -361,7 +334,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
      */
     @Feature("optimizedInventories")
     private static void setReceiverCooldown(Inventory receiver, boolean wasEmpty, long lastTickTime) {
-        if (wasEmpty && receiver instanceof HopperBlockEntity) {
+        if (wasEmpty && receiver instanceof HopperBlockEntityMixin) {
             HopperBlockEntityMixin hopperBlockEntity_1 = (HopperBlockEntityMixin) receiver;
             if (!hopperBlockEntity_1.isDisabled()) {
                 int int_4 = 0;
@@ -447,112 +420,106 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
     @Shadow
     protected abstract void setCooldown(int count);
 
-    private ItemEntity optimizeItemPickup(CallbackInfoReturnable<Boolean> cir) {
-
-        this.invalidateEntityCacheIfNecessary();
-        if (this.inputArea == null) {
-            VoxelShape inputArea = this.getInputAreaShape();
-            this.inputArea = inputArea.getBoundingBoxes().stream().map(box -> box.offset(this.getHopperX() - 0.5D, this.getHopperY() - 0.5D, this.getHopperZ() - 0.5D)).collect(Collectors.toList());
+    @Inject(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/block/entity/HopperBlockEntity;setCooldown(I)V"))
+    private void invalidateOldCaches(CallbackInfo ci) {
+        if (this.lastTickTime % 300 == 0) {
+            long timeLimit = this.lastTickTime - 600;
+            //600 ticks is an arbitrary number, probably doesn't matter in practice anyways, when it is a bit bigger than 1 hopper cooldown
+            if (this.inputItemEntities != null && this.lastTickTime_used_ItemEntityCache < timeLimit) {
+                clearInputItemEntityCache();
+            }
+            if (this.inputInventoryEntities != null && this.lastTickTime_used_InputInventoryEntityCache < timeLimit) {
+                clearInputInventoryEntityCache();
+            }
+            if (this.outputInventoryEntities != null && this.lastTickTime_used_OutputInventoryEntityCache < timeLimit) {
+                clearOutputInventoryEntityCache();
+            }
         }
+    }
+
+    @Shadow
+    protected abstract boolean isFull();
+
+    private ItemEntity optimizeItemPickup(HopperBlockEntity thisCasted, CallbackInfoReturnable<Boolean> cir) {
+        assert this == (Object) thisCasted;
+        this.invalidateEntityCacheIfNecessary();
 
         //get the optimizer of this hopper
-        final InventoryOptimizer opt;
-        if (Settings.optimizedInventories)
-            opt = this.getOptimizer();
-        else {
-            opt = null;
-            this.fittingItems = null;
+        final InventoryOptimizer opt = this.getOptimizer();
+        if (opt == null) {
+            return null; //fallback to vanilla
         }
 
         //fix the entity cache in case it is not initialized
-        if (this.itemEntityCacheInvalid) {
-            //get entities like vanilla
-            List<ItemEntity> nearbyItems = getInputItemEntities(this);
-            int size;
+        if (this.inputItemEntities == null) {
             //keep a set of reachable items to be faster next time
-            this.reachableItems = new LinkedHashSet<>(size = nearbyItems.size());
-            this.reachableItems.addAll(nearbyItems);
-
-            if (Settings.optimizedInventories) {
-                //when using optimizedInventories also keep a set of items that the hopper already has
-                //only do this when there is no empty slot, because then the set is equivalent to reachableItems
-                if (opt != null && !opt.hasFreeSlots_insertable()) {
-                    this.fittingItems = new LinkedHashSet<>(size);
-                    //Assume hoppers are no SidedInventory due to some other mod!
-                    assert !(this instanceof SidedInventory);
-                    nearbyItems.removeIf((ItemEntity itemEntity) -> {
-                        //If the item cannot be taken out of the inventory, it is not inside the inventory.
-                        //explicitly not checking whether those stacks are full, because that changes very often in sorters etc.
-                        //the set is supposed to be only recalculated when the item types the hopper can pick up change
-                        return -1 == opt.indexOf(itemEntity.getStack());
-                    });
-                    this.fittingItems.addAll(nearbyItems);
-
-                    //keep the current counter value to be able to detect changes to the item types the hopper can pick up later
-                    this.lastItemTypeChangeCount = opt.getItemTypeChanges();
-                }
-            }
-            this.itemEntityCacheInvalid = false;
+            this.inputItemEntities = new NearbyHopperItemsTracker(this.pos, thisCasted);
+            this.inputItemEntities.registerToEntityTracker(this.world);
+            this.this_lastChangeCount_Pickup = 0;
         } else {
-            //invalidate the fitting items set when the item types the hopper can pick up changed
-            if (Settings.optimizedInventories && this.lastItemTypeChangeCount != opt.getItemTypeChanges()) {
-                this.fittingItems = null;
-                this.transferAttemptsBeforeReinitializeFittingItems = 5;
-                this.lastItemTypeChangeCount = opt.getItemTypeChanges();
-            }
-
-            if (this.reachableItems.size() > 0) {
-                //remove item entities that have died or have moved away from the reachable items set
-                //when any were removed, also fittingItems needs to be filtered.
-                List<ItemEntity> listRemovedItems = new ArrayList<>();
-                boolean removedSome = this.reachableItems.removeIf((ItemEntity entity) -> {
-                    if (entity.removed) {
-                        listRemovedItems.add(entity);
-                        return true;
-                    }
-                    Box entityBoundingBox = entity.getBoundingBox();
-                    for (Box box : this.inputArea) {
-                        if (entityBoundingBox.intersects(box))
-                            return false;
-                    }
-                    listRemovedItems.add(entity);
-                    return true;
-                });
-                //remove item entities that have died or have moved away from the reachable items set. fitting items must be a subset of reachable items
-                if (removedSome && this.fittingItems != null && this.fittingItems.size() > 0)
-                    this.fittingItems.removeAll(listRemovedItems);
-            }
+            //invalidate the (non) fitting items set when the item types the hopper can pick up changed
+//            if (Settings.optimizedInventories && this.lastItemTypeChangeCount != opt.getItemTypeChanges()) {
+//                this.inputItemEntities.resetNonFittingItems(5);
+//                this.lastItemTypeChangeCount = opt.getItemTypeChanges();
+//            }
         }
         //item entity cache up to date and valid
-        this.lastTickTime_usedItemEntityCache = this.lastTickTime;
+        this.lastTickTime_used_ItemEntityCache = this.lastTickTime;
 
-        //reinitialize fitting items if not invalidated during this transfer attempt (would happen every time when transferring nonstackable items)
-        if (opt != null && this.lastItemTypeChangeCount == opt.getItemTypeChanges() && this.transferAttemptsBeforeReinitializeFittingItems == 0 && this.fittingItems == null && !opt.hasFreeSlots_insertable()) {
-            this.fittingItems = new LinkedHashSet<>(this.reachableItems);
-            //Assume hoppers are no SidedInventory due to some other mod!
-            assert !(this instanceof SidedInventory);
-            this.fittingItems.removeIf((ItemEntity itemEntity) -> {
-                //If the item cannot be taken out of the inventory, it is not inside the inventory. (no SidedInventory!)
-                //explicitly not checking whether those stacks are full, because that changes very often in sorters etc.
-                //the set is supposed to be only recalculated when the item types the hopper can pick up change
-                return -1 == opt.indexOf(itemEntity.getStack());
-            });
-        } else if (this.transferAttemptsBeforeReinitializeFittingItems > 0)
-            --this.transferAttemptsBeforeReinitializeFittingItems;
+        int tmp1 = opt.getInventoryChangeCount();
+        //todo deal with same counter because not initialized / overflown in both cases
+        if (this.this_lastChangeCount_Pickup == tmp1) {
+            int tmp2 = this.inputItemEntities.getNewEntityCounter();
+            if (this.inputItemEntities_changeCount == tmp2) {
+                //nothing changed after the last transfer attempt
+                //so we don't try to transfer at all
+                cir.setReturnValue(false);
+                return null;
+            }
+            this.inputItemEntities_changeCount = tmp2;
+        }
+        this.this_lastChangeCount_Pickup = tmp1;
 
+        Iterator<ItemEntity> itemEntityIterator = this.inputItemEntities.getItemEntityIterator();
+        while (itemEntityIterator.hasNext()) {
+            ItemEntity itemEntity = itemEntityIterator.next();
+            ItemStack itemEntityStack = itemEntity.getStack();
+            int receivingSlot;
 
-        LinkedHashSet<ItemEntity> itemsToTransfer = this.fittingItems == null ? this.reachableItems : this.fittingItems;
-        for (ItemEntity itemEntity : itemsToTransfer) {
-            if (HopperBlockEntity.extract(this, itemEntity)) {
-                cir.setReturnValue(true);
-                return itemEntity;
+            while (!itemEntityStack.isEmpty() && 0 <= (receivingSlot = opt.findInsertSlot(itemEntityStack, null, this))) {
+                ItemStack receivingStack = this.inventory.get(receivingSlot);
+                if (receivingStack.isEmpty()) {
+                    this.inventory.set(receivingSlot, itemEntityStack);
+                    itemEntity.setStack(ItemStack.EMPTY);
+                    itemEntity.remove();
+                    cir.setReturnValue(true);
+                    this.markDirty();
+                    return itemEntity;
+                } else {
+                    int transferCount = receivingStack.getMaxCount() - receivingStack.getCount();
+                    final int itemEntityStackCount = itemEntityStack.getCount();
+                    if (itemEntityStackCount <= transferCount) {
+                        transferCount = itemEntityStackCount;
+                        itemEntity.setStack(ItemStack.EMPTY);
+                        itemEntity.remove();
+                        receivingStack.increment(transferCount);
+                        opt.onItemStackCountChanged(receivingSlot, transferCount);
+                        cir.setReturnValue(true);
+                        this.markDirty();
+                        return itemEntity;
+                    } else {
+                        itemEntityStack.decrement(transferCount);
+                        receivingStack.increment(transferCount);
+                        opt.onItemStackCountChanged(receivingSlot, transferCount);
+                    }
+                }
             }
         }
+        //return false when nothing was picked up
+        //also return false when no item entity was removed, but we still picked up items (like vanilla!)
         cir.setReturnValue(false);
         return null;
     }
-
-    @Shadow protected abstract boolean isFull();
 
     @Feature("optimizedHopperPickupShape")
     @Override
@@ -644,7 +611,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
      *
      * @param other Block inventory to be remembered, NO ENTITIES
      */
-    public void cacheInputInventoryBlock(Inventory other) {
+    private void cacheInputInventoryBlock(Inventory other) {
         assert !(other instanceof Entity);
 
         this.cachedExtractInventory = other;
@@ -668,7 +635,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
      *
      * @param other Block inventory to be remembered, NO ENTITIES
      */
-    public void cacheOutputInventoryBlock(Inventory other) {
+    private void cacheOutputInventoryBlock(Inventory other) {
         assert !(other instanceof Entity);
 
         this.prevInsertInventory = other;
@@ -716,7 +683,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
     }
 
     @Feature("optimizedInventories")
-    @Redirect(method = "insertAndExtract", at = @At(value = "INVOKE", target = "Lnet/minecraft/block/entity/HopperBlockEntity;isInvEmpty()Z"))
+    @Redirect(require = 0, allow = 1, method = "insertAndExtract", at = @At(value = "INVOKE", target = "Lnet/minecraft/block/entity/HopperBlockEntity;isInvEmpty()Z"))
     private boolean isEmptyOpt(HopperBlockEntity hopperBlockEntity) {
         if (Settings.optimizedInventories) {
             InventoryOptimizer opt = this.getOptimizer();
@@ -726,7 +693,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
     }
 
     @Feature("optimizedInventories")
-    @Redirect(method = "insertAndExtract", at = @At(value = "INVOKE", target = "Lnet/minecraft/block/entity/HopperBlockEntity;isFull()Z"))
+    @Redirect(require = 0, allow = 1, method = "insertAndExtract", at = @At(value = "INVOKE", target = "Lnet/minecraft/block/entity/HopperBlockEntity;isFull()Z"))
     private boolean isFullOpt(HopperBlockEntity hopperBlockEntity) {
         if (Settings.optimizedInventories) {
             InventoryOptimizer opt = this.getOptimizer();
@@ -781,7 +748,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
                         if (!stack.isEmpty()) {
                             --transferAttempts;
                             int toSlot = toOpt.findInsertSlot(stack, insertFromDirection, to);
-                            if (toSlot == -1) continue;
+                            if (toSlot < 0) continue;
 
                             boolean wasEmpty = toOpt.getFirstOccupiedSlot_extractable() == -1;
                             HopperHelper.transferOneItem_knownSuccessful(to, toSlot, this, fromSlot);
@@ -816,6 +783,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
         return InventoryListOptimized.ofSize(int_1, (ItemStack) object_1);
     }
 
+    @Override
     @Nullable
     public InventoryOptimizer getOptimizer() {
         return !(this instanceof SidedInventory) && Settings.optimizedInventories && mayHaveOptimizer() && inventory instanceof InventoryListOptimized ? ((InventoryListOptimized) inventory).getCreateOrRemoveOptimizer(this) : null;
@@ -842,33 +810,21 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
 
     @Feature("optimizedEntityHopperInteraction")
     public void notifyOfNearbyEntity(Entity entity) {
-        invalidateOldUnusedCaches(); //todo move this somewhere else... e.g. start of ticking
-
-        if (!itemEntityCacheInvalid && entity instanceof ItemEntity && !reachableItems.contains(entity)) {
-            reachableItems.add((ItemEntity) entity);
-            if (fittingItems != null && Settings.optimizedInventories) {
-                InventoryOptimizer opt = this.getOptimizer();
-                if (opt == null) clearInputItemEntityCache();
-                else if (-1 != opt.indexOf(((ItemEntity) entity).getStack()))
-                    fittingItems.add((ItemEntity) entity);
-            }
-        }
-        if (!inputInventoryEntityCacheInvalid && entity instanceof Inventory && entity.getBoundingBox().intersects(inputBox()) && !reachableInputInventoryEntities.contains(entity))
-            reachableInputInventoryEntities.add(entity);
-        if (!outputInventoryEntityCacheInvalid && entity instanceof Inventory && entity.getBoundingBox().intersects(outputBox()) && !reachableOutputInventoryEntities.contains(entity))
-            reachableOutputInventoryEntities.add(entity);
-    }
-
-    private void invalidateOldUnusedCaches() {
-        long timeLimit = this.world.getTime() - 200;
-        //200 ticks is an arbitrary number, probably doesn't matter in practice anyways, when it is bigger than 1 hopper cooldown
-        //not invalidating the cache may lead to a memory leak with a lot of dead entities in the cache that never get GCed because of it.
-        if (!itemEntityCacheInvalid && lastTickTime_usedItemEntityCache < timeLimit) clearInputItemEntityCache();
-        if (!inputInventoryEntityCacheInvalid && lastTickTime_usedInputInventoryEntityCache < timeLimit)
-            clearInputInventoryEntityCache();
-        if (!outputInventoryEntityCacheInvalid && lastTickTime_usedOutputInventoryEntityCache < timeLimit)
-            clearOutputInventoryEntityCache();
-
+//        invalidateOldUnusedCaches(); //todo move this somewhere else... e.g. start of ticking
+//
+//        if (this.inputItemEntities != null && entity instanceof ItemEntity && !inputItemEntities.contains(entity)) {
+//            inputItemEntities.add((ItemEntity) entity);
+//            if (fittingItems != null && Settings.optimizedInventories) {
+//                InventoryOptimizer opt = this.getOptimizer();
+//                if (opt == null) clearInputItemEntityCache();
+//                else if (-1 != opt.indexOf(((ItemEntity) entity).getStack()))
+//                    fittingItems.add((ItemEntity) entity);
+//            }
+//        }
+//        if (!inputInventoryEntityCacheInvalid && entity instanceof Inventory && entity.getBoundingBox().intersects(inputBox()) && !inputInventoryEntities.contains(entity))
+//            inputInventoryEntities.add(entity);
+//        if (!outputInventoryEntityCacheInvalid && entity instanceof Inventory && entity.getBoundingBox().intersects(outputBox()) && !outputInventoryEntities.contains(entity))
+//            outputInventoryEntities.add(entity);
     }
 
     @Feature("optimizedEntityHopperInteraction")
@@ -881,6 +837,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
     @Redirect(method = "insert()Z", at = @At(value = "INVOKE", target = "Lnet/minecraft/block/entity/HopperBlockEntity;getOutputInventory()Lnet/minecraft/inventory/Inventory;"))
     private Inventory getOutputInventoryFromCache(HopperBlockEntity hopper) {
         Inventory inventory;
+        assert this.world != null;
 
         if (hasCachedBlockOutputInventory()) {
             inventory = getCachedBlockOutputInventory();
@@ -902,49 +859,22 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
             return HopperHelper.vanillaGetEntityInventory(this.world, hopper.getPos().offset(this.direction));
 
         this.invalidateEntityCacheIfNecessary();
-        if (this.outputInventoryEntityCacheInvalid) {
-            this.reachableOutputInventoryEntities = world.getEntities((Entity) null, outputBox(), EntityPredicates.VALID_INVENTORIES);
-            this.outputInventoryEntityCacheInvalid = false;
+        if (this.outputInventoryEntities == null) {
+            this.outputInventoryEntities = new NearbyHopperInventoriesTracker(Inventory.class, this.outputBox(), EntityType.CHEST_MINECART.getDimensions());
+            this.outputInventoryEntities.registerToEntityTracker(this.world);
         }
-        lastTickTime_usedOutputInventoryEntityCache = lastTickTime;
+        lastTickTime_used_OutputInventoryEntityCache = lastTickTime;
 
-
-        List<Entity> list_1 = this.reachableOutputInventoryEntities;
-        if (list_1.isEmpty())
-            return null;
-
-        Box outputBox = this.outputBox();
-        list_1.removeIf((Entity inv) -> inv.removed || !inv.getBoundingBox().intersects(outputBox));
 
         if (Settings.debugOptimizedEntityHopperInteraction) {
-            try {
-                BlockPos pos = this.pos.offset(this.direction);
-                double double_1 = pos.getX() + 0.5D;
-                double double_2 = pos.getY() + 0.5D;
-                double double_3 = pos.getZ() + 0.5D;
-                List<Entity> inventoriesVanilla = world.getEntities((Entity) null, new Box(double_1 - 0.5D, double_2 - 0.5D, double_3 - 0.5D, double_1 + 0.5D, double_2 + 0.5D, double_3 + 0.5D), EntityPredicates.VALID_INVENTORIES);
-
-                if (!list_1.containsAll(inventoriesVanilla)) {
-                    throw new IllegalStateException("HopperOptimizations did not find inventory entity/entities that vanilla found.");
-                }
-                if (!inventoriesVanilla.containsAll(list_1)) {
-                    throw new IllegalStateException("HopperOptimizations found inventory entity/entities that vanilla did not find.");
-                }
-                if (inventoriesVanilla.size() != list_1.size()) {
-                    throw new IllegalStateException("HopperOptimizations did not find the same number of entities as vanilla."); //duplicate entries!
-                }
-            } catch (IllegalStateException e) {
-                this.invalidateEntityHopperInteractionCache();
-                Text text = new LiteralText("Detected wrong entity hopper interaction ( " + e.getMessage() + ")!");
-                CarpetServer.minecraft_server.getPlayerManager().broadcastChatMessage(text, false);
-                e.printStackTrace();
-            }
+            BlockPos pos = this.pos.offset(this.direction);
+            double double_1 = pos.getX() + 0.5D;
+            double double_2 = pos.getY() + 0.5D;
+            double double_3 = pos.getZ() + 0.5D;
+            HopperHelper.debugCompareInventoryEntities(hopper, this.outputInventoryEntities, world, double_1, double_2, double_3);
         }
-
-        if (!list_1.isEmpty()) {
-            return (Inventory) list_1.get(this.world.random.nextInt(list_1.size()));
-        }
-        return null;
+        inventory = this.outputInventoryEntities.getRandomInventoryEntity(world.random);
+        return inventory;
     }
 
     @Override
@@ -962,20 +892,18 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
     }
 
     private void clearInputItemEntityCache() {
-        itemEntityCacheInvalid = true;
-        reachableItems = null;
-        fittingItems = null;
-        transferAttemptsBeforeReinitializeFittingItems = 5;
+        this.inputItemEntities.removeFromEntityTracker(this.world);
+        this.inputItemEntities = null;
     }
 
     private void clearInputInventoryEntityCache() {
-        inputInventoryEntityCacheInvalid = true;
-        reachableInputInventoryEntities = null;
+        inputInventoryEntities.removeFromEntityTracker(this.world);
+        inputInventoryEntities = null;
     }
 
     private void clearOutputInventoryEntityCache() {
-        outputInventoryEntityCacheInvalid = true;
-        reachableOutputInventoryEntities = null;
+        outputInventoryEntities.removeFromEntityTracker(this.world);
+        outputInventoryEntities = null;
     }
 
     private void invalidateEntityHopperInteractionCache() {
@@ -986,8 +914,6 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
 
         cachedExtractInventoryAfterLastBlockUpdate = false;
         cachedInsertInventoryAfterLastBlockUpdate = false;
-
-        inputArea = null;
     }
 
     @Override
@@ -1008,4 +934,6 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
         }
         return this.direction;
     }
+
+
 }

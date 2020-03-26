@@ -72,12 +72,13 @@ public class DoubleInventoryOptimizer extends InventoryOptimizer {
         return firstOpt.hasFreeSlots_insertable() || secondOpt.hasFreeSlots_insertable();
     }
 
-    public int findInsertSlot(ItemStack stack, Direction fromDirection) {
+    @Override
+    public int findInsertSlot(ItemStack stack, Direction fromDirection, Inventory thisInventory) {
         ensureInitialized();
         int ret = firstOpt.findInsertSlot(stack, fromDirection, first);
-        if (ret == -1) {
-            ret = secondOpt.findInsertSlot(stack, fromDirection, second);
-            if (ret != -1)
+        if (ret < 0) {
+            ret = Math.max(ret, secondOpt.findInsertSlot(stack, fromDirection, second));
+            if (ret >= 0)
                 ret += first.getInvSize();
         }
         return ret;
@@ -127,11 +128,11 @@ public class DoubleInventoryOptimizer extends InventoryOptimizer {
         return firstOpt.getOccupiedSlots() + secondOpt.getOccupiedSlots();
     }
 
-    @Override
-    public int getItemTypeChanges() {
-        ensureInitialized();
-        return firstOpt.getItemTypeChanges() + secondOpt.getItemTypeChanges();
-    }
+//    @Override
+//    public int getItemTypeChanges() {
+//        ensureInitialized();
+//        return firstOpt.getItemTypeChanges() + secondOpt.getItemTypeChanges();
+//    }
 
     public int getFirstOccupiedSlot_extractable() {
         ensureInitialized();
