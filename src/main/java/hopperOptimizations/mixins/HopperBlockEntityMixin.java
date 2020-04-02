@@ -15,6 +15,7 @@ import net.minecraft.block.entity.*;
 import net.minecraft.block.enums.ChestType;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.ItemEntity;
+import net.minecraft.entity.vehicle.HopperMinecartEntity;
 import net.minecraft.inventory.DoubleInventory;
 import net.minecraft.inventory.Inventory;
 import net.minecraft.inventory.SidedInventory;
@@ -223,7 +224,20 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
             if (to instanceof OptimizedInventory && (toOpt = ((OptimizedInventory) to).getOptimizer()) != null) {
                 boolean isFull = toOpt.isFull_insertable(null);
                 if (isFull) { //full hoppers cannot extract more
-                    System.out.println("Hopper is full even though it wasn't");
+                    if (to instanceof HopperMinecartEntity) {
+                        if (!Settings.failedTransferNoComparatorUpdates) {
+                            if (!(from instanceof OptimizedInventory)) {
+                                return; //vanilla fallback, should never happen
+                            }
+                            InventoryOptimizer opt = ((OptimizedInventory) from).getOptimizer();
+                            if (opt == null) {
+                                return; //vanilla fallback
+                            }
+                            IHopper.markDirtyLikeHopperWould(from, ((OptimizedInventory) from).getOptimizer(), null);
+                        }
+                    } else {
+                        System.out.println("Hopper is full even though it wasn't");
+                    }
                     cir.setReturnValue(false);
                     return;
                 }
@@ -657,15 +671,20 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
      */
     @Feature("optimizedInventories")
     private boolean inventoryCacheValid(Inventory cachedInv, BlockPos cachedInvPos, boolean extracting) {
-        if (Settings.inventoryCheckOnBlockUpdate && (cachedInv == null || cachedInv instanceof IValidInventoryUntilBlockUpdate))
-            return extracting ? !hasToCheckForInputInventoryBlock : !hasToCheckForOutputInventoryBlock;
-        if (cachedInv instanceof BlockEntity) {
-            if (!((BlockEntity) cachedInv).isRemoved() &&
-                    ((BlockEntity) cachedInv).getPos().equals(cachedInvPos)) {
-                if (cachedInv instanceof ChestBlockEntity)
-                    return ChestType.SINGLE == ((ChestBlockEntity) cachedInv).getCachedState().get(ChestBlock.CHEST_TYPE);
-                return true;
+        if (Settings.inventoryCheckOnBlockUpdate) {
+            if (cachedInv == null) {
+                return extracting ? !this.hasToCheckForInputInventoryBlock : !this.hasToCheckForOutputInventoryBlock;
+            } else if (cachedInv instanceof IValidInventoryUntilBlockUpdate) {
+                return (extracting ? !this.hasToCheckForInputInventoryBlock : !this.hasToCheckForOutputInventoryBlock)
+                        && ((IValidInventoryUntilBlockUpdate) cachedInv).isValid();
             }
+        }
+        if (cachedInv instanceof BlockEntity && !((BlockEntity) cachedInv).isRemoved() &&
+                ((BlockEntity) cachedInv).getPos().equals(cachedInvPos)) {
+            if (cachedInv instanceof ChestBlockEntity) {
+                return ChestType.SINGLE == ((ChestBlockEntity) cachedInv).getCachedState().get(ChestBlock.CHEST_TYPE);
+            }
+            return true;
         }
         if (cachedInv instanceof DoubleInventory && cachedInv instanceof OptimizedInventory) {
             return ((OptimizedInventory) cachedInv).isStillValid();
@@ -683,13 +702,13 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
      */
     @Feature("optimizedInventories")
     private Inventory getCachedBlockInputInventory() {
-        return prevExtractInventory;
+        return this.prevExtractInventory;
     }
 
     private boolean hasCachedBlockInputInventory() {
-        if (!Settings.optimizedInventories || !inventoryCacheValid(prevExtractInventory, prevExtractInventoryPos, true)) {
-            prevExtractInventory = null;
-            previousExtract = null;
+        if (!Settings.optimizedInventories || !inventoryCacheValid(this.prevExtractInventory, this.prevExtractInventoryPos, true)) {
+            this.prevExtractInventory = null;
+            this.previousExtract = null;
             return false;
         }
         return true;
@@ -704,13 +723,13 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
      */
     @Feature("optimizedInventories")
     private Inventory getCachedBlockOutputInventory() {
-        return prevInsertInventory;
+        return this.prevInsertInventory;
     }
 
     private boolean hasCachedBlockOutputInventory() {
-        if (!Settings.optimizedInventories || !inventoryCacheValid(prevInsertInventory, prevInsertInventoryPos, false)) {
-            prevInsertInventory = null;
-            previousInsert = null;
+        if (!Settings.optimizedInventories || !inventoryCacheValid(this.prevInsertInventory, this.prevInsertInventoryPos, false)) {
+            this.prevInsertInventory = null;
+            this.previousInsert = null;
             return false;
         }
         return true;
