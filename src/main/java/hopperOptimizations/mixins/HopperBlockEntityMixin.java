@@ -15,6 +15,8 @@ import net.minecraft.block.entity.*;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.ItemEntity;
+import net.minecraft.entity.vehicle.HopperMinecartEntity;
+import net.minecraft.inventory.DoubleInventory;
 import net.minecraft.inventory.Inventory;
 import net.minecraft.inventory.SidedInventory;
 import net.minecraft.item.ItemStack;
@@ -163,7 +165,20 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
             if (to instanceof OptimizedInventory && (toOpt = ((OptimizedInventory) to).getOptimizer()) != null) {
                 boolean isFull = toOpt.isFull_insertable(null);
                 if (isFull) { //full hoppers cannot extract more
-                    System.out.println("Hopper is full even though it wasn't");
+                    if (to instanceof HopperMinecartEntity) {
+                        if (!Settings.failedTransferNoComparatorUpdates) {
+                            if (!(from instanceof OptimizedInventory)) {
+                                return; //vanilla fallback, should never happen
+                            }
+                            InventoryOptimizer opt = ((OptimizedInventory) from).getOptimizer();
+                            if (opt == null) {
+                                return; //vanilla fallback
+                            }
+                            IHopper.markDirtyLikeHopperWould(from, ((OptimizedInventory) from).getOptimizer(), null);
+                        }
+                    } else {
+                        System.out.println("Hopper is full even though it wasn't");
+                    }
                     cir.setReturnValue(false);
                     return;
                 }
@@ -556,7 +571,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
      */
     @Feature("optimizedInventories")
     private Inventory getCachedBlockOutputInventory() {
-        return prevInsertInventory;
+        return this.prevInsertInventory;
     }
 
     private boolean isInputBlockInventoryCacheValid() {
