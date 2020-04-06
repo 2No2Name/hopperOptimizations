@@ -23,7 +23,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.predicate.entity.EntityPredicates;
 import net.minecraft.text.LiteralText;
 import net.minecraft.text.Text;
-import net.minecraft.util.DefaultedList;
+import net.minecraft.util.collection.DefaultedList;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.ChunkPos;
@@ -164,11 +164,11 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
     /**
      * Inject to remove a useless iteration over each interacted inventory on every item transfer attempt.
      * @param inventory Inventory that is either empty or not
-     * @return false when the value is unused in vanilla, otherwise inventory.isInvEmpty() or optimized equivalent
+     * @return false when the value is unused in vanilla, otherwise inventory.isEmpty() or optimized equivalent
      */
     @Feature("optimizedInventories")
-    @Redirect(require = 0, method = "transfer(Lnet/minecraft/inventory/Inventory;Lnet/minecraft/inventory/Inventory;Lnet/minecraft/item/ItemStack;ILnet/minecraft/util/math/Direction;)Lnet/minecraft/item/ItemStack;", at = @At(value = "INVOKE", target = "Lnet/minecraft/inventory/Inventory;isInvEmpty()Z"))
-    private static boolean isInvEmptyOpt(Inventory inventory) {
+    @Redirect(require = 0, method = "transfer(Lnet/minecraft/inventory/Inventory;Lnet/minecraft/inventory/Inventory;Lnet/minecraft/item/ItemStack;ILnet/minecraft/util/math/Direction;)Lnet/minecraft/item/ItemStack;", at = @At(value = "INVOKE", target = "Lnet/minecraft/inventory/Inventory;isEmpty()Z"))
+    private static boolean isEmptyOpt(Inventory inventory) {
         if (Settings.optimizedInventories && !(inventory instanceof HopperBlockEntity))
             return false; //return anything, value unused
 
@@ -178,7 +178,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
         }
 
         //vanilla call
-        return inventory.isInvEmpty();
+        return inventory.isEmpty();
     }
 
     /**
@@ -258,7 +258,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
                         //fromSlot (= firstOccupiedSlot) already set
 
                         //Find the slot in the hopper, which might be before the first empty slot due to stacking items
-                        ItemStack stack = from.getInvStack(firstOccupiedSlot);
+                        ItemStack stack = from.getStack(firstOccupiedSlot);
                         int toSlot = toOpt.findInsertSlot(stack, null, to);
                         //if (toSlot == -1) throw new ThisNeverHappensException(); //empty slot always exists
                         transferOneItem_knownSuccessful(to, toSlot, from, firstOccupiedSlot);
@@ -274,8 +274,8 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
                         //Make sure that the minimal possible fromSlot is chosen (vanilla behavior)
                         int firstFromSlot = -1;
                         int correspondingToSlot = -1;
-                        for (int toSlot = 0; toSlot < to.getInvSize(); toSlot++) {
-                            ItemStack stack = to.getInvStack(toSlot);
+                        for (int toSlot = 0; toSlot < to.size(); toSlot++) {
+                            ItemStack stack = to.getStack(toSlot);
                             if (stack.getMaxCount() > stack.getCount()) {
                                 int fromSlot = fromOpt.indexOf_extractable_endIndex(stack, firstFromSlot);
                                 if (fromSlot == -1 || (fromSlot >= firstFromSlot && firstFromSlot != -1)) continue;
@@ -314,8 +314,8 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
     private static void transferOneItem_knownSuccessful(Inventory to, int toSlot, Inventory from, int fromSlot) {
         //assume stack sizes were checked, assume item types were already compared
 
-        ItemStack fromStack = from.getInvStack(fromSlot);
-        ItemStack toStack = to.getInvStack(toSlot);
+        ItemStack fromStack = from.getStack(fromSlot);
+        ItemStack toStack = to.getStack(toSlot);
 
         if (Settings.debugOptimizedInventories) {
             if (!InventoryOptimizer.areItemsAndTagsEqual(fromStack, toStack) && !toStack.isEmpty() || fromStack.isEmpty()) {
@@ -332,17 +332,17 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
             if (fromStack.getCount() == 1) {
                 toStack = fromStack;
                 fromStack = ItemStack.EMPTY;
-                from.setInvStack(fromSlot, fromStack);
+                from.setStack(fromSlot, fromStack);
                 replacedFromStack = true;
             } else {
                 toStack = fromStack.copy();
                 toStack.setCount(1);
                 fromStack.decrement(1);
             }
-            to.setInvStack(toSlot, toStack);
+            to.setStack(toSlot, toStack);
             replacedToStack = true;
         } else {
-            to.getInvStack(toSlot).increment(1);
+            to.getStack(toSlot).increment(1);
             fromStack.decrement(1);
         }
 
@@ -617,10 +617,10 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
     public abstract double getHopperZ();
 
     @Shadow
-    public abstract void setInvStack(int int_1, ItemStack itemStack_1);
+    public abstract void setStack(int int_1, ItemStack itemStack_1);
 
     @Shadow
-    public abstract int getInvSize();
+    public abstract int size();
 
     @Shadow
     private boolean isDisabled() {
@@ -639,7 +639,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
     protected abstract boolean isFull();
 
     //@Shadow
-    //public abstract boolean isInvEmpty();
+    //public abstract boolean isEmpty();
 
     @Shadow
     private Inventory getOutputInventory() {
@@ -848,13 +848,13 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
     }
 
     @Feature("optimizedInventories")
-    @Redirect(method = "insertAndExtract", at = @At(value = "INVOKE", target = "Lnet/minecraft/block/entity/HopperBlockEntity;isInvEmpty()Z"))
+    @Redirect(method = "insertAndExtract", at = @At(value = "INVOKE", target = "Lnet/minecraft/block/entity/HopperBlockEntity;isEmpty()Z"))
     private boolean isEmptyOpt(HopperBlockEntity hopperBlockEntity) {
         if (Settings.optimizedInventories) {
             InventoryOptimizer opt = this.getOptimizer();
             if (opt != null) return opt.getFirstOccupiedSlot_extractable() == -1;
         }
-        return isInvEmpty();
+        return isEmpty();
     }
 
     @Feature("optimizedInventories")
@@ -891,10 +891,10 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
                     }
 
                     //Try to push each item into the destination. As the hopper is usually smaller than the destination
-                    int invSize = this.getInvSize();
+                    int invSize = this.size();
                     int transferAttempts = fromOpt.getOccupiedSlots();
                     for (int fromSlot = firstOccupiedSlot; transferAttempts > 0 && fromSlot < invSize; fromSlot++) {
-                        ItemStack stack = this.getInvStack(fromSlot);
+                        ItemStack stack = this.getStack(fromSlot);
                         if (!stack.isEmpty()) {
                             --transferAttempts;
                             int toSlot = toOpt.findInsertSlot(stack, insertFromDirection, to);
@@ -940,7 +940,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
     }
 
     @Feature("optimizedInventories")
-    @Redirect(method = "<init>()V", at = @At(value = "INVOKE", target = "Lnet/minecraft/util/DefaultedList;ofSize(ILjava/lang/Object;)Lnet/minecraft/util/DefaultedList;"))
+    @Redirect(method = "<init>()V", at = @At(value = "INVOKE", target = "Lnet/minecraft/util/collection/DefaultedList;ofSize(ILjava/lang/Object;)Lnet/minecraft/util/collection/DefaultedList;"))
     private DefaultedList<ItemStack> createInventory(int int_1, Object object_1) {
         return InventoryListOptimized.ofSize(int_1, (ItemStack) object_1);
     }
@@ -953,7 +953,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
     }
 
     @Feature("optimizedInventories")
-    @Redirect(method = "fromTag", at = @At(value = "INVOKE", target = "Lnet/minecraft/util/DefaultedList;ofSize(ILjava/lang/Object;)Lnet/minecraft/util/DefaultedList;"))
+    @Redirect(method = "fromTag", at = @At(value = "INVOKE", target = "Lnet/minecraft/util/collection/DefaultedList;ofSize(ILjava/lang/Object;)Lnet/minecraft/util/collection/DefaultedList;"))
     private DefaultedList<ItemStack> createInventory2(int int_1, Object object_1) {
         return InventoryListOptimized.ofSize(int_1, (ItemStack) object_1);
     }

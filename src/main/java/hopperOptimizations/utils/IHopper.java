@@ -29,11 +29,11 @@ public interface IHopper {
             //crazy workaround to send stupid comparator updates to comparators and make the comparators send updates to even more redstone components
             //also required for comparator to schedule useless but detectable updates on themselves
             masterOpt.setFakeReducedSignalStrength();
-            inv.setInvStack(0, inv.getInvStack(0));
+            inv.setStack(0, inv.getStack(0));
             masterOpt.clearFakeChangedSignalStrength();
         }
 
-        inv.setInvStack(0, inv.getInvStack(0));
+        inv.setStack(0, inv.getStack(0));
     }
 
     @Feature("optimizedInventories")

@@ -633,7 +633,7 @@ public class InventoryOptimizer {
         int firstFreeSlot = getFirstFreeSlot();
         if ((firstFreeSlot == 0 || stack.getMaxCount() == 1)) {
             //return the first free slot when the item is not stackable. (edge case: shulker box into shulker box)
-            int i = this.itemRestrictions && !this.sidedInventory.canInsertInvStack(firstFreeSlot, stack, fromDirection) ? -1 : firstFreeSlot;
+            int i = this.itemRestrictions && !this.sidedInventory.canInsert(firstFreeSlot, stack, fromDirection) ? -1 : firstFreeSlot;
             return checkFallbackToVanillaInsert(i, stack, inventory);
         }
         else if (firstFreeSlot > 0) {
@@ -671,12 +671,12 @@ public class InventoryOptimizer {
 
     //Workaround for mods that overwrite isValidInvStack without implementing SidedInventory
     private int checkFallbackToVanillaInsert(int i, ItemStack stack, Inventory inventory) {
-        if (i == -1 || inventory.isValidInvStack(i, stack)) {
+        if (i == -1 || inventory.isValid(i, stack)) {
             return i;
         } else {
-            for (int j = 0; j < inventory.getInvSize(); j++) {
-                ItemStack invStack = inventory.getInvStack(j);
-                if (inventory.isValidInvStack(j, stack) && (invStack.isEmpty() || ((invStack.getMaxCount() > invStack.getCount()) && areItemsAndTagsEqual(stack, invStack)))) {
+            for (int j = 0; j < inventory.size(); j++) {
+                ItemStack invStack = inventory.getStack(j);
+                if (inventory.isValid(j, stack) && (invStack.isEmpty() || ((invStack.getMaxCount() > invStack.getCount()) && areItemsAndTagsEqual(stack, invStack)))) {
                     return j;
                 }
             }

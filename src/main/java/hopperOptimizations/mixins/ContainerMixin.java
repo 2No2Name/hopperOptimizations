@@ -4,12 +4,12 @@ import hopperOptimizations.annotation.Feature;
 import hopperOptimizations.settings.Settings;
 import hopperOptimizations.utils.InventoryOptimizer;
 import hopperOptimizations.utils.OptimizedInventory;
-import net.minecraft.container.Slot;
-import net.minecraft.container.SlotActionType;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.inventory.Inventory;
 import net.minecraft.item.ItemStack;
+import net.minecraft.screen.slot.Slot;
+import net.minecraft.screen.slot.SlotActionType;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -22,7 +22,7 @@ import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
 import java.util.List;
 
 @Feature("optimizedInventories")
-@Mixin(net.minecraft.container.Container.class)
+@Mixin(net.minecraft.screen.ScreenHandler.class)
 public abstract class ContainerMixin {
     @Shadow
     @Final
@@ -71,7 +71,7 @@ public abstract class ContainerMixin {
     private void notifyInventory(ItemStack stack, int startIndex, int endIndex, boolean fromLast, CallbackInfoReturnable<Boolean> cir, boolean bl, int i, Slot slot, ItemStack itemStack, int j) {
         Inventory inventory;
         if (Settings.optimizedInventories && (inventory = this.slots.get(slotId).inventory) instanceof OptimizedInventory) {
-            if (slotId >= inventory.getInvSize()) return; //SlotIds count higher into the player inventory
+            if (slotId >= inventory.size()) return; //SlotIds count higher into the player inventory
 
             expectInInventory = inventory != slot.inventory;
             InventoryOptimizer opt = ((OptimizedInventory) inventory).getOptimizer();
@@ -157,7 +157,7 @@ public abstract class ContainerMixin {
     private void notifyInventory2(ItemStack stack, int startIndex, int endIndex, boolean fromLast, CallbackInfoReturnable<Boolean> cir, boolean bl, int i, Slot slot, ItemStack itemStack, ItemStack var10, int var11) {
         Inventory inventory;
         if (Settings.optimizedInventories && (inventory = this.slots.get(slotId).inventory) instanceof OptimizedInventory) {
-            if (slotId >= inventory.getInvSize()) return; //SlotIds count higher into the player inventory
+            if (slotId >= inventory.size()) return; //SlotIds count higher into the player inventory
             expectInInventory = inventory != slot.inventory;
             InventoryOptimizer opt = ((OptimizedInventory) inventory).getOptimizer();
             if (opt != null && opt.isInitialized() && (expectInInventory || Settings.debugOptimizedInventories)) {
@@ -189,7 +189,7 @@ public abstract class ContainerMixin {
     private ItemStack notifyInventory3(ItemStack itemStack, int count) {
         ItemStack ret = itemStack.split(count);
         if (Settings.optimizedInventories && tmpInventory instanceof OptimizedInventory) {
-            if (slotId >= tmpInventory.getInvSize()) return ret; //SlotIds count higher into the player inventory
+            if (slotId >= tmpInventory.size()) return ret; //SlotIds count higher into the player inventory
             InventoryOptimizer opt = ((OptimizedInventory) tmpInventory).getOptimizer();
             if (opt != null && opt.isInitialized() && (expectInInventory || Settings.debugOptimizedInventories)) {
                 if (Settings.debugOptimizedInventories) {
@@ -215,7 +215,7 @@ public abstract class ContainerMixin {
     private void notifyInventory(int slotId, int clickData, SlotActionType actionType, PlayerEntity playerEntity, CallbackInfoReturnable<ItemStack> cir, ItemStack itemStack, PlayerInventory playerInventory, Slot slot4, ItemStack itemStack7, ItemStack itemStack8, int p) {
         Inventory inventory;
         if (Settings.optimizedInventories && (inventory = this.slots.get(slotId).inventory) instanceof OptimizedInventory) {
-            if (slotId >= inventory.getInvSize()) return; //SlotIds count higher into the player inventory
+            if (slotId >= inventory.size()) return; //SlotIds count higher into the player inventory
             InventoryOptimizer opt = ((OptimizedInventory) inventory).getOptimizer();
             if (opt != null) {
                 opt.onItemStackCountChanged(slotId, p);
