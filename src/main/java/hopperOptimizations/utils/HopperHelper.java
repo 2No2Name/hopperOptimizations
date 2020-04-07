@@ -176,8 +176,13 @@ public abstract class HopperHelper {
      * @return whether the inventory should still be used
      */
     public static boolean inventoryCacheInvalid(Inventory cachedInv, int cachedRemovedCount, boolean hasToCheckForInventoryBlock) {
-        if (Settings.inventoryCheckOnBlockUpdate && (cachedInv == null || cachedInv instanceof IValidInventoryUntilBlockUpdate)) {
-            return hasToCheckForInventoryBlock;
+        if (Settings.inventoryCheckOnBlockUpdate) {
+            if (cachedInv == null) {
+                return hasToCheckForInventoryBlock;
+            } else if (cachedInv instanceof IValidInventoryUntilBlockUpdate) {
+                return hasToCheckForInventoryBlock
+                        && ((IValidInventoryUntilBlockUpdate) cachedInv).isValid();
+            }
         }
 
         if (cachedInv instanceof BlockEntity) {

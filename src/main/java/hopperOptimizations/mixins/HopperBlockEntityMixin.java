@@ -16,7 +16,6 @@ import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.ItemEntity;
 import net.minecraft.entity.vehicle.HopperMinecartEntity;
-import net.minecraft.inventory.DoubleInventory;
 import net.minecraft.inventory.Inventory;
 import net.minecraft.inventory.SidedInventory;
 import net.minecraft.item.ItemStack;
@@ -174,7 +173,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
                             if (opt == null) {
                                 return; //vanilla fallback
                             }
-                            IHopper.markDirtyLikeHopperWould(from, ((OptimizedInventory) from).getOptimizer(), null);
+                            HopperHelper.markDirtyLikeHopperWould(from, ((OptimizedInventory) from).getOptimizer(), null);
                         }
                     } else {
                         System.out.println("Hopper is full even though it wasn't");
