@@ -5,8 +5,6 @@ import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
 import net.minecraft.block.entity.Hopper;
 import net.minecraft.block.entity.HopperBlockEntity;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityDimensions;
-import net.minecraft.entity.EntityType;
 import net.minecraft.entity.ItemEntity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
@@ -26,9 +24,10 @@ import java.util.List;
  * @author 2No2Name
  */
 public class NearbyHopperItemsTracker extends NearbyEntityTrackerBox<ItemEntity> {
-    private static List<ItemEntity> EMPTY_LIST = new ArrayList<>(0);
-    private static VoxelShape inputAreaShape;
-    private static List<Box> boxes;
+    private static final List<ItemEntity> EMPTY_LIST = new ArrayList<>(0);
+    private static final VoxelShape inputAreaShape;
+    private static final List<Box> boxes;
+
     static {
         inputAreaShape = new HopperBlockEntity().getInputAreaShape();
         boxes = inputAreaShape.getBoundingBoxes();
@@ -38,6 +37,10 @@ public class NearbyHopperItemsTracker extends NearbyEntityTrackerBox<ItemEntity>
     //Fields that are practically final after their first initialization
     private final HopperBlockEntity myHopper;
     private Box[] collectionArea;
+    //Wrap our iterator in a list object, so we can return it in a mixin to the hopper.
+    //The object is only used in an for(ItemEntity e : list) call, so we only need the iterator.
+    //Other mods that want to use the list differently than vanilla might be surprised and will lead to a crash
+    private final IteratorWrapperList<ItemEntity> iteratorWrapperList = new IteratorWrapperList<>();
     private int boxBits;
     private int chunkXZYBits;
     private long entitySubchunkCounterMaxValue;
@@ -61,39 +64,13 @@ public class NearbyHopperItemsTracker extends NearbyEntityTrackerBox<ItemEntity>
 
     private boolean initialized = false;
     private boolean searchEntitiesAfterInitialization = false;
-
-
-    //Wrap our iterator in a list object, so we can return it in a mixin to the hopper.
-    //The object is only used in an for(ItemEntity e : list) call, so we only need the iterator.
-    //Other mods that want to use the list differently than vanilla might be surprised and will lead to a crash
-    private IteratorWrapperList<ItemEntity> iteratorWrapperList = new IteratorWrapperList<>();
+    private Box collectionAreaEnclosingBox;
 
     public NearbyHopperItemsTracker(BlockPos hopperPos, Hopper hopper) {
         super(ItemEntity.class);
         assert hopper instanceof HopperBlockEntity;
         this.myHopper = (HopperBlockEntity) hopper;
         this.init(hopperPos);
-    }
-
-    public List<ItemEntity> getUseOnceIteratorWrapperList() {
-        /* Either uncomment the following code or keep ItemEntityMixin that sets the stack of dead item entities to EMPTY
-        //Filter out non alive entities, no way to not have to do it, as another hopper could have just killed some entity
-        //The alternative is making removed item entites set themselves to have an empty stack
-        ObjectIterator<Object2IntMap.Entry<ItemEntity>> it = this.withinAreaObjectToKey.object2IntEntrySet().iterator();
-        while (it.hasNext()) {
-            Object2IntMap.Entry<ItemEntity> e = it.next();
-            if (!e.getKey().isAlive()){
-                this.withinAreaSorted.remove(e.getIntValue());
-                it.remove();
-            }
-        }
-        */
-        Iterator<ItemEntity> entityIterator = this.getItemEntityIterator();
-        if (entityIterator == null) {
-            return EMPTY_LIST;
-        } else {
-            return this.iteratorWrapperList.setWrappedIterator(entityIterator);
-        }
     }
 
     public Iterator<ItemEntity> getItemEntityIterator() {
@@ -152,7 +129,6 @@ public class NearbyHopperItemsTracker extends NearbyEntityTrackerBox<ItemEntity>
     }
 
     private void createPositionAndEntitySizeAdjustedBoxes(BlockPos pos) {
-        EntityDimensions entityDimensions = EntityType.ITEM.getDimensions();
         List<Box> boxes = this.myHopper.getInputAreaShape() == NearbyHopperItemsTracker.inputAreaShape
                 ? NearbyHopperItemsTracker.boxes : this.myHopper.getInputAreaShape().getBoundingBoxes();
 
@@ -319,62 +295,6 @@ public class NearbyHopperItemsTracker extends NearbyEntityTrackerBox<ItemEntity>
         return null;
     }
 
-
-//    /**
-//     * Generate a number for each entity so that when the entities are sorted by their number, the sorting is
-//     * like the order in which hoppers pick up items in vanilla.
-//     *
-//     * @param entity    the entity we need an index of
-//     * @param changedSubchunk  if we need to get a new index because the entity changed the chunk section
-//     * @param oldNumber previous number of the entity, can possibly be reused
-//     * @return priority number, Integer.MAX_VALUE if no priority can be assigned because the entity is not in the tracked area
-//     */
-    /*
-    private int getPriorityNumber(ItemEntity entity, boolean changedSubchunk, int oldNumber) {
-        int oldBoxBits;
-        oldNumber = -(oldNumber - Integer.MAX_VALUE);
-        if(!changedSubchunk) {
-            //                                |---mask for boxBits----|    shift pos like in loop
-            oldBoxBits = oldNumber & (((1 << this.boxBits) - 1) << (31 - this.boxBits));
-        }
-
-
-        if (!inArea) {
-            return Integer.MAX_VALUE;
-        } //MAX_VALUE: code for "not in area", won't be returned otherwise
-        //if (this.boxBits == 0) { priority = 0; } //redundant as i in for-loop is 0 when boxBits is 0
-
-        if (!this.initialized) {
-            return 1; //return anything but not MAX_VALUE. The entity is not going to be put in the list yet, but at initialization time
-        }
-
-
-        if (oldNumber != 0 && oldBoxBits != priority) {
-            changedSubchunk = true;
-        }
-
-
-
-        if (oldNumber != Integer.MAX_VALUE && !changedSubchunk) {
-            //keep the old entitycounter value for the entity, if it did not move to another subchunk
-            return Integer.MAX_VALUE - ((oldNumber & (-1 >>> (1 + this.boxBits + 3 * this.chunkXZYBits))) | priority);
-        }
-
-        this.entityCounter++;
-        if (this.entityCounter >= this.entitySubchunkCounterMaxValue) {
-            this.initCollection(true); //resets the collection
-            if (this.withinSubchunksObjectToKey.containsKey(entity)) {
-                return this.withinSubchunksObjectToKey.getInt(entity);
-            } else {
-                return Integer.MAX_VALUE;
-            }
-        }
-
-        priority += this.entityCounter; //priority >= 1, as entityCounter++ before
-
-        return Integer.MAX_VALUE - priority; //backwards, as the smallest number is first in our datastructure
-    }*/
-
     /**
      * The RETURN VALUE of this method is ONLY VALID WHEN onEntityEnteredTrackedSubchunk was just called!
      * If it wasn't just called, use Entity.chunkX/Y/Z instead of entity.getX/Y/Z >> 4
@@ -416,8 +336,6 @@ public class NearbyHopperItemsTracker extends NearbyEntityTrackerBox<ItemEntity>
         return -1;
     }
 
-
-
     @Override
     public void onInitialEntitiesReceived() {
         this.initialized = true;
@@ -425,23 +343,6 @@ public class NearbyHopperItemsTracker extends NearbyEntityTrackerBox<ItemEntity>
             this.initCollection(true);
         }
     }
-
-//    public void resetNonFittingItems(int cooldown) {
-//        this.nonFittingItemTypeFilterActive = false;
-//        this.nonFittingItemTypeFilterCooldown = cooldown;
-//        if (this.withinAreaNotFittingItemType != null) {
-//            this.withinAreaNotFittingItemType.clear();
-//        }
-//    }
-
-//    public void setItemEntityNotFitting(ItemEntity notFittingItemEntity) {
-//        if (this.nonFittingItemTypeFilterActive) {
-//            if (this.withinAreaNotFittingItemType == null) {
-//                this.withinAreaNotFittingItemType = new HashSet<>();
-//            }
-//            this.withinAreaNotFittingItemType.add(notFittingItemEntity);
-//        }
-//    }
 
     public int getNewEntityCounter() {
         return this.newEntityCount;

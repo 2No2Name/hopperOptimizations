@@ -109,9 +109,6 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
     private boolean previousExtract_causeMarkDirty;
 
     private Direction direction;
-    @Shadow
-    private int transferCooldown;
-
 
     @Shadow
     private long lastTickTime;
@@ -327,7 +324,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
             ((HopperBlockEntityMixin) hopper).lastTickTime_used_InputInventoryEntityCache = ((HopperBlockEntityMixin) hopper).lastTickTime;
 
             if (Settings.debugOptimizedEntityHopperInteraction) {
-                HopperHelper.debugCompareInventoryEntities(hopper, ((HopperBlockEntityMixin) hopper).inputInventoryEntities, world, hopper.getHopperX(), hopper.getHopperY() + 1.0D, hopper.getHopperZ());
+                HopperHelper.debugCompareInventoryEntities(((HopperBlockEntityMixin) hopper).inputInventoryEntities, world, hopper.getHopperX(), hopper.getHopperY() + 1.0D, hopper.getHopperZ());
             }
 
             inventory = ((HopperBlockEntityMixin) hopper).inputInventoryEntities.getRandomInventoryEntity(world.random);
@@ -597,7 +594,6 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
      * Requires optimizedInventories.
      *
      * @param thisOpt  InventoryOptimizer of this hopper
-     * @param other    Inventory interacted with
      * @param otherOpt InventoryOptimizer of other
      *                 <p>
      *                 Side effect: Sends comparator updates that would be sent on normal failed transfers.
@@ -605,7 +601,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
      */
     @Feature("optimizedInventories")
     @Override
-    public boolean tryShortcutFailedInsert(InventoryOptimizer thisOpt, Inventory other, InventoryOptimizer otherOpt) {
+    public boolean tryShortcutFailedInsert(InventoryOptimizer thisOpt, InventoryOptimizer otherOpt) {
         int thisChangeCount = thisOpt.getInventoryChangeCount();
         int otherChangeCount = otherOpt.getInventoryChangeCount();
         if (this_lastChangeCount_Insert != thisChangeCount || otherOpt != prevInsert || prevInsertChangeCount != otherChangeCount) {
@@ -735,7 +731,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
             InventoryOptimizer toOpt, fromOpt;
             if (to instanceof OptimizedInventory && (toOpt = ((OptimizedInventory) to).getOptimizer()) != null) {
                 fromOpt = ((OptimizedInventory) this).getOptimizer();
-                if (fromOpt != null && ((IHopper) this).tryShortcutFailedInsert(fromOpt, to, toOpt)) {
+                if (fromOpt != null && ((IHopper) this).tryShortcutFailedInsert(fromOpt, toOpt)) {
                     cir.setReturnValue(false);
                     return;
                 }
@@ -797,17 +793,12 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
     @Override
     @Nullable
     public InventoryOptimizer getOptimizer() {
-        return !(this instanceof SidedInventory) && Settings.optimizedInventories && mayHaveOptimizer() && inventory instanceof InventoryListOptimized ? ((InventoryListOptimized) inventory).getCreateOrRemoveOptimizer(this) : null;
+        return !(this instanceof SidedInventory) && Settings.optimizedInventories && this.world != null && !this.world.isClient && inventory instanceof InventoryListOptimized ? ((InventoryListOptimized) inventory).getCreateOrRemoveOptimizer(this) : null;
     }
 
     @Override
     public void invalidateOptimizer() {
         if (inventory instanceof InventoryListOptimized) ((InventoryListOptimized) inventory).invalidateOptimizer();
-    }
-
-    @Override
-    public boolean mayHaveOptimizer() {
-        return this.world != null && !this.world.isClient;// && (!Settings.playerInventoryDeoptimization || viewerCount <= 0);
     }
 
     private Box inputBox() {
@@ -882,7 +873,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
             double double_1 = pos.getX() + 0.5D;
             double double_2 = pos.getY() + 0.5D;
             double double_3 = pos.getZ() + 0.5D;
-            HopperHelper.debugCompareInventoryEntities(hopper, this.outputInventoryEntities, world, double_1, double_2, double_3);
+            HopperHelper.debugCompareInventoryEntities(this.outputInventoryEntities, world, double_1, double_2, double_3);
         }
         inventory = this.outputInventoryEntities.getRandomInventoryEntity(world.random);
         return inventory;

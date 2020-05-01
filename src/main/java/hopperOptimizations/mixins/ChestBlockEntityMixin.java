@@ -26,8 +26,6 @@ import java.util.Arrays;
 @Mixin(ChestBlockEntity.class)
 public abstract class ChestBlockEntityMixin extends LootableContainerBlockEntity implements OptimizedInventory, Tickable {
     @Shadow
-    protected int viewerCount;
-    @Shadow
     private DefaultedList<ItemStack> inventory;
     private int invalidCount;
 
@@ -54,17 +52,12 @@ public abstract class ChestBlockEntityMixin extends LootableContainerBlockEntity
 
     @Nullable
     public InventoryOptimizer getOptimizer() {
-        return !(this instanceof SidedInventory) && Settings.optimizedInventories && mayHaveOptimizer() && inventory instanceof InventoryListOptimized ? ((InventoryListOptimized) inventory).getCreateOrRemoveOptimizer(this) : null;
+        return !(this instanceof SidedInventory) && Settings.optimizedInventories && this.world != null && !this.world.isClient && inventory instanceof InventoryListOptimized ? ((InventoryListOptimized) inventory).getCreateOrRemoveOptimizer(this) : null;
     }
 
     @Override
     public void invalidateOptimizer() {
         if (inventory instanceof InventoryListOptimized) ((InventoryListOptimized) inventory).invalidateOptimizer();
-    }
-
-    @Override
-    public boolean mayHaveOptimizer() {
-        return this.world != null && !this.world.isClient;
     }
 
     //Making sure that DoubleInventories don't act on invalid chest halfs using counter comparison.
@@ -73,7 +66,4 @@ public abstract class ChestBlockEntityMixin extends LootableContainerBlockEntity
         super.markRemoved();
     }
 
-    public int getInvalidCount() {
-        return this.invalidCount;
-    }
 }

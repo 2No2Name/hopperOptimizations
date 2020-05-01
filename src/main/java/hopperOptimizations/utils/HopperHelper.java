@@ -236,7 +236,7 @@ public abstract class HopperHelper {
         inv.setInvStack(0, inv.getInvStack(0));
     }
 
-    public static void debugCompareInventoryEntities(Hopper hopper, NearbyHopperInventoriesTracker tracker, World world, double x, double y, double z) {
+    public static void debugCompareInventoryEntities(NearbyHopperInventoriesTracker tracker, World world, double x, double y, double z) {
         try {
             List<Entity> inventoryEntities = tracker.getAllForDebug();
             inventoryEntities.removeIf((Entity inv) -> inv.removed);

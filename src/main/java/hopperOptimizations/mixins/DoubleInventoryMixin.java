@@ -5,6 +5,7 @@ import hopperOptimizations.settings.Settings;
 import hopperOptimizations.utils.DoubleInventoryOptimizer;
 import hopperOptimizations.utils.InventoryOptimizer;
 import hopperOptimizations.utils.OptimizedInventory;
+import hopperOptimizations.workarounds.BlockEntityInterface;
 import net.minecraft.block.entity.ChestBlockEntity;
 import net.minecraft.inventory.DoubleInventory;
 import net.minecraft.inventory.Inventory;
@@ -29,8 +30,8 @@ public abstract class DoubleInventoryMixin implements OptimizedInventory {
     private Inventory second;
     //Invalidate this DoubleInventory when one half is invalidated.
     //This wasn't necessary in vanilla, because the DoubleInventory object was recreated every time the doublechest was accessed.
-    private int firstInvalidCount;
-    private int secondInvalidCount;
+    private int firstRemovedCount;
+    private int secondRemovedCount;
     private boolean invalid; //If true, this inventory will not be cached and will not be reused from a cache.
 
     private DoubleInventoryOptimizer optimizer; //Make sure this is only used when both of its halfs have optimizers
@@ -52,24 +53,23 @@ public abstract class DoubleInventoryMixin implements OptimizedInventory {
             invalid = true;
             return;
         }
-        firstInvalidCount = ((OptimizedInventory) inventory_1).getInvalidCount();
-        secondInvalidCount = ((OptimizedInventory) inventory_2).getInvalidCount();
-        invalid = (firstInvalidCount == -1 || secondInvalidCount == -1);
+        firstRemovedCount = ((BlockEntityInterface) inventory_1).getRemovedCount();
+        secondRemovedCount = ((BlockEntityInterface) inventory_2).getRemovedCount();
+        invalid = (firstRemovedCount == -1 || secondRemovedCount == -1);
     }
 
-    /*public void setInvalid(){
-        this.invalid = true;
-    }*/
-
-    private DoubleInventoryOptimizer getCreateOrRemoveOptimizer() {
-        if (!Settings.optimizedInventories) { //Remove first's and second's optimizers
+    @Override
+    @Nullable
+    public InventoryOptimizer getOptimizer() {
+        if (!Settings.optimizedInventories) {
             this.invalidateOptimizer();
             return this.optimizer;
         }
 
         if (this.optimizer == null) {
-            if (((OptimizedInventory) first).getOptimizer() == null || ((OptimizedInventory) second).getOptimizer() == null) {
-                System.out.println("Bad initialisation of OptimizedInventory's stacklist! Skipping optmizations!");
+            if ((this instanceof SidedInventory) ||
+                    !(this.first instanceof OptimizedInventory) || !(this.second instanceof OptimizedInventory) ||
+                    ((OptimizedInventory) first).getOptimizer() == null || ((OptimizedInventory) second).getOptimizer() == null) {
                 return null;
             }
             this.optimizer = new DoubleInventoryOptimizer((OptimizedInventory) first, (OptimizedInventory) second);
@@ -77,12 +77,6 @@ public abstract class DoubleInventoryMixin implements OptimizedInventory {
             this.invalidateOptimizer();
         }
         return this.optimizer;
-    }
-
-    @Override
-    @Nullable
-    public InventoryOptimizer getOptimizer() {
-        return !(this instanceof SidedInventory) && Settings.optimizedInventories && mayHaveOptimizer() ? getCreateOrRemoveOptimizer() : null;
     }
 
     @Override
@@ -102,24 +96,11 @@ public abstract class DoubleInventoryMixin implements OptimizedInventory {
         this.optimizer = null;
     }
 
-    @Override
-    public boolean mayHaveOptimizer() {
-        return this.first instanceof OptimizedInventory && ((OptimizedInventory) this.first).mayHaveOptimizer()
-                && this.second instanceof OptimizedInventory && ((OptimizedInventory) this.second).mayHaveOptimizer();
-    }
-
-    //This doesn't get called on the cached object, because opening an inventory creates a new Double Inventory Object.
-    /*@Inject(method = "onInvOpen(Lnet/minecraft/entity/player/PlayerEntity;)V", at = @At(value = "HEAD"))
-    private void onInventoryOpened(PlayerEntity playerEntity_1, CallbackInfo ci) {
-        if (!playerEntity_1.isSpectator())
-            invalidateOptimizer();
-    }*/
-
 
     //Allows caching the inventory safely
     public boolean isStillValid() {
-        return !this.invalid && !(this.invalid = firstInvalidCount != ((OptimizedInventory) first).getInvalidCount()) &&
-                !(this.invalid = secondInvalidCount != ((OptimizedInventory) second).getInvalidCount());
+        return !this.invalid && !(this.invalid = firstRemovedCount != ((BlockEntityInterface) first).getRemovedCount()) &&
+                !(this.invalid = secondRemovedCount != ((BlockEntityInterface) second).getRemovedCount());
     }
 
 }

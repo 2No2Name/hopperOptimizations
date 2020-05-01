@@ -23,11 +23,9 @@ import javax.annotation.Nullable;
 @Mixin(StorageMinecartEntity.class)
 public abstract class StorageMinecartEntityMixin extends AbstractMinecartEntity implements OptimizedInventory {
 
-    private boolean initialized;
     //Redirects and Injects to replace the inventory with an optimized Inventory
     @Shadow
-    private DefaultedList<ItemStack> inventory;
-    private int viewerCount;
+    private final DefaultedList<ItemStack> inventory;
 
     protected StorageMinecartEntityMixin(EntityType<?> entityType_1, World world_1, int someInt, int someOtherInt) {
         super(entityType_1, world_1);
@@ -57,7 +55,7 @@ public abstract class StorageMinecartEntityMixin extends AbstractMinecartEntity 
 
     @Nullable
     public InventoryOptimizer getOptimizer() {
-        return !(this instanceof SidedInventory) && Settings.optimizedInventories && mayHaveOptimizer() && inventory instanceof InventoryListOptimized ? ((InventoryListOptimized) inventory).getCreateOrRemoveOptimizer(this) : null;
+        return !(this instanceof SidedInventory) && Settings.optimizedInventories && this.world != null && !this.world.isClient && inventory instanceof InventoryListOptimized ? ((InventoryListOptimized) inventory).getCreateOrRemoveOptimizer(this) : null;
     }
 
     @Override
@@ -85,11 +83,6 @@ public abstract class StorageMinecartEntityMixin extends AbstractMinecartEntity 
             }
         }
     }*/
-
-    @Override
-    public boolean mayHaveOptimizer() {
-        return !this.world.isClient;// && (!Settings.playerInventoryDeoptimization || viewerCount <= 0);
-    }
 
     /* //replaced with code in EntityMixin
     @Override

@@ -24,7 +24,7 @@ public abstract class WorldMixin implements WorldInterface {
 
     @Shadow
     public static boolean isHeightInvalid(int y) {
-        return false;
+        throw new AssertionError();
     }
 
     @Shadow

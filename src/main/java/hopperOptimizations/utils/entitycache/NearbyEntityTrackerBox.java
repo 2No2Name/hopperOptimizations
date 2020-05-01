@@ -122,7 +122,7 @@ public class NearbyEntityTrackerBox<T> implements ExactPositionListener {
     }
 
     Collection<T> createCollection() {
-        return new HashSet<T>();
+        return new HashSet<>();
     }
 
     protected void addEntity(T entity) {

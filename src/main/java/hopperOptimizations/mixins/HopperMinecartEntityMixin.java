@@ -58,14 +58,13 @@ public class HopperMinecartEntityMixin implements IHopper {
      * Requires optimizedInventories.
      *
      * @param thisOpt  InventoryOptimizer of this hopper
-     * @param other    Inventory interacted with
      * @param otherOpt InventoryOptimizer of other
      *                 <p>
      *                 Side effect: Sends comparator updates that would be sent on normal failed transfers.
      * @return Whether the current item transfer attempt is known to fail.
      */
     @Feature("optimizedInventories")
-    public boolean tryShortcutFailedInsert(InventoryOptimizer thisOpt, Inventory other, InventoryOptimizer otherOpt) {
+    public boolean tryShortcutFailedInsert(InventoryOptimizer thisOpt, InventoryOptimizer otherOpt) {
         return false; //hopper minecarts are not transferring items out. This won't break mods that implement it though.
     }
 

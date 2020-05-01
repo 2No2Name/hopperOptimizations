@@ -26,8 +26,6 @@ import java.util.Arrays;
 public abstract class BarrelBlockEntityMixin extends LootableContainerBlockEntity implements OptimizedInventory {
     @Shadow
     private DefaultedList<ItemStack> inventory;
-    @Shadow
-    private int viewerCount;
 
     protected BarrelBlockEntityMixin(BlockEntityType<?> beType) {
         super(beType);
@@ -53,7 +51,7 @@ public abstract class BarrelBlockEntityMixin extends LootableContainerBlockEntit
 
     @Nullable
     public InventoryOptimizer getOptimizer() {
-        return !(this instanceof SidedInventory) && Settings.optimizedInventories && mayHaveOptimizer() && inventory instanceof InventoryListOptimized ? ((InventoryListOptimized) inventory).getCreateOrRemoveOptimizer(this) : null;
+        return !(this instanceof SidedInventory) && Settings.optimizedInventories && this.world != null && !this.world.isClient && inventory instanceof InventoryListOptimized ? ((InventoryListOptimized) inventory).getCreateOrRemoveOptimizer(this) : null;
     }
 
     @Override
@@ -61,15 +59,4 @@ public abstract class BarrelBlockEntityMixin extends LootableContainerBlockEntit
         if (inventory instanceof InventoryListOptimized) ((InventoryListOptimized) inventory).invalidateOptimizer();
     }
 
-    /*
-    @Inject(method = "onInvOpen(Lnet/minecraft/entity/player/PlayerEntity;)V", at = @At(value = "HEAD"))
-    private void onInventoryOpened(PlayerEntity playerEntity_1, CallbackInfo ci) {
-        if (Settings.playerInventoryDeoptimization && !playerEntity_1.isSpectator())
-            invalidateOptimizer();
-    }*/
-
-    @Override
-    public boolean mayHaveOptimizer() {
-        return this.world != null && !this.world.isClient;// && (!Settings.playerInventoryDeoptimization || viewerCount <= 0);
-    }
 }

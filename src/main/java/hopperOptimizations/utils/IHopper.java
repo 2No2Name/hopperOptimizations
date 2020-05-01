@@ -31,14 +31,13 @@ public interface IHopper {
      * Requires optimizedInventories.
      *
      * @param thisOpt  InventoryOptimizer of this hopper
-     * @param other    Inventory interacted with
      * @param otherOpt InventoryOptimizer of other
      *
      *                 Side effect: Sends comparator updates that would be sent on normal failed transfers.
      * @return Whether the current item transfer attempt is known to fail.
      */
     @Feature("optimizedInventories")
-    boolean tryShortcutFailedInsert(InventoryOptimizer thisOpt, Inventory other, InventoryOptimizer otherOpt);
+    boolean tryShortcutFailedInsert(InventoryOptimizer thisOpt, InventoryOptimizer otherOpt);
 
     @Feature("optimizedEntityHopperInteraction")
     default void notifyOfNearbyEntity(Entity entity) {

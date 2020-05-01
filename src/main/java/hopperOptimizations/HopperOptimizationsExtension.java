@@ -13,7 +13,7 @@ import hopperOptimizations.settings.Settings;
  * bloom filter contribution originally by skyrising
  */
 public class HopperOptimizationsExtension implements CarpetExtension {
-    private static SettingsManager mySettingManager;
+    private static final SettingsManager mySettingManager;
 
     static {
         String myVersion = "0.1.18";

@@ -25,8 +25,6 @@ import java.util.Arrays;
 @Mixin(DispenserBlockEntity.class)
 public abstract class DispenserBlockEntityMixin extends LootableContainerBlockEntity implements OptimizedInventory {
 
-    private int viewerCount = 0;
-
     protected DispenserBlockEntityMixin(BlockEntityType<?> blockEntityType, int someInt, int someOtherInt) {
         super(blockEntityType);
     }
@@ -54,38 +52,13 @@ public abstract class DispenserBlockEntityMixin extends LootableContainerBlockEn
 
     @Nullable
     public InventoryOptimizer getOptimizer() {
-        return !(this instanceof SidedInventory) && Settings.optimizedInventories && mayHaveOptimizer() && this.inventory instanceof InventoryListOptimized ? ((InventoryListOptimized) this.inventory).getCreateOrRemoveOptimizer(this) : null;
+        return !(this instanceof SidedInventory) && Settings.optimizedInventories && this.world != null && !this.world.isClient && this.inventory instanceof InventoryListOptimized ? ((InventoryListOptimized) this.inventory).getCreateOrRemoveOptimizer(this) : null;
     }
 
     @Override
     public void invalidateOptimizer() {
         if (this.inventory instanceof InventoryListOptimized)
             ((InventoryListOptimized) this.inventory).invalidateOptimizer();
-    }
-
-    //@Inject(method = "onInvOpen(Lnet/minecraft/entity/player/PlayerEntity;)V", at = @At(value = "HEAD"))
-    /*
-    public void onInvOpen(PlayerEntity playerEntity_1) {
-        if (!playerEntity_1.isSpectator()) {
-            viewerCount++;
-            if (Settings.playerInventoryDeoptimization)
-                invalidateOptimizer();
-        }
-    }*/
-/*
-    public void onInvClose(PlayerEntity playerEntity_1) {
-        if (!playerEntity_1.isSpectator()) {
-            viewerCount--;
-            if (Settings.playerInventoryDeoptimization && viewerCount < 0) {
-                System.out.println("Dropper/Dispenser viewer count inconsistency, might affect performance of optimizedInventories!");
-                viewerCount = 0;
-            }
-        }
-    }*/
-
-    @Override
-    public boolean mayHaveOptimizer() {
-        return this.world != null && !this.world.isClient;// && (!Settings.playerInventoryDeoptimization || viewerCount <= 0);
     }
 
 }
