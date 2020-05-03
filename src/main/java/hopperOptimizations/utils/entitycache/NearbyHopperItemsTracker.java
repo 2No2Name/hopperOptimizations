@@ -150,11 +150,11 @@ public class NearbyHopperItemsTracker extends NearbyEntityTrackerBox<ItemEntity>
 
             //use vanilla listening box size, as otherwise lazy pushed entities might behave differently!
             this.chunkX1 = Math.min(this.chunkX1, (MathHelper.floor((x1 - 2.0D) / 16.0D)));
-            this.chunkX2 = Math.max(this.chunkX2, (MathHelper.ceil((x2 + 2.0D) / 16.0D)));
+            this.chunkX2 = Math.max(this.chunkX2, (MathHelper.floor((x2 + 2.0D) / 16.0D)));
             this.chunkY1 = Math.min(this.chunkY1, (MathHelper.floor((y1 - 2.0D) / 16.0D)));
-            this.chunkY2 = Math.max(this.chunkY2, (MathHelper.floor((y2 + 2.0D) / 16.0D))) + 1;
+            this.chunkY2 = Math.max(this.chunkY2, (MathHelper.floor((y2 + 2.0D) / 16.0D)));
             this.chunkZ1 = Math.min(this.chunkZ1, (MathHelper.floor((z1 - 2.0D) / 16.0D)));
-            this.chunkZ2 = Math.max(this.chunkZ2, (MathHelper.ceil((z2 + 2.0D) / 16.0D)));
+            this.chunkZ2 = Math.max(this.chunkZ2, (MathHelper.floor((z2 + 2.0D) / 16.0D)));
         }
 
         this.boxBits = 1;
@@ -198,12 +198,12 @@ public class NearbyHopperItemsTracker extends NearbyEntityTrackerBox<ItemEntity>
         }
         long totalIndex = 0;
         long boxIndex = this.getBoxIndex(entity);
-        long subChunkIndex = this.getSubchunkIndex(entity);
         if (boxIndex <= -1) {
             totalIndex |= 0x8000000000000000L; //set MSB because entity is not inside area
         } else {
             totalIndex |= boxIndex << (63 - this.boxBits);
         }
+        long subChunkIndex = this.getSubchunkIndex(entity);
         totalIndex |= subChunkIndex << (63 - this.boxBits - 3 * this.chunkXZYBits);
         totalIndex |= this.entityChangedSubchunkCounter;
         this.entityChangedSubchunkCounter++;
@@ -312,10 +312,13 @@ public class NearbyHopperItemsTracker extends NearbyEntityTrackerBox<ItemEntity>
             index |= b << (2 * this.chunkXZYBits);                         //stored in highest bits
             b = (this.chunkZ2 - MathHelper.floor(entity.getZ()) >> 4);     //high for low chunkZ index
             index |= b << (this.chunkXZYBits);                             //stored in the next bits
-            b = (this.chunkY2 - MathHelper.floor(entity.getY()) >> 4);     //high for low chunkY index
+            b = (this.chunkY2 - MathHelper.clamp(MathHelper.floor(entity.getY()) >> 4, 0, 15)); //high for low chunkY index
             index |= b;                                                    //stored in the lowest bits
+            b = b;
         }
-        assert index >= 0 && index < (1 << 3 * this.chunkXZYBits);
+        if (index < 0)
+            throw new AssertionError();
+        assert index < (1 << 3 * this.chunkXZYBits);
 
         return index;
     }

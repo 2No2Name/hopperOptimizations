@@ -18,7 +18,7 @@ public class DoubleInventoryOptimizer extends InventoryOptimizer {
     private final InventoryOptimizer secondOpt;
 
     public DoubleInventoryOptimizer(OptimizedInventory first, OptimizedInventory second) {
-        super(null, null);
+        super();
         this.first = first;
         this.second = second;
         this.firstOpt = first.getOptimizer();
@@ -70,9 +70,9 @@ public class DoubleInventoryOptimizer extends InventoryOptimizer {
     }
 
     @Override
-    public boolean hasFreeSlots_insertable() {
+    public boolean hasFreeSlots_insertable_ignoreSidedInventory() {
         ensureInitialized();
-        return firstOpt.hasFreeSlots_insertable() || secondOpt.hasFreeSlots_insertable();
+        return firstOpt.hasFreeSlots_insertable_ignoreSidedInventory() || secondOpt.hasFreeSlots_insertable_ignoreSidedInventory();
     }
 
     @Override
@@ -87,18 +87,18 @@ public class DoubleInventoryOptimizer extends InventoryOptimizer {
         return ret;
     }
 
-    @Override
-    public int getFirstFreeSlot() {
-        ensureInitialized();
-
-        int ret = firstOpt.getFirstFreeSlot();
-        if (ret == -1) {
-            ret = secondOpt.getFirstFreeSlot();
-            if (ret != -1)
-                ret += first.getInvSize();
-        }
-        return ret;
-    }
+//    @Override
+//    public int getFirstFreeSlot() {
+//        ensureInitialized();
+//
+//        int ret = firstOpt.getFirstFreeSlot();
+//        if (ret == -1) {
+//            ret = secondOpt.getFirstFreeSlot();
+//            if (ret != -1)
+//                ret += first.getInvSize();
+//        }
+//        return ret;
+//    }
 
     @Override
     public boolean isFull_insertable(Direction fromDirection) {
@@ -198,9 +198,9 @@ public class DoubleInventoryOptimizer extends InventoryOptimizer {
 
     @Override
     public int getMinExtractableItemStackSize(InventoryOptimizer pulledFrom) {
-        if (firstOpt == pulledFrom && !firstOpt.isInvEmpty_Extractable())
+        if (firstOpt == pulledFrom && !firstOpt.isEmpty())
             return firstOpt.getMinExtractableItemStackSize(pulledFrom);
-        if (secondOpt == pulledFrom && !secondOpt.isInvEmpty_Extractable())
+        if (secondOpt == pulledFrom && !secondOpt.isEmpty())
             return secondOpt.getMinExtractableItemStackSize(pulledFrom);
 
         if (Settings.debugOptimizedInventories)
@@ -243,7 +243,7 @@ public class DoubleInventoryOptimizer extends InventoryOptimizer {
     }
 
     @Override
-    boolean isInvEmpty_Extractable() {
-        return firstOpt.isInvEmpty_Extractable() && secondOpt.isInvEmpty_Extractable();
+    public boolean isEmpty() {
+        return firstOpt.isEmpty() && secondOpt.isEmpty();
     }
 }

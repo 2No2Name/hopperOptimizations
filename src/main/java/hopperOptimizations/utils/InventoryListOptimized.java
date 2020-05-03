@@ -35,6 +35,9 @@ public class InventoryListOptimized extends DefaultedList<ItemStack> {
 
     public InventoryOptimizer getCreateOrRemoveOptimizer(Inventory inventory) {
         if (this.optimizer == null) {
+            if (inventory.getInvSize() > InventoryOptimizer.MAX_INV_SIZE) {
+                return null;
+            }
             this.optimizer = new InventoryOptimizer(this, inventory);
         }
         if (this.optimizer.isInvalid()) {
@@ -59,7 +62,7 @@ public class InventoryListOptimized extends DefaultedList<ItemStack> {
         ItemStack prevStack = super.set(slotIndex, newStack);
         if (Settings.optimizedInventories) {
             InventoryOptimizer opt = this.getOrRemoveOptimizer();
-            if (opt != null) opt.update(slotIndex, prevStack);
+            if (opt != null) opt.onStackChanged(slotIndex, prevStack, 0);
         } else invalidateOptimizer();
         return prevStack;
     }

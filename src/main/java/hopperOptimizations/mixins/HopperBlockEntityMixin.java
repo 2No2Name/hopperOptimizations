@@ -190,7 +190,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
                         return;
                     }
 
-                    if (toOpt.hasFreeSlots_insertable()) {
+                    if (toOpt.hasFreeSlots_insertable_ignoreSidedInventory()) {
                         //When the hopper has any empty slot, just get the first item from the source
                         //fromSlot (= firstOccupiedSlot) already set
 
@@ -382,7 +382,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
 
         if (Settings.optimizedInventories && inventory instanceof OptimizedInventory) {
             InventoryOptimizer opt = ((OptimizedInventory) inventory).getOptimizer();
-            if (opt != null) return opt.getOccupiedSlots() == 0;
+            if (opt != null) return opt.isEmpty();
         }
 
         //vanilla call
