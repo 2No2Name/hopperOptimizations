@@ -40,7 +40,6 @@ public class NearbyHopperItemsTracker extends NearbyEntityTrackerBox<ItemEntity>
     //Wrap our iterator in a list object, so we can return it in a mixin to the hopper.
     //The object is only used in an for(ItemEntity e : list) call, so we only need the iterator.
     //Other mods that want to use the list differently than vanilla might be surprised and will lead to a crash
-    private final IteratorWrapperList<ItemEntity> iteratorWrapperList = new IteratorWrapperList<>();
     private int boxBits;
     private int chunkXZYBits;
     private long entitySubchunkCounterMaxValue;
@@ -74,23 +73,10 @@ public class NearbyHopperItemsTracker extends NearbyEntityTrackerBox<ItemEntity>
     }
 
     public Iterator<ItemEntity> getItemEntityIterator() {
-//        if (this.nonFittingItemTypeFilterActive && this.withinAreaNotFittingItemType != null) {
-//            if(this.withinAreaObjectToKey.size() <= this.withinAreaNotFittingItemType.size()){
-//                return null;
-//            }
-//
-//            return Iterators.filter(this.withinAreaSorted.values().iterator(),
-//                    (ItemEntity o) -> !this.withinAreaNotFittingItemType.contains(o));
-//        } else {
         if (this.withinSubchunksObjectToKey == null || this.withinSubchunksObjectToKey.isEmpty()) {
             return EMPTY_LIST.iterator();
         }
-//            if (--this.nonFittingItemTypeFilterCooldown < 0 ) {
-//                this.nonFittingItemTypeFilterActive = true;
-//            }
-
         return this.withinAreaSorted.values().iterator();
-//        }
     }
 
     private void init(BlockPos hopperPos) {
