@@ -209,19 +209,19 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
                         //Assume that all hopper slots are allowed to be filled by the hopper pulling items
                         //(Hopper is not SidedInventory, incompatible with mods that change this)
                         //Make sure that the minimal possible fromSlot is chosen (vanilla behavior)
-                        int firstFromSlot = -1;
-                        int correspondingToSlot = -1;
+                        int firstFromSlot = Integer.MAX_VALUE;
+                        int correspondingToSlot = 0; //init with 0 to prevent "might not have been initialized" error
                         for (int toSlot = 0; toSlot < to.getInvSize(); toSlot++) {
                             ItemStack stack = to.getInvStack(toSlot);
                             if (stack.getMaxCount() > stack.getCount()) {
                                 int fromSlot = fromOpt.indexOf_extractable_endIndex(stack, firstFromSlot);
-                                if (fromSlot == -1 || (fromSlot >= firstFromSlot && firstFromSlot != -1)) continue;
-                                //Lower fromSlot found, remember corresponding slot
-                                firstFromSlot = fromSlot;
-                                correspondingToSlot = toSlot;
+                                if (fromSlot != -1 && (fromSlot < firstFromSlot)) {//Lower fromSlot found, remember corresponding slot
+                                    firstFromSlot = fromSlot;
+                                    correspondingToSlot = toSlot;
+                                }
                             }
                         }
-                        if (firstFromSlot != -1) {
+                        if (firstFromSlot != Integer.MAX_VALUE) {
                             HopperHelper.transferOneItem_knownSuccessful(to, correspondingToSlot, from, firstFromSlot);
                             from.markDirty();
                             cir.setReturnValue(true);

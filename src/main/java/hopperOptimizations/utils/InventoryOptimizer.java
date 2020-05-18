@@ -434,7 +434,7 @@ public class InventoryOptimizer {
      */
     public int indexOf_extractable_endIndex(ItemStack stack, int maxExclusive) {
         this.ensureInitialized();
-        if (maxExclusive == -1 || maxExclusive > this.totalSlots) maxExclusive = this.totalSlots;
+        if (maxExclusive > this.totalSlots) maxExclusive = this.totalSlots;
         if (stack.isEmpty()) {
             assert false;
             return -1;
