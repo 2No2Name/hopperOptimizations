@@ -58,11 +58,11 @@ public class DoubleInventoryOptimizer extends InventoryOptimizer {
     }
 
     @Override
-    public int indexOf_extractable_endIndex(ItemStack stack, int stop) {
+    public int indexOf_extractable_endIndex(ItemStack stack, int maxExclusive) {
         ensureInitialized();
-        int ret = firstOpt.indexOf_extractable_endIndex(stack, stop);
+        int ret = firstOpt.indexOf_extractable_endIndex(stack, maxExclusive);
         if (ret == -1) {
-            ret = secondOpt.indexOf_extractable_endIndex(stack, stop);
+            ret = secondOpt.indexOf_extractable_endIndex(stack, maxExclusive);
             if (ret != -1)
                 ret += first.getInvSize();
         }

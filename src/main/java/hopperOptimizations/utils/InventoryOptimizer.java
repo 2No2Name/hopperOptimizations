@@ -2,7 +2,7 @@ package hopperOptimizations.utils;
 
 import carpet.CarpetServer;
 import hopperOptimizations.settings.Settings;
-import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
+import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
 import net.minecraft.block.entity.ShulkerBoxBlockEntity;
 import net.minecraft.inventory.Inventory;
 import net.minecraft.inventory.SidedInventory;
@@ -29,7 +29,7 @@ public class InventoryOptimizer {
 
     //Slot mask format: one bit for each slot, 1 if slot has this item, 0 if slot doesn't have the item
     //upper bits unused if inventory smaller than 32 slots
-    private final Object2IntOpenHashMap<Item> itemToSlotMask;
+    private final Reference2IntOpenHashMap<Item> itemToSlotMask;
     //one bit for each slot, 1 if slot is completely full, 0 if slot is not completely full
     private final int slotMask;
     private int slotFullMask;
@@ -57,7 +57,7 @@ public class InventoryOptimizer {
 
     public InventoryOptimizer(InventoryListOptimized stackList, Inventory inventory) {
         this.stackList = stackList;
-        this.itemToSlotMask = new Object2IntOpenHashMap<>();
+        this.itemToSlotMask = new Reference2IntOpenHashMap<>();
         this.slotMask = (1 << stackList.size()) - 1;
         this.sidedInventory = inventory instanceof SidedInventory ? (SidedInventory) inventory : null;
 
@@ -108,7 +108,6 @@ public class InventoryOptimizer {
         if (!initialized || this.optimizedInventoryRuleChangeCounter != OptimizedInventoriesRule.ruleUpdates) return;
         try {
             int occupiedSlots = 0;
-            int fullSlots = 0;
             int firstFreeSlot = this.totalSlots;
             int firstOccupiedSlot = this.totalSlots;
             int totalSlots = size();
@@ -125,7 +124,7 @@ public class InventoryOptimizer {
                     if (firstOccupiedSlot >= this.totalSlots)
                         firstOccupiedSlot = i;
                     occupiedSlots++;
-                    if (stack.getCount() >= stack.getMaxCount()) fullSlots++;
+                    if (stack.getCount() >= stack.getMaxCount()) ;
 
                 } else if (firstFreeSlot >= this.totalSlots) {
                     firstFreeSlot = i;
@@ -433,9 +432,9 @@ public class InventoryOptimizer {
      * @param stack to find a matching item for
      * @return index of the matching item, -1 if none found.
      */
-    public int indexOf_extractable_endIndex(ItemStack stack, int stop) {
+    public int indexOf_extractable_endIndex(ItemStack stack, int maxExclusive) {
         this.ensureInitialized();
-        if (stop == -1 || stop > this.totalSlots) stop = this.totalSlots;
+        if (maxExclusive == -1 || maxExclusive > this.totalSlots) maxExclusive = this.totalSlots;
         if (stack.isEmpty()) {
             assert false;
             return -1;
@@ -446,7 +445,7 @@ public class InventoryOptimizer {
         int slotIndex = firstIndex;
         slotMask = slotMask >>> firstIndex;
 
-        while (slotMask != 0 && slotIndex < stop) {
+        while (slotMask != 0 && slotIndex < maxExclusive) {
             assert ((slotMask & 1) == 1);
             if (areItemsAndTagsEqual(getSlot(slotIndex), stack) && (this.sidedInventory == null ||
                     this.sidedInventory.canExtractInvStack(slotIndex, getSlot(slotIndex), Direction.DOWN))) {
