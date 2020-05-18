@@ -609,7 +609,7 @@ public class InventoryOptimizer {
     //Does not support unstackable items!
     public int indexOf_extractable_endIndex(ItemStack stack, int stop) {
         this.ensureInitialized();
-        if (stop == -1 || stop > this.totalSlots) stop = this.totalSlots;
+        if (stop > this.totalSlots) stop = this.totalSlots;
         if (stack.isEmpty()) return -1;
         if (!maybeContains(stack)) return -1;
         for (int i = firstOccupiedSlot; i < stop; i++) {
