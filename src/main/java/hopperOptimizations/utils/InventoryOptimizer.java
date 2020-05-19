@@ -341,7 +341,7 @@ public class InventoryOptimizer {
 
         this.stackSizeToSlotCount.clear();
         this.itemToSlotMask.clear();
-        this.slotOccupiedMask = this.slotMask;
+        this.slotOccupiedMask = 0;
         this.slotFullMask = 0;
         this.weightedItemCount = 0;
 

@@ -1,6 +1,5 @@
 package hopperOptimizations.mixins;
 
-import carpet.CarpetServer;
 import hopperOptimizations.annotation.Feature;
 import hopperOptimizations.settings.Settings;
 import hopperOptimizations.utils.*;
@@ -277,7 +276,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
             } catch (IllegalStateException e) {
                 ((HopperBlockEntityMixin) hopper).invalidateEntityHopperInteractionCache();
                 Text text = new LiteralText("Detected wrong entity hopper interaction ( " + e.getMessage() + ")!");
-                CarpetServer.minecraft_server.getPlayerManager().broadcastChatMessage(text, false);
+                //CarpetServer.minecraft_server.getPlayerManager().broadcastChatMessage(text, false);
                 e.printStackTrace();
             }
         } else {

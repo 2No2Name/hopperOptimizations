@@ -1,7 +1,6 @@
 package hopperOptimizations.settings;
 
 import carpet.settings.Rule;
-import hopperOptimizations.workarounds.EntityHopperInteraction;
 
 import static carpet.settings.RuleCategory.FEATURE;
 import static carpet.settings.RuleCategory.OPTIMIZATION;
@@ -13,9 +12,9 @@ import static carpet.settings.RuleCategory.OPTIMIZATION;
 public class Settings {
 
     @Rule(desc = "Simplified hopper box shape when picking up items. This box contains the ring around the hopper's bowl.",
-            category = {OPTIMIZATION, FEATURE, "hopperoptimizations"}, validate = EntityHopperInteraction.class)
+            category = {OPTIMIZATION, FEATURE, "hopperoptimizations"})
     //Using the EntityHopperInteraction counter to invalidate entity caches on pickup box change.
-    public static boolean simplifiedHopperPickupShape = false;
+    public static boolean simplifiedHopperPickupShape = false; //todo invalidate a lot of things when changed
 
     //@Rule(desc = "Reworked interaction between hoppers and entities. Entities look for hoppers instead of hoppers searching for entities.",
     //        category = {OPTIMIZATION, EXPERIMENTAL, "hopperoptimizations"}, validate = EntityHopperInteraction.class)

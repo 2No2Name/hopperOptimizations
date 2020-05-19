@@ -98,7 +98,7 @@ public class NearbyHopperItemsTracker extends NearbyEntityTrackerBox<ItemEntity>
         int chunkDy = this.chunkY2 - this.chunkY1;
         int chunkDz = this.chunkZ2 - this.chunkZ1;
 
-        this.chunkXZYBits = 32 - Integer.numberOfLeadingZeros(Math.max(chunkDx, Math.max(chunkDy, chunkDz)) - 1);
+        this.chunkXZYBits = 32 - Integer.numberOfLeadingZeros(Math.max(chunkDx, Math.max(chunkDy, chunkDz)));
         this.numSubchunks = (chunkDx + 1) * (chunkDy + 1) * (chunkDz + 1);
 
 

@@ -21,4 +21,10 @@ public class WorldChunkMixin {
         if (this.loadedToWorld) //don't do anything if this chunk is not ticked yet. Neighboring hoppers don't have caches yet anyway. //deadlock without this line on world load!
             EntityHopperInteraction.notifyHoppersOfNewOrTeleportedEntity(entity);
     }
+
+    @Inject(method = "remove(Lnet/minecraft/entity/Entity;I)V", at = @At(value = "RETURN"))
+    private void notifyHoppersOfRemovedEntity(Entity entity, int i, CallbackInfo ci) {
+//        if (this.loadedToWorld) //don't do anything if this chunk is not ticked yet. Neighboring hoppers don't have caches yet anyway. //deadlock without this line on world load!
+//            EntityHopperInteraction.notifyHoppersOfNewOrTeleportedEntity(entity);
+    }
 }

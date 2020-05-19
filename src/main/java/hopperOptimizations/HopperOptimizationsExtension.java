@@ -14,12 +14,13 @@ import hopperOptimizations.settings.Settings;
  */
 public class HopperOptimizationsExtension implements CarpetExtension {
     private static final SettingsManager mySettingManager;
+    private static boolean isManagedByCarpet;
 
     static {
         String myVersion = "0.1.18";
-
         mySettingManager = new SettingsManager(myVersion, "hopperoptimizations", "Hopper Optimizations Mod");
         CarpetServer.manageExtension(new HopperOptimizationsExtension());
+        System.out.println("hopper optimizations registered into /carpet");
     }
 
     public static void noop() {

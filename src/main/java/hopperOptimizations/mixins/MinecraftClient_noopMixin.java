@@ -15,6 +15,11 @@ public class MinecraftClient_noopMixin {
     // This one is for the client
     @Inject(method = "<init>", at = @At("RETURN"))
     private void loadMe(CallbackInfo ci) {
+        try {
+            Class.forName("carpet.CarpetExtension");
+        } catch (ClassNotFoundException e) {
+            return;
+        }
         HopperOptimizationsExtension.noop();
     }
 }

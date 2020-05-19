@@ -1,7 +1,5 @@
 package hopperOptimizations.workarounds;
 
-import carpet.settings.ParsedRule;
-import carpet.settings.Validator;
 import hopperOptimizations.annotation.Feature;
 import hopperOptimizations.settings.Settings;
 import hopperOptimizations.utils.IHopper;
@@ -20,7 +18,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Feature("optimizedEntityHopperInteraction")
-public class EntityHopperInteraction extends Validator<Boolean> {
+public class EntityHopperInteraction {
 
     public static final List<BlockPos> hopperLocationsToNotify = new ArrayList<>();
     //used to track when the rule was changed, incrementing makes all cached optimization states invalid
@@ -77,8 +75,7 @@ public class EntityHopperInteraction extends Validator<Boolean> {
         notifyHoppers(targetEntity);
     }
 
-    @Override
-    public Boolean validate(ServerCommandSource source, ParsedRule<Boolean> rule, Boolean newValue, String previous) {
+    public Boolean validate(ServerCommandSource source, Object rule, Boolean newValue, String previous) {
         if (ruleUpdates != -1)
             ++ruleUpdates;
         return newValue;

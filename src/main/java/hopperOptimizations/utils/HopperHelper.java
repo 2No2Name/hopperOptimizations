@@ -1,6 +1,5 @@
 package hopperOptimizations.utils;
 
-import carpet.CarpetServer;
 import hopperOptimizations.settings.Settings;
 import hopperOptimizations.utils.entitycache.NearbyHopperInventoriesTracker;
 import hopperOptimizations.workarounds.BlockEntityInterface;
@@ -252,7 +251,7 @@ public abstract class HopperHelper {
             }
         } catch (IllegalStateException e) {
             Text text = new LiteralText("Detected wrong entity hopper interaction ( " + e.getMessage() + ")!");
-            CarpetServer.minecraft_server.getPlayerManager().broadcastChatMessage(text, false);
+//            CarpetServer.minecraft_server.getPlayerManager().broadcastChatMessage(text, false);
             e.printStackTrace();
         }
     }
