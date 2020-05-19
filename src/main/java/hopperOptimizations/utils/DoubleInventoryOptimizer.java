@@ -26,8 +26,8 @@ public class DoubleInventoryOptimizer extends InventoryOptimizer {
     }
 
     @Override
-    public boolean isInvalid() {
-        return super.isInvalid() || firstOpt == null || firstOpt.isInvalid() || secondOpt == null || secondOpt.isInvalid();
+    public boolean isRemoved() {
+        return firstOpt == null || firstOpt.isRemoved() || secondOpt == null || secondOpt.isRemoved();
     }
 
     Inventory getFirstInventory() {
@@ -59,7 +59,6 @@ public class DoubleInventoryOptimizer extends InventoryOptimizer {
 
     @Override
     public int indexOf_extractable_endIndex(ItemStack stack, int maxExclusive) {
-        ensureInitialized();
         int ret = firstOpt.indexOf_extractable_endIndex(stack, maxExclusive);
         if (ret == -1 && first.getInvSize() < maxExclusive) {
             ret = secondOpt.indexOf_extractable_endIndex(stack, maxExclusive - first.getInvSize());
@@ -71,13 +70,11 @@ public class DoubleInventoryOptimizer extends InventoryOptimizer {
 
     @Override
     public boolean hasFreeSlots_insertable_ignoreSidedInventory() {
-        ensureInitialized();
         return firstOpt.hasFreeSlots_insertable_ignoreSidedInventory() || secondOpt.hasFreeSlots_insertable_ignoreSidedInventory();
     }
 
     @Override
     public int findInsertSlot(ItemStack stack, Direction fromDirection, Inventory thisInventory) {
-        ensureInitialized();
         int ret = firstOpt.findInsertSlot(stack, fromDirection, first);
         if (ret < 0) {
             ret = Math.max(ret, secondOpt.findInsertSlot(stack, fromDirection, second));
@@ -87,29 +84,10 @@ public class DoubleInventoryOptimizer extends InventoryOptimizer {
         return ret;
     }
 
-//    @Override
-//    public int getFirstFreeSlot() {
-//        ensureInitialized();
-//
-//        int ret = firstOpt.getFirstFreeSlot();
-//        if (ret == -1) {
-//            ret = secondOpt.getFirstFreeSlot();
-//            if (ret != -1)
-//                ret += first.getInvSize();
-//        }
-//        return ret;
-//    }
-
     @Override
     public boolean isFull_insertable(Direction fromDirection) {
-        ensureInitialized();
 
         return firstOpt.isFull_insertable(fromDirection) && secondOpt.isFull_insertable(fromDirection);
-    }
-
-    @Override
-    public boolean isInitialized() {
-        return firstOpt.isInitialized() && secondOpt.isInitialized();
     }
 
     @Override
@@ -127,19 +105,11 @@ public class DoubleInventoryOptimizer extends InventoryOptimizer {
 
     @Override
     public int getOccupiedSlots() {
-        ensureInitialized();
         return firstOpt.getOccupiedSlots() + secondOpt.getOccupiedSlots();
     }
 
-//    @Override
-//    public int getItemTypeChanges() {
-//        ensureInitialized();
-//        return firstOpt.getItemTypeChanges() + secondOpt.getItemTypeChanges();
-//    }
-
     @Override
     public int getFirstOccupiedSlot_extractable() {
-        ensureInitialized();
         int ret = firstOpt.getFirstOccupiedSlot_extractable();
         if (ret == -1) {
             ret = secondOpt.getFirstOccupiedSlot_extractable();
@@ -149,33 +119,18 @@ public class DoubleInventoryOptimizer extends InventoryOptimizer {
         return ret;
     }
 
-    /*public boolean equals(Object other) {
-        return other == this;
-        //if(!(other instanceof DoubleInventoryOptimizer)) return false;
-        //return this.first == ((DoubleInventoryOptimizer) other).first && this.second == ((DoubleInventoryOptimizer) other).second;
-    }*/
-
     @Override
     public int getInventoryChangeCount() {
-        ensureInitialized();
         return firstOpt.getInventoryChangeCount() + secondOpt.getInventoryChangeCount();
     }
 
     @Override
-    void ensureInitialized() {
-        firstOpt.ensureInitialized();
-        secondOpt.ensureInitialized();
-    }
-
-    @Override
     int getWeightedItemCount() {
-        ensureInitialized();
         return firstOpt.getWeightedItemCount() + secondOpt.getWeightedItemCount();
     }
 
     @Override
     int getTotalSlots() {
-        ensureInitialized();
         return firstOpt.getTotalSlots() + secondOpt.getTotalSlots();
     }
 
@@ -186,7 +141,6 @@ public class DoubleInventoryOptimizer extends InventoryOptimizer {
      */
     @Override
     public int indexOfObject(ItemStack stack) {
-        ensureInitialized();
         int ret = firstOpt.indexOfObject(stack);
         if (ret == -1) {
             ret = secondOpt.indexOfObject(stack);
@@ -209,13 +163,6 @@ public class DoubleInventoryOptimizer extends InventoryOptimizer {
             return 64;
     }
 
-    public void setInvalid() {
-        super.setInvalid();
-        firstOpt.setInvalid();
-        secondOpt.setInvalid();
-    }
-
-
     //store state of take signal strength in first opt, as the double inventory optimizer should be stateless
     @Override
     public boolean hasFakeSignalStrength() {
@@ -230,7 +177,6 @@ public class DoubleInventoryOptimizer extends InventoryOptimizer {
     //Used to trick comparators into sending block updates like in vanilla.
     @Override
     void setFakeReducedSignalStrength() {
-        this.ensureInitialized();
         if (Settings.debugOptimizedInventories && this.hasFakeSignalStrength())
             throw new IllegalStateException("Already using fake signal strength");
 

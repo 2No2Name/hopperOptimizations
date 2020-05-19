@@ -152,7 +152,6 @@ public abstract class HopperHelper {
             fromStack.decrement(1);
         }
 
-        if (!Settings.optimizedInventories) return;
         //Notify optimizers of change, if neccessary
         if (!replacedFromStack) {
             InventoryOptimizer opt = from instanceof OptimizedInventory ? ((OptimizedInventory) from).getOptimizer(false) : null;

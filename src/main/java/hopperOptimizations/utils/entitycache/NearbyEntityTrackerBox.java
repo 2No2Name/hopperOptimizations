@@ -179,7 +179,8 @@ public class NearbyEntityTrackerBox<T> implements ExactPositionListener {
         if (this.box.intersects(entity.getBoundingBox())) {
             withinBox.add((T) entity);
         } else if (!withinBox.isEmpty()) {
-            withinBox.remove(entity);
+            //noinspection RedundantCast
+            withinBox.remove((T) entity);
         }
     }
 

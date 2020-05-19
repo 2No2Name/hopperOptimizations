@@ -1,7 +1,6 @@
 package hopperOptimizations.mixins;
 
 import hopperOptimizations.annotation.Feature;
-import hopperOptimizations.settings.Settings;
 import hopperOptimizations.utils.InventoryListOptimized;
 import hopperOptimizations.utils.InventoryOptimizer;
 import hopperOptimizations.utils.OptimizedInventory;
@@ -51,13 +50,9 @@ public abstract class ShulkerBoxBlockEntityMixin extends LootableContainerBlockE
 
     @Nullable
     public InventoryOptimizer getOptimizer(boolean create) {
-        return (((ShulkerBoxBlockEntity) (Object) this).getClass() == ShulkerBoxBlockEntity.class) && Settings.optimizedInventories && this.world != null && !this.world.isClient && this.inventory instanceof InventoryListOptimized ? ((InventoryListOptimized) inventory).getCreateOrRemoveOptimizer(this, create) : null;
+        return (((ShulkerBoxBlockEntity) (Object) this).getClass() == ShulkerBoxBlockEntity.class) && this.world != null && !this.world.isClient && this.inventory instanceof InventoryListOptimized ? ((InventoryListOptimized) inventory).getCreateOrRemoveOptimizer(this, create) : null;
     }
 
-    @Override
-    public void invalidateOptimizer() {
-        if (inventory instanceof InventoryListOptimized) ((InventoryListOptimized) inventory).invalidateOptimizer();
-    }
     /*
     @Inject(method = "onInvOpen(Lnet/minecraft/entity/player/PlayerEntity;)V", at = @At(value = "HEAD"))
     private void onInvOpened(PlayerEntity playerEntity_1, CallbackInfo ci) {

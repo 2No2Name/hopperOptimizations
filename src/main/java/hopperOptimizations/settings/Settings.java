@@ -11,13 +11,6 @@ import static carpet.settings.RuleCategory.OPTIMIZATION;
  */
 @SuppressWarnings("CanBeFinal")
 public class Settings {
-    /**
-     * Simple boolean Settings
-     */
-    //@Rule(desc = "Optimized Inventory accesses - bloomfilters, cached BlockEntities and improved item transfers",
-    //        category = {OPTIMIZATION, "hopperoptimizations"}, validate = OptimizedInventoriesRule.class)
-    //@Deprecated
-    public static final boolean optimizedInventories = true;
 
     @Rule(desc = "Simplified hopper box shape when picking up items. This box contains the ring around the hopper's bowl.",
             category = {OPTIMIZATION, FEATURE, "hopperoptimizations"}, validate = EntityHopperInteraction.class)

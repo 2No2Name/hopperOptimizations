@@ -11,6 +11,7 @@ import java.util.ListIterator;
  *
  * @author 2No2Name
  */
+@SuppressWarnings("NullableProblems")
 public class IteratorWrapperList<T> implements List<T> {
 
     private Iterator<T> wrappedIterator;

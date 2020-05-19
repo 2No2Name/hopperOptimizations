@@ -1,7 +1,6 @@
 package hopperOptimizations.mixins;
 
 
-import hopperOptimizations.settings.Settings;
 import hopperOptimizations.utils.InventoryListOptimized;
 import hopperOptimizations.utils.InventoryOptimizer;
 import hopperOptimizations.utils.OptimizedInventory;
@@ -55,12 +54,7 @@ public abstract class StorageMinecartEntityMixin extends AbstractMinecartEntity 
 
     @Nullable
     public InventoryOptimizer getOptimizer(boolean create) {
-        return !(this instanceof SidedInventory) && Settings.optimizedInventories && this.world != null && !this.world.isClient && inventory instanceof InventoryListOptimized ? ((InventoryListOptimized) inventory).getCreateOrRemoveOptimizer(this, create) : null;
-    }
-
-    @Override
-    public void invalidateOptimizer() {
-        if (inventory instanceof InventoryListOptimized) ((InventoryListOptimized) inventory).invalidateOptimizer();
+        return !(this instanceof SidedInventory) && this.world != null && !this.world.isClient && inventory instanceof InventoryListOptimized ? ((InventoryListOptimized) inventory).getCreateOrRemoveOptimizer(this, create) : null;
     }
 
     /*

@@ -1,7 +1,6 @@
 package hopperOptimizations.mixins;
 
 import hopperOptimizations.annotation.Feature;
-import hopperOptimizations.settings.Settings;
 import hopperOptimizations.utils.DoubleInventoryOptimizer;
 import hopperOptimizations.utils.InventoryOptimizer;
 import hopperOptimizations.utils.OptimizedInventory;
@@ -39,10 +38,6 @@ public abstract class DoubleInventoryMixin implements OptimizedInventory {
 
     @Inject(method = "<init>(Lnet/minecraft/inventory/Inventory;Lnet/minecraft/inventory/Inventory;)V", at = @At(value = "RETURN"))
     private void initValidityCheck(Inventory inventory_1, Inventory inventory_2, CallbackInfo ci) {
-        if (!Settings.optimizedInventories) {
-            invalid = true;
-            return;
-        }
         if (inventory_1 == inventory_2) {
             invalid = true;
             return;
@@ -61,11 +56,6 @@ public abstract class DoubleInventoryMixin implements OptimizedInventory {
     @Override
     @Nullable
     public InventoryOptimizer getOptimizer(boolean create) {
-        if (!Settings.optimizedInventories) {
-            this.invalidateOptimizer();
-            return this.optimizer;
-        }
-
         if (this.optimizer == null) {
             if (!create || (this instanceof SidedInventory) ||
                     !(this.first instanceof OptimizedInventory) || !(this.second instanceof OptimizedInventory) ||
@@ -73,29 +63,9 @@ public abstract class DoubleInventoryMixin implements OptimizedInventory {
                 return null;
             }
             this.optimizer = new DoubleInventoryOptimizer((OptimizedInventory) first, (OptimizedInventory) second);
-        } else if (this.optimizer.isInvalid()) {
-            this.invalidateOptimizer();
         }
         return this.optimizer;
     }
-
-    @Override
-    public void invalidateOptimizer() {
-        if (this.first == null) {
-            System.out.println("Double Inventory with empty first half!");
-        } else if (this.first instanceof OptimizedInventory) {
-            ((OptimizedInventory) this.first).invalidateOptimizer();
-        }
-        if (this.second == null) {
-            System.out.println("Double Inventory with empty second half!");
-        } else if (this.second instanceof OptimizedInventory) {
-            ((OptimizedInventory) this.second).invalidateOptimizer();
-        }
-        if (this.optimizer != null)
-            this.optimizer.setInvalid();
-        this.optimizer = null;
-    }
-
 
     //Allows caching the inventory safely
     public boolean isStillValid() {

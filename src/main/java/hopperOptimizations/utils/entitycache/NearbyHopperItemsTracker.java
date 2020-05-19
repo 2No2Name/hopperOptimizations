@@ -300,7 +300,6 @@ public class NearbyHopperItemsTracker extends NearbyEntityTrackerBox<ItemEntity>
             index |= b << (this.chunkXZYBits);                             //stored in the next bits
             b = (this.chunkY2 - MathHelper.clamp(MathHelper.floor(entity.getY()) >> 4, 0, 15)); //high for low chunkY index
             index |= b;                                                    //stored in the lowest bits
-            b = b;
         }
         if (index < 0)
             throw new AssertionError();

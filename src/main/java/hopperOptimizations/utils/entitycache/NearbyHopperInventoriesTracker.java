@@ -41,6 +41,7 @@ public class NearbyHopperInventoriesTracker extends NearbyEntityTrackerBox<Inven
 
     public List<Entity> getAllForDebug() {
         if (this.withinBox2 != null) {
+            //noinspection unchecked
             return (ArrayList<Entity>) (this.withinBox2.clone());
         }
         return new ArrayList<>(0);
@@ -53,7 +54,6 @@ public class NearbyHopperInventoriesTracker extends NearbyEntityTrackerBox<Inven
         return null;
     }
 
-    @SuppressWarnings("unchecked")
     @Override
     public void onEntityEnteredTrackedSubchunk(Entity entity) {
         if (!(entity instanceof Inventory) || this.withinBox1.containsKey(entity)) {

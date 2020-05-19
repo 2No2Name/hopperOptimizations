@@ -13,7 +13,6 @@ import net.minecraft.text.LiteralText;
 import net.minecraft.text.Text;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.MathHelper;
-import org.apache.commons.lang3.NotImplementedException;
 
 import javax.annotation.Nullable;
 import java.util.Arrays;
@@ -47,14 +46,6 @@ public class InventoryOptimizer {
     private int weightedItemCount;
     //lower signal strength override for a short moment to make comparators send updates at their outputs
     private int fakeSignalStrength;
-    //whether all the variables above are initialized
-    @Deprecated
-    private boolean initialized;
-    //whether this optimizer shall no longer be used
-    @Deprecated
-    private boolean invalid;
-    //counter to detect that the optimizedInventory rule changed - for invalidating cached data
-    private int optimizedInventoryRuleChangeCounter;
 
     public InventoryOptimizer(InventoryListOptimized stackList, Inventory inventory) {
         this.stackList = stackList;
@@ -68,15 +59,13 @@ public class InventoryOptimizer {
             //Shulkerbox restrictions are slot independent.
             //Slot dependent restrictions aren't checked atm, since there is no large inventory that has those.
             //OptimizedInventory doesn't seem viable for small inventories. - maybe add a version without complex datastructures for those
-            throw new NotImplementedException("Implement OptimizedInventory with more complex item insert conditions before using those.");
+            throw new UnsupportedOperationException("Implement OptimizedInventory with more complex item insert conditions before using those.");
         }
 
-        this.optimizedInventoryRuleChangeCounter = OptimizedInventoriesRule.ruleUpdates;
-        this.invalid = false;
         this.fakeSignalStrength = -1;
         this.inventoryChanges = 0;
+        this.recalculate();
 
-        this.ensureInitialized();
     }
 
     public InventoryOptimizer() {
@@ -105,25 +94,9 @@ public class InventoryOptimizer {
         return !this.stackList.optimizerIs(this);
     }
 
-    @Deprecated
-    public void setInvalid() {
-        this.invalid = true;
-    }
-
-    @Deprecated
-    public boolean isInvalid() {
-        return this.invalid;
-    }
-
-    @Deprecated
-    public boolean isInitialized() {
-        return this.initialized;
-    }
-
     private void consistencyCheck() {
         assert !(this instanceof DoubleInventoryOptimizer);
         //this is code from recalculate, but instead of changing anything, we just check if the results are conflicting
-        if (!initialized || this.optimizedInventoryRuleChangeCounter != OptimizedInventoriesRule.ruleUpdates) return;
         try {
             int occupiedSlots = 0;
             int firstFreeSlot = this.totalSlots;
@@ -156,7 +129,7 @@ public class InventoryOptimizer {
                 throw new IllegalStateException("stacksize slot counts wrong");
 
         } catch (IllegalStateException e) {
-            initialized = false;
+            this.remove();
             Text text = new LiteralText("Detected broken optimizer ( " + e.getMessage() + ") at " + Arrays.toString(e.getStackTrace()));
             CarpetServer.minecraft_server.getPlayerManager().broadcastChatMessage(text, false);
         }
@@ -179,9 +152,6 @@ public class InventoryOptimizer {
     }
 
     public void onItemStackCountChanged(int index, int countChange) {
-        if (!this.initialized || this.optimizedInventoryRuleChangeCounter != OptimizedInventoriesRule.ruleUpdates) {
-            return;
-        }
         if (index >= totalSlots) {
             if (Settings.debugOptimizedInventories) {
                 System.out.println("Detected too large index in InventoryOptimizer.onItemStackCountChanged");
@@ -204,12 +174,10 @@ public class InventoryOptimizer {
     }
 
     public boolean isEmpty() {
-        this.ensureInitialized();
         return this.slotOccupiedMask == 0;
     }
 
     public int getOccupiedSlots() {
-        this.ensureInitialized();
         return Integer.bitCount(this.slotOccupiedMask);
     }
 
@@ -219,7 +187,6 @@ public class InventoryOptimizer {
      * @return index of the first occupied slot a hopper can take from, -1 if none
      */
     public int getFirstOccupiedSlot_extractable() {
-        this.ensureInitialized();
         if (this.slotOccupiedMask == 0) return -1;
         return Integer.numberOfTrailingZeros(this.slotOccupiedMask);
     }
@@ -235,7 +202,6 @@ public class InventoryOptimizer {
      */
     void onStackChanged(int slot, @Nullable ItemStack prevStack, int countChange) {
         assert !(this instanceof DoubleInventoryOptimizer);
-        if (!initialized || this.optimizedInventoryRuleChangeCounter != OptimizedInventoriesRule.ruleUpdates) return;
 
         ItemStack newStack = stackList.get(slot);
         if (prevStack == newStack) return;
@@ -309,17 +275,11 @@ public class InventoryOptimizer {
 
     //does not need override in DoubleInventoryOptimizer
     public int getSignalStrength() {
-        this.ensureInitialized();
 
         if (hasFakeSignalStrength()) {
             return getFakeSignalStrength();
         }
         return (int) ((this.getWeightedItemCount() / ((float) this.getTotalSlots() * 64)) * 14) + (this.isEmpty() ? 0 : 1);
-    }
-
-    void ensureInitialized() {
-        if (!initialized || this.optimizedInventoryRuleChangeCounter != OptimizedInventoriesRule.ruleUpdates)
-            recalculate();
     }
 
     int getWeightedItemCount() {
@@ -333,14 +293,12 @@ public class InventoryOptimizer {
     //Used to trick comparators into sending block updates like in vanilla.
     void setFakeReducedSignalStrength() {
         assert !(this instanceof DoubleInventoryOptimizer);
-        this.ensureInitialized();
         this.fakeSignalStrength = this.getSignalStrength() - 1;
         if (fakeSignalStrength == -1) fakeSignalStrength = 0;
     }
 
     void setFakeReducedSignalStrength(int i) {
         assert !(this instanceof DoubleInventoryOptimizer);
-        this.ensureInitialized();
         this.fakeSignalStrength = i;
     }
 
@@ -406,12 +364,9 @@ public class InventoryOptimizer {
             }
         }
 
-        this.initialized = true;
-        this.optimizedInventoryRuleChangeCounter = OptimizedInventoriesRule.ruleUpdates;
     }
 
     public boolean isFull_insertable(Direction fromDirection) {
-        this.ensureInitialized();
         return this.slotFullMask + 1 == 1 << this.totalSlots;
     }
 
@@ -426,7 +381,6 @@ public class InventoryOptimizer {
      */
     public int indexOfObject(ItemStack stack) {
         assert !(this instanceof DoubleInventoryOptimizer);
-        this.ensureInitialized();
 
         for (int i = 0; i < this.totalSlots; i++) {
             if (stack == this.stackList.get(i))
@@ -444,7 +398,6 @@ public class InventoryOptimizer {
      * @return index of the matching item, -1 if none found.
      */
     public int indexOf_extractable_endIndex(ItemStack stack, int maxExclusive) {
-        this.ensureInitialized();
         if (maxExclusive > this.totalSlots) maxExclusive = this.totalSlots;
         if (stack.isEmpty()) {
             assert false;
@@ -471,7 +424,6 @@ public class InventoryOptimizer {
     }
 
     public boolean hasFreeSlots_insertable_ignoreSidedInventory() {
-        this.ensureInitialized();
         return this.slotOccupiedMask != this.slotMask;
     }
 
@@ -482,7 +434,6 @@ public class InventoryOptimizer {
      * @return first slot the stack can be transferred to, -1 if none found, -2 if inventory is filled with different item types only
      */
     public int findInsertSlot(ItemStack stack, Direction fromDirection, Inventory thisInventory) {
-        this.ensureInitialized();
 
         int slotMask = this.itemToSlotMask.getOrDefault(stack.getItem(), 0);
         slotMask = slotMask & ~this.slotFullMask;

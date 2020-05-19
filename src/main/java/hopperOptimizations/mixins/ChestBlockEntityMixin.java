@@ -1,7 +1,6 @@
 package hopperOptimizations.mixins;
 
 import hopperOptimizations.annotation.Feature;
-import hopperOptimizations.settings.Settings;
 import hopperOptimizations.utils.InventoryListOptimized;
 import hopperOptimizations.utils.InventoryOptimizer;
 import hopperOptimizations.utils.OptimizedInventory;
@@ -51,11 +50,7 @@ public abstract class ChestBlockEntityMixin extends LootableContainerBlockEntity
 
     @Nullable
     public InventoryOptimizer getOptimizer(boolean create) {
-        return !(this instanceof SidedInventory) && Settings.optimizedInventories && this.world != null && !this.world.isClient && this.inventory instanceof InventoryListOptimized ? ((InventoryListOptimized) inventory).getCreateOrRemoveOptimizer(this, create) : null;
+        return !(this instanceof SidedInventory) && this.world != null && !this.world.isClient && this.inventory instanceof InventoryListOptimized ? ((InventoryListOptimized) inventory).getCreateOrRemoveOptimizer(this, create) : null;
     }
 
-    @Override
-    public void invalidateOptimizer() {
-        if (inventory instanceof InventoryListOptimized) ((InventoryListOptimized) inventory).invalidateOptimizer();
-    }
 }

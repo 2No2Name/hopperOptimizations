@@ -1,6 +1,5 @@
 package hopperOptimizations.mixins;
 
-import hopperOptimizations.settings.Settings;
 import hopperOptimizations.utils.InventoryListOptimized;
 import hopperOptimizations.utils.InventoryOptimizer;
 import net.minecraft.inventory.Inventories;
@@ -16,7 +15,7 @@ import java.util.List;
 public class InventoriesMixin {
     @Inject(method = "splitStack(Ljava/util/List;II)Lnet/minecraft/item/ItemStack;", at = @At(value = "INVOKE", target = "Lnet/minecraft/item/ItemStack;split(I)Lnet/minecraft/item/ItemStack;", shift = At.Shift.AFTER))
     private static void notifyOptimizedInventoryAboutChangedItemStack(List<ItemStack> list_1, int int_1, int int_2, CallbackInfoReturnable<ItemStack> cir) {
-        if (Settings.optimizedInventories && list_1 instanceof InventoryListOptimized) {
+        if (list_1 instanceof InventoryListOptimized) {
             InventoryOptimizer opt = ((InventoryListOptimized) list_1).getCreateOrRemoveOptimizer(null, false);
             if (opt != null) {
                 opt.onItemStackCountChanged(int_1, -int_2);

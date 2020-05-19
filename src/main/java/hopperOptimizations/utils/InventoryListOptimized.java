@@ -40,25 +40,13 @@ public class InventoryListOptimized extends DefaultedList<ItemStack> {
             }
             this.optimizer = new InventoryOptimizer(this, inventory);
         }
-        if (this.optimizer.isInvalid()) {
-            this.optimizer = null;
-        }
         return this.optimizer;
-    }
-
-    @Deprecated
-    public void invalidateOptimizer() {
-        if (this.optimizer != null)
-            this.optimizer.setInvalid();
-        this.optimizer = null;
     }
 
     public ItemStack set(int slotIndex, ItemStack newStack) {
         ItemStack prevStack = super.set(slotIndex, newStack);
-        if (Settings.optimizedInventories) {
-            InventoryOptimizer opt = this.getCreateOrRemoveOptimizer(null, false);
-            if (opt != null) opt.onStackChanged(slotIndex, prevStack, 0);
-        } else invalidateOptimizer();
+        InventoryOptimizer opt = this.getCreateOrRemoveOptimizer(null, false);
+        if (opt != null) opt.onStackChanged(slotIndex, prevStack, 0);
         return prevStack;
     }
 
@@ -75,21 +63,21 @@ public class InventoryListOptimized extends DefaultedList<ItemStack> {
     */
 
     public void add(int int_1, ItemStack object_1) {
-        if (Settings.debugOptimizedInventories && Settings.optimizedInventories)
+        if (Settings.debugOptimizedInventories)
             throw new UnsupportedOperationException("Won't resize optimized inventory!");
         else
             super.add(int_1, object_1);
     }
 
     public ItemStack remove(int int_1) {
-        if (Settings.debugOptimizedInventories && Settings.optimizedInventories)
+        if (Settings.debugOptimizedInventories)
             throw new UnsupportedOperationException("Won't resize optimized inventory!");
         else
             return super.remove(int_1);
     }
 
     public void clear() {
-        this.invalidateOptimizer();
+        this.optimizer = null;
         super.clear();
     }
 
@@ -99,7 +87,7 @@ public class InventoryListOptimized extends DefaultedList<ItemStack> {
 
     @Override
     public int size() {
-        if (sizeOverride >= 0 && Settings.optimizedInventories)
+        if (sizeOverride >= 0)
             return sizeOverride;
         return super.size();
     }
