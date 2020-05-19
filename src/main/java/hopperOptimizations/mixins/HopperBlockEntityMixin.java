@@ -134,7 +134,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
     @Inject(method = "transfer(Lnet/minecraft/inventory/Inventory;Lnet/minecraft/inventory/Inventory;Lnet/minecraft/item/ItemStack;Lnet/minecraft/util/math/Direction;)Lnet/minecraft/item/ItemStack;", at = @At("HEAD"), cancellable = true)
     private static void optimizedTransfer(Inventory from, Inventory to, ItemStack stack, Direction fromDirection, CallbackInfoReturnable<ItemStack> cir) {
         if (Settings.optimizedInventories && to instanceof OptimizedInventory) {
-            InventoryOptimizer toOpt = ((OptimizedInventory) to).getOptimizer();
+            InventoryOptimizer toOpt = ((OptimizedInventory) to).getOptimizer(true);
             if (toOpt == null) return;
             while (!stack.isEmpty()) {
                 int toSlot = toOpt.findInsertSlot(stack, fromDirection, to);
@@ -158,7 +158,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
     private static void optimizeExtract(Hopper to, CallbackInfoReturnable<Boolean> cir, Inventory from) {
         if (Settings.optimizedInventories) {
             InventoryOptimizer toOpt, fromOpt;
-            if (to instanceof OptimizedInventory && (toOpt = ((OptimizedInventory) to).getOptimizer()) != null) {
+            if (to instanceof OptimizedInventory && (toOpt = ((OptimizedInventory) to).getOptimizer(true)) != null) {
                 boolean isFull = toOpt.isFull_insertable(null);
                 if (isFull) { //full hoppers cannot extract more
                     if (to instanceof HopperMinecartEntity) {
@@ -166,11 +166,11 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
                             if (!(from instanceof OptimizedInventory)) {
                                 return; //vanilla fallback, should never happen
                             }
-                            InventoryOptimizer opt = ((OptimizedInventory) from).getOptimizer();
+                            InventoryOptimizer opt = ((OptimizedInventory) from).getOptimizer(true);
                             if (opt == null) {
                                 return; //vanilla fallback
                             }
-                            HopperHelper.markDirtyLikeHopperWould(from, ((OptimizedInventory) from).getOptimizer(), null);
+                            HopperHelper.markDirtyLikeHopperWould(from, opt, null);
                         }
                     } else {
                         System.out.println("Hopper is full even though it wasn't");
@@ -178,7 +178,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
                     cir.setReturnValue(false);
                     return;
                 }
-                if (from instanceof OptimizedInventory && (fromOpt = ((OptimizedInventory) from).getOptimizer()) != null) {
+                if (from instanceof OptimizedInventory && (fromOpt = ((OptimizedInventory) from).getOptimizer(true)) != null) {
                     if (to instanceof IHopper && ((IHopper) to).tryShortcutFailedExtract(toOpt, from, fromOpt)) {
                         cir.setReturnValue(false);
                         return;
@@ -381,7 +381,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
             return false; //return anything, value unused
 
         if (Settings.optimizedInventories && inventory instanceof OptimizedInventory) {
-            InventoryOptimizer opt = ((OptimizedInventory) inventory).getOptimizer();
+            InventoryOptimizer opt = ((OptimizedInventory) inventory).getOptimizer(true);
             if (opt != null) return opt.isEmpty();
         }
 
@@ -400,7 +400,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
     @Inject(method = "transfer(Lnet/minecraft/inventory/Inventory;Lnet/minecraft/inventory/Inventory;Lnet/minecraft/item/ItemStack;ILnet/minecraft/util/math/Direction;)Lnet/minecraft/item/ItemStack;", at = @At(value = "INVOKE", target = "Lnet/minecraft/item/ItemStack;increment(I)V", shift = At.Shift.AFTER), locals = LocalCapture.CAPTURE_FAILHARD)
     private static void notifyOptimizedInventoryAboutChangedItemStack(Inventory inventory_1, Inventory destination, ItemStack itemStack_1, int index, Direction direction_1, CallbackInfoReturnable<ItemStack> cir, ItemStack itemStack_2, boolean boolean_1, boolean boolean_2, int int_2, int countChanged) {
         if (!Settings.optimizedInventories) return;
-        InventoryOptimizer opt = destination instanceof OptimizedInventory ? ((OptimizedInventory) destination).getOptimizer() : null;
+        InventoryOptimizer opt = destination instanceof OptimizedInventory ? ((OptimizedInventory) destination).getOptimizer(false) : null;
         if (opt != null)
             opt.onItemStackCountChanged(index, countChanged);
     }
@@ -415,7 +415,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
     @Inject(require = 0, method = "isInventoryEmpty", at = @At(value = "HEAD"), cancellable = true)
     private static void isInventoryEmptyOpt(Inventory inventory, Direction direction, CallbackInfoReturnable<Boolean> cir) {
         if (Settings.optimizedInventories && inventory instanceof OptimizedInventory && direction == Direction.DOWN) {
-            InventoryOptimizer opt = ((OptimizedInventory) inventory).getOptimizer();
+            InventoryOptimizer opt = ((OptimizedInventory) inventory).getOptimizer(true);
             if (opt != null) cir.setReturnValue(opt.getFirstOccupiedSlot_extractable() == -1);
         }
     }
@@ -453,7 +453,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
         this.invalidateEntityCacheIfNecessary();
 
         //get the optimizer of this hopper
-        final InventoryOptimizer opt = this.getOptimizer();
+        final InventoryOptimizer opt = this.getOptimizer(true);
         if (opt == null) {
             return null; //fallback to vanilla
         }
@@ -542,7 +542,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
         prevInsertInventory = null;
         previousExtract = null;
         cachedExtractInventory = null;
-        this.invalidateOptimizer();
+        //this.invalidateOptimizer(); //todo why is this necessary, probably isn't.
     }
 
     /**
@@ -629,7 +629,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
         this.cachedExtractInventoryAfterLastBlockUpdate = true;
 
         if (other instanceof OptimizedInventory) {
-            this.previousExtract = ((OptimizedInventory) other).getOptimizer();
+            this.previousExtract = ((OptimizedInventory) other).getOptimizer(true);
             this.prevExtractChangeCount = this.previousExtract == null ? 0 : this.previousExtract.getInventoryChangeCount() - 1;
         } else {
             this.previousExtract = null;
@@ -652,7 +652,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
         this.cachedInsertInventoryAfterLastBlockUpdate = true;
 
         if (other instanceof OptimizedInventory) {
-            this.prevInsert = ((OptimizedInventory) other).getOptimizer();
+            this.prevInsert = ((OptimizedInventory) other).getOptimizer(true);
             this.prevInsertChangeCount = this.prevInsert == null ? 0 : this.prevInsert.getInventoryChangeCount() - 1;
         } else {
             this.prevInsert = null;
@@ -693,7 +693,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
     @Redirect(require = 0, allow = 1, method = "insertAndExtract", at = @At(value = "INVOKE", target = "Lnet/minecraft/block/entity/HopperBlockEntity;isInvEmpty()Z"))
     private boolean isEmptyOpt(HopperBlockEntity hopperBlockEntity) {
         if (Settings.optimizedInventories) {
-            InventoryOptimizer opt = this.getOptimizer();
+            InventoryOptimizer opt = this.getOptimizer(true);
             if (opt != null) return opt.getFirstOccupiedSlot_extractable() == -1;
         }
         return isInvEmpty();
@@ -703,7 +703,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
     @Redirect(require = 0, allow = 1, method = "insertAndExtract", at = @At(value = "INVOKE", target = "Lnet/minecraft/block/entity/HopperBlockEntity;isFull()Z"))
     private boolean isFullOpt(HopperBlockEntity hopperBlockEntity) {
         if (Settings.optimizedInventories) {
-            InventoryOptimizer opt = this.getOptimizer();
+            InventoryOptimizer opt = this.getOptimizer(true);
             if (opt != null) return opt.isFull_insertable(null);
         }
         return isFull();
@@ -719,7 +719,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
     @Inject(method = "isInventoryFull", at = @At(value = "HEAD"), cancellable = true)
     private void isInventoryFullOpt(Inventory inventory_1, Direction direction_1, CallbackInfoReturnable<Boolean> cir) {
         if (Settings.optimizedInventories && inventory_1 instanceof OptimizedInventory) {
-            InventoryOptimizer opt = ((OptimizedInventory) inventory_1).getOptimizer();
+            InventoryOptimizer opt = ((OptimizedInventory) inventory_1).getOptimizer(true);
             if (opt != null) cir.setReturnValue(opt.isFull_insertable(direction_1));
         }
     }
@@ -729,8 +729,8 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
     private void optimizeInsert(CallbackInfoReturnable<Boolean> cir, Inventory to, Direction insertFromDirection) {
         if (Settings.optimizedInventories) {
             InventoryOptimizer toOpt, fromOpt;
-            if (to instanceof OptimizedInventory && (toOpt = ((OptimizedInventory) to).getOptimizer()) != null) {
-                fromOpt = ((OptimizedInventory) this).getOptimizer();
+            if (to instanceof OptimizedInventory && (toOpt = ((OptimizedInventory) to).getOptimizer(true)) != null) {
+                fromOpt = ((OptimizedInventory) this).getOptimizer(true);
                 if (fromOpt != null && ((IHopper) this).tryShortcutFailedInsert(fromOpt, toOpt)) {
                     cir.setReturnValue(false);
                     return;
@@ -792,8 +792,8 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
 
     @Override
     @Nullable
-    public InventoryOptimizer getOptimizer() {
-        return !(this instanceof SidedInventory) && Settings.optimizedInventories && this.world != null && !this.world.isClient && inventory instanceof InventoryListOptimized ? ((InventoryListOptimized) inventory).getCreateOrRemoveOptimizer(this) : null;
+    public InventoryOptimizer getOptimizer(boolean create) {
+        return !(this instanceof SidedInventory) && Settings.optimizedInventories && this.world != null && !this.world.isClient && this.inventory instanceof InventoryListOptimized ? ((InventoryListOptimized) inventory).getCreateOrRemoveOptimizer(this, create) : null;
     }
 
     @Override

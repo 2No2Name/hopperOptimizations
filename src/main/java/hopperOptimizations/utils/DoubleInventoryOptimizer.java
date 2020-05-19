@@ -21,8 +21,8 @@ public class DoubleInventoryOptimizer extends InventoryOptimizer {
         super();
         this.first = first;
         this.second = second;
-        this.firstOpt = first.getOptimizer();
-        this.secondOpt = second.getOptimizer();
+        this.firstOpt = first.getOptimizer(true);
+        this.secondOpt = second.getOptimizer(true);
     }
 
     @Override

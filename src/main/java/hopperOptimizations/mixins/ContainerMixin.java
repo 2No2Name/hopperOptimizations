@@ -31,7 +31,7 @@ public abstract class ContainerMixin {
     @Inject(method = "calculateComparatorOutput(Lnet/minecraft/inventory/Inventory;)I", at = @At(value = "HEAD"), cancellable = true)
     private static void getFastOutputStrength(Inventory inventory_1, CallbackInfoReturnable<Integer> cir) {
         if (Settings.optimizedInventories && inventory_1 instanceof OptimizedInventory) {
-            InventoryOptimizer opt = ((OptimizedInventory) inventory_1).getOptimizer();
+            InventoryOptimizer opt = ((OptimizedInventory) inventory_1).getOptimizer(true);
             if (opt != null)
                 cir.setReturnValue(opt.getSignalStrength());
         }
@@ -74,7 +74,7 @@ public abstract class ContainerMixin {
             if (slotId >= inventory.getInvSize()) return; //SlotIds count higher into the player inventory
 
             expectInInventory = inventory != slot.inventory;
-            InventoryOptimizer opt = ((OptimizedInventory) inventory).getOptimizer();
+            InventoryOptimizer opt = ((OptimizedInventory) inventory).getOptimizer(false);
             if (opt != null && opt.isInitialized() && (expectInInventory || Settings.debugOptimizedInventories)) {
                 if (Settings.debugOptimizedInventories) {
                     int index = opt.indexOfObject(stack);
@@ -104,7 +104,7 @@ public abstract class ContainerMixin {
     private void notifyInventoryB(ItemStack stack, int startIndex, int endIndex, boolean fromLast, CallbackInfoReturnable<Boolean> cir, boolean bl, int i, Slot slot, ItemStack itemStack, int j, ItemStack var10, int var11) {
         Inventory inventory;
         if (Settings.optimizedInventories && (inventory = slot.inventory) instanceof OptimizedInventory) {
-            InventoryOptimizer opt = ((OptimizedInventory) inventory).getOptimizer();
+            InventoryOptimizer opt = ((OptimizedInventory) inventory).getOptimizer(false);
             if (opt != null && opt.isInitialized()) {
                 assert (curStack == itemStack);
                 int index = opt.indexOfObject(curStack);
@@ -131,7 +131,7 @@ public abstract class ContainerMixin {
     private void notifyInventoryC(ItemStack stack, int startIndex, int endIndex, boolean fromLast, CallbackInfoReturnable<Boolean> cir, boolean bl, int i, Slot slot, ItemStack itemStack, ItemStack var10, int var11) {
         Inventory inventory;
         if (Settings.optimizedInventories && (inventory = slot.inventory) instanceof OptimizedInventory) {
-            InventoryOptimizer opt = ((OptimizedInventory) inventory).getOptimizer();
+            InventoryOptimizer opt = ((OptimizedInventory) inventory).getOptimizer(false);
             if (opt != null && opt.isInitialized()) {
                 assert (curStack == itemStack);
                 int index = opt.indexOfObject(curStack);
@@ -159,7 +159,7 @@ public abstract class ContainerMixin {
         if (Settings.optimizedInventories && (inventory = this.slots.get(slotId).inventory) instanceof OptimizedInventory) {
             if (slotId >= inventory.getInvSize()) return; //SlotIds count higher into the player inventory
             expectInInventory = inventory != slot.inventory;
-            InventoryOptimizer opt = ((OptimizedInventory) inventory).getOptimizer();
+            InventoryOptimizer opt = ((OptimizedInventory) inventory).getOptimizer(false);
             if (opt != null && opt.isInitialized() && (expectInInventory || Settings.debugOptimizedInventories)) {
                 if (Settings.debugOptimizedInventories) {
                     int index = opt.indexOfObject(stack);
@@ -190,7 +190,7 @@ public abstract class ContainerMixin {
         ItemStack ret = itemStack.split(count);
         if (Settings.optimizedInventories && tmpInventory instanceof OptimizedInventory) {
             if (slotId >= tmpInventory.getInvSize()) return ret; //SlotIds count higher into the player inventory
-            InventoryOptimizer opt = ((OptimizedInventory) tmpInventory).getOptimizer();
+            InventoryOptimizer opt = ((OptimizedInventory) tmpInventory).getOptimizer(false);
             if (opt != null && opt.isInitialized() && (expectInInventory || Settings.debugOptimizedInventories)) {
                 if (Settings.debugOptimizedInventories) {
                     int index = opt.indexOfObject(itemStack);
@@ -216,7 +216,7 @@ public abstract class ContainerMixin {
         Inventory inventory;
         if (Settings.optimizedInventories && (inventory = this.slots.get(slotId).inventory) instanceof OptimizedInventory) {
             if (slotId >= inventory.getInvSize()) return; //SlotIds count higher into the player inventory
-            InventoryOptimizer opt = ((OptimizedInventory) inventory).getOptimizer();
+            InventoryOptimizer opt = ((OptimizedInventory) inventory).getOptimizer(false);
             if (opt != null) {
                 opt.onItemStackCountChanged(slotId, p);
             }

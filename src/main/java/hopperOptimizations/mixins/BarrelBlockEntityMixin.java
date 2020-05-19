@@ -50,8 +50,13 @@ public abstract class BarrelBlockEntityMixin extends LootableContainerBlockEntit
 
 
     @Nullable
-    public InventoryOptimizer getOptimizer() {
-        return !(this instanceof SidedInventory) && Settings.optimizedInventories && this.world != null && !this.world.isClient && inventory instanceof InventoryListOptimized ? ((InventoryListOptimized) inventory).getCreateOrRemoveOptimizer(this) : null;
+    public InventoryOptimizer getOptimizer(boolean create) {
+        return !(this instanceof SidedInventory) && Settings.optimizedInventories && this.world != null && !this.world.isClient && this.inventory instanceof InventoryListOptimized ? ((InventoryListOptimized) inventory).getCreateOrRemoveOptimizer(this, create) : null;
+    }
+
+    @Override
+    public boolean mayHaveOptimizer() {
+        return OptimizedInventory.super.mayHaveOptimizer() && this.inventory instanceof InventoryListOptimized;
     }
 
     @Override

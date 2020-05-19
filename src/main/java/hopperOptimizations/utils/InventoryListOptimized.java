@@ -33,9 +33,9 @@ public class InventoryListOptimized extends DefaultedList<ItemStack> {
         return new InventoryListOptimized(Arrays.asList(objects_1), object_1);
     }
 
-    public InventoryOptimizer getCreateOrRemoveOptimizer(Inventory inventory) {
+    public InventoryOptimizer getCreateOrRemoveOptimizer(Inventory inventory, boolean create) {
         if (this.optimizer == null) {
-            if (inventory.getInvSize() > InventoryOptimizer.MAX_INV_SIZE) {
+            if (!create || inventory.getInvSize() > InventoryOptimizer.MAX_INV_SIZE) {
                 return null;
             }
             this.optimizer = new InventoryOptimizer(this, inventory);
@@ -46,12 +46,7 @@ public class InventoryListOptimized extends DefaultedList<ItemStack> {
         return this.optimizer;
     }
 
-    public InventoryOptimizer getOrRemoveOptimizer() {
-        if (!Settings.optimizedInventories || this.optimizer == null || this.optimizer.isInvalid())
-            return this.optimizer = null;
-        return optimizer;
-    }
-
+    @Deprecated
     public void invalidateOptimizer() {
         if (this.optimizer != null)
             this.optimizer.setInvalid();
@@ -61,7 +56,7 @@ public class InventoryListOptimized extends DefaultedList<ItemStack> {
     public ItemStack set(int slotIndex, ItemStack newStack) {
         ItemStack prevStack = super.set(slotIndex, newStack);
         if (Settings.optimizedInventories) {
-            InventoryOptimizer opt = this.getOrRemoveOptimizer();
+            InventoryOptimizer opt = this.getCreateOrRemoveOptimizer(null, false);
             if (opt != null) opt.onStackChanged(slotIndex, prevStack, 0);
         } else invalidateOptimizer();
         return prevStack;
@@ -107,5 +102,14 @@ public class InventoryListOptimized extends DefaultedList<ItemStack> {
         if (sizeOverride >= 0 && Settings.optimizedInventories)
             return sizeOverride;
         return super.size();
+    }
+
+    public void removeOptimizer(InventoryOptimizer inventoryOptimizer) {
+        if (inventoryOptimizer == this.optimizer)
+            this.optimizer = null;
+    }
+
+    public boolean optimizerIs(InventoryOptimizer inventoryOptimizer) {
+        return this.optimizer == inventoryOptimizer;
     }
 }

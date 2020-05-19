@@ -51,8 +51,8 @@ public abstract class DispenserBlockEntityMixin extends LootableContainerBlockEn
     }
 
     @Nullable
-    public InventoryOptimizer getOptimizer() {
-        return !(this instanceof SidedInventory) && Settings.optimizedInventories && this.world != null && !this.world.isClient && this.inventory instanceof InventoryListOptimized ? ((InventoryListOptimized) this.inventory).getCreateOrRemoveOptimizer(this) : null;
+    public InventoryOptimizer getOptimizer(boolean create) {
+        return !(this instanceof SidedInventory) && Settings.optimizedInventories && this.world != null && !this.world.isClient && this.inventory instanceof InventoryListOptimized ? ((InventoryListOptimized) this.inventory).getCreateOrRemoveOptimizer(this, create) : null;
     }
 
     @Override

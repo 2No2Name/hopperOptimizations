@@ -13,11 +13,18 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+import javax.annotation.Nullable;
+
 @Feature("optimizedEntityHopperInteraction")
 @Mixin(Entity.class)
 public class EntityMixin {
     @Shadow
     public World world;
+
+    @Nullable
+    public World getWorld() {
+        return world;
+    }
 
     @Inject(method = "move(Lnet/minecraft/entity/MovementType;Lnet/minecraft/util/math/Vec3d;)V", at = @At(value = "HEAD"))
     private void rememberNearbyHoppers(MovementType type, Vec3d movement, CallbackInfo ci) {

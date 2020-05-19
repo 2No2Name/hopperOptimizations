@@ -29,37 +29,40 @@ public class InventoryOptimizer {
 
     //Slot mask format: one bit for each slot, 1 if slot has this item, 0 if slot doesn't have the item
     //upper bits unused if inventory smaller than 32 slots
+    //not useful for renamed items of the same type
     private final Reference2IntOpenHashMap<Item> itemToSlotMask;
     //one bit for each slot, 1 if slot is completely full, 0 if slot is not completely full
     private final int slotMask;
     private int slotFullMask;
-    private int slotEmptyMask;
+    //number of inventory slots are occupied with stacks of a given size: e.g. 64->6, 16->1, 1->3
+    private final Map<Integer, Integer> stackSizeToSlotCount;
 
     private final SidedInventory sidedInventory; //only use when required, inventory handling should be mostly independent from the container
-    //number of inventory slots are occupied with stacks of a given size: e.g. 64->6, 16->1, 1->3
-    private final Map<Integer, Integer> stackSizeToSlotCount = new HashMap<>();
-
     //number of slots
-    private int totalSlots;
+    private final int totalSlots;
+    private int slotOccupiedMask;
     //number of changes to the inventory contents - useful for realizing inventory hasn't changed
     private int inventoryChanges;
     //item count for comparators, items with <64 max stack size already weighted higher
     private int weightedItemCount;
     //lower signal strength override for a short moment to make comparators send updates at their outputs
     private int fakeSignalStrength;
-
     //whether all the variables above are initialized
+    @Deprecated
     private boolean initialized;
     //whether this optimizer shall no longer be used
+    @Deprecated
     private boolean invalid;
     //counter to detect that the optimizedInventory rule changed - for invalidating cached data
     private int optimizedInventoryRuleChangeCounter;
 
     public InventoryOptimizer(InventoryListOptimized stackList, Inventory inventory) {
         this.stackList = stackList;
+        this.stackSizeToSlotCount = new HashMap<>();
         this.itemToSlotMask = new Reference2IntOpenHashMap<>();
         this.slotMask = (1 << stackList.size()) - 1;
         this.sidedInventory = inventory instanceof SidedInventory ? (SidedInventory) inventory : null;
+        this.totalSlots = size();
 
         if (Settings.debugOptimizedInventories && this.sidedInventory != null && !(this.sidedInventory instanceof ShulkerBoxBlockEntity)) {
             //Shulkerbox restrictions are slot independent.
@@ -68,12 +71,12 @@ public class InventoryOptimizer {
             throw new NotImplementedException("Implement OptimizedInventory with more complex item insert conditions before using those.");
         }
 
-        this.initialized = false;
         this.optimizedInventoryRuleChangeCounter = OptimizedInventoriesRule.ruleUpdates;
-
         this.invalid = false;
         this.fakeSignalStrength = -1;
         this.inventoryChanges = 0;
+
+        this.ensureInitialized();
     }
 
     public InventoryOptimizer() {
@@ -82,6 +85,8 @@ public class InventoryOptimizer {
         this.itemToSlotMask = null;
         this.slotMask = 0;
         this.sidedInventory = null;
+        this.stackSizeToSlotCount = null;
+        this.totalSlots = 0;
     }
 
 
@@ -90,14 +95,27 @@ public class InventoryOptimizer {
         return ItemStack.areTagsEqual(a, b);
     }
 
+    //todo overwrite in DoubleInventoryOptimizer
+    public void remove() {
+        this.stackList.removeOptimizer(this);
+    }
+
+    //todo overwrite in DoubleInventoryOptimizer
+    public boolean isRemoved() {
+        return !this.stackList.optimizerIs(this);
+    }
+
+    @Deprecated
     public void setInvalid() {
         this.invalid = true;
     }
 
+    @Deprecated
     public boolean isInvalid() {
         return this.invalid;
     }
 
+    @Deprecated
     public boolean isInitialized() {
         return this.initialized;
     }
@@ -149,19 +167,21 @@ public class InventoryOptimizer {
         int int_1 = 0;
         float float_1 = 0.0F;
 
-        for (ItemStack itemStack_1 : stackList) {
+        for (ItemStack itemStack_1 : this.stackList) {
             if (!itemStack_1.isEmpty()) {
                 float_1 += (float) itemStack_1.getCount() / (float) Math.min(64, itemStack_1.getMaxCount());
                 ++int_1;
             }
         }
 
-        float_1 /= (float) stackList.size();
+        float_1 /= (float) this.stackList.size();
         return MathHelper.floor(float_1 * 14.0F) + (int_1 > 0 ? 1 : 0);
     }
 
     public void onItemStackCountChanged(int index, int countChange) {
-        if (!initialized || this.optimizedInventoryRuleChangeCounter != OptimizedInventoriesRule.ruleUpdates) return;
+        if (!this.initialized || this.optimizedInventoryRuleChangeCounter != OptimizedInventoriesRule.ruleUpdates) {
+            return;
+        }
         if (index >= totalSlots) {
             if (Settings.debugOptimizedInventories) {
                 System.out.println("Detected too large index in InventoryOptimizer.onItemStackCountChanged");
@@ -185,12 +205,12 @@ public class InventoryOptimizer {
 
     public boolean isEmpty() {
         this.ensureInitialized();
-        return this.slotEmptyMask == this.slotMask;
+        return this.slotOccupiedMask == 0;
     }
 
     public int getOccupiedSlots() {
         this.ensureInitialized();
-        return Integer.bitCount(this.slotMask & ~this.slotEmptyMask);
+        return Integer.bitCount(this.slotOccupiedMask);
     }
 
     /**
@@ -200,9 +220,8 @@ public class InventoryOptimizer {
      */
     public int getFirstOccupiedSlot_extractable() {
         this.ensureInitialized();
-        int firstOccupied = Integer.numberOfTrailingZeros(~this.slotEmptyMask);
-        if (firstOccupied >= this.totalSlots) firstOccupied = -1;
-        return firstOccupied;
+        if (this.slotOccupiedMask == 0) return -1;
+        return Integer.numberOfTrailingZeros(this.slotOccupiedMask);
     }
 
 
@@ -271,10 +290,9 @@ public class InventoryOptimizer {
             if (newC >= newMaxC) {
                 this.slotFullMask |= 1 << slot;
             }
-
-            this.slotEmptyMask &= ~(1 << slot);
+            this.slotOccupiedMask |= 1 << slot;
         } else {
-            this.slotEmptyMask |= 1 << slot;
+            this.slotOccupiedMask &= ~(1 << slot);
         }
         this.weightedItemCount -= prevC * (int) (64F / prevMaxC) - newC * (int) (64F / newMaxC);
 
@@ -339,7 +357,7 @@ public class InventoryOptimizer {
         int minExtractableItemStackSize = 2147483647;
 
         int stackSize;
-        for (Map.Entry<Integer, Integer> entry : stackSizeToSlotCount.entrySet()) {
+        for (Map.Entry<Integer, Integer> entry : this.stackSizeToSlotCount.entrySet()) {
             if (entry.getValue() > 0 && (stackSize = entry.getKey()) < minExtractableItemStackSize)
                 minExtractableItemStackSize = stackSize;
         }
@@ -363,34 +381,27 @@ public class InventoryOptimizer {
     private void recalculate() {
         assert !(this instanceof DoubleInventoryOptimizer);
 
-        this.totalSlots = size();
         this.stackSizeToSlotCount.clear();
         this.itemToSlotMask.clear();
-        this.slotEmptyMask = 0;
+        this.slotOccupiedMask = this.slotMask;
         this.slotFullMask = 0;
-        int firstFreeSlot = Integer.MAX_VALUE;
-        int firstOccupiedSlot = Integer.MAX_VALUE;
         this.weightedItemCount = 0;
 
-        for (int i = 0; i < totalSlots; i++) {
-            ItemStack stack = getSlot(i);
-            if (stack.isEmpty()) {
-                this.slotEmptyMask |= 1 << i;
-                if (firstFreeSlot == Integer.MAX_VALUE) firstFreeSlot = i;
-            } else {
+        for (int slot = 0; slot < totalSlots; slot++) {
+            ItemStack stack = getSlot(slot);
+            if (!stack.isEmpty()) {
+                this.slotOccupiedMask |= 1 << slot;
                 Item item = stack.getItem();
                 int slotMask = this.itemToSlotMask.getOrDefault(item, 0);
-                slotMask |= (1 << i);
+                slotMask |= (1 << slot);
                 this.itemToSlotMask.put(item, slotMask);
 
-                this.weightedItemCount += stack.getCount() * (int) (64F / stack.getMaxCount());
-                this.stackSizeToSlotCount.put(stack.getMaxCount(), stackSizeToSlotCount.getOrDefault(stack.getMaxCount(), 0) + 1);
+                int stackMaxCount = stack.getMaxCount();
+                this.weightedItemCount += stack.getCount() * (64/*F float?*/ / stackMaxCount);
+                this.stackSizeToSlotCount.put(stackMaxCount, stackSizeToSlotCount.getOrDefault(stackMaxCount, 0) + 1);
 
-                if (firstOccupiedSlot == Integer.MAX_VALUE) {
-                    firstOccupiedSlot = i;
-                }
-                if (stack.getCount() >= stack.getMaxCount()) {
-                    this.slotFullMask |= 1 << i;
+                if (stack.getCount() >= stackMaxCount) {
+                    this.slotFullMask |= 1 << slot;
                 }
             }
         }
@@ -461,7 +472,7 @@ public class InventoryOptimizer {
 
     public boolean hasFreeSlots_insertable_ignoreSidedInventory() {
         this.ensureInitialized();
-        return this.slotEmptyMask != 0;
+        return this.slotOccupiedMask != this.slotMask;
     }
 
     /**
@@ -475,16 +486,16 @@ public class InventoryOptimizer {
 
         int slotMask = this.itemToSlotMask.getOrDefault(stack.getItem(), 0);
         slotMask = slotMask & ~this.slotFullMask;
-        slotMask = slotMask | this.slotEmptyMask;
+        slotMask = ~this.slotOccupiedMask & this.slotMask | slotMask;
         int firstIndex = Integer.numberOfTrailingZeros(slotMask);
         int slotIndex = firstIndex;
         slotMask = slotMask >>> firstIndex;
 
         while (slotMask != 0) {
             assert ((slotMask & 1) == 1);
-            if (thisInventory.isValidInvStack(slotIndex, stack) &&
-                    (this.sidedInventory == null || this.sidedInventory.canInsertInvStack(slotIndex, stack, fromDirection)) &&
-                    (0 != (this.slotEmptyMask & (1 << slotIndex)) || areItemsAndTagsEqual(getSlot(slotIndex), stack))) {
+            if ((0 == (this.slotOccupiedMask & (1 << slotIndex)) || areItemsAndTagsEqual(getSlot(slotIndex), stack)) &&
+                    thisInventory.isValidInvStack(slotIndex, stack) &&
+                    (this.sidedInventory == null || this.sidedInventory.canInsertInvStack(slotIndex, stack, fromDirection))) {
                 return slotIndex;
             }
 

@@ -60,16 +60,16 @@ public abstract class DoubleInventoryMixin implements OptimizedInventory {
 
     @Override
     @Nullable
-    public InventoryOptimizer getOptimizer() {
+    public InventoryOptimizer getOptimizer(boolean create) {
         if (!Settings.optimizedInventories) {
             this.invalidateOptimizer();
             return this.optimizer;
         }
 
         if (this.optimizer == null) {
-            if ((this instanceof SidedInventory) ||
+            if (!create || (this instanceof SidedInventory) ||
                     !(this.first instanceof OptimizedInventory) || !(this.second instanceof OptimizedInventory) ||
-                    ((OptimizedInventory) first).getOptimizer() == null || ((OptimizedInventory) second).getOptimizer() == null) {
+                    ((OptimizedInventory) first).getOptimizer(true) == null || ((OptimizedInventory) second).getOptimizer(true) == null) {
                 return null;
             }
             this.optimizer = new DoubleInventoryOptimizer((OptimizedInventory) first, (OptimizedInventory) second);

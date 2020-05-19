@@ -29,7 +29,7 @@ public abstract class DropperBlockMixin extends DispenserBlock {
     @Inject(method = "dispense", at = @At(value = "INVOKE", target = "Lnet/minecraft/block/dispenser/DispenserBehavior;dispense(Lnet/minecraft/util/math/BlockPointer;Lnet/minecraft/item/ItemStack;)Lnet/minecraft/item/ItemStack;", shift = At.Shift.AFTER), locals = LocalCapture.CAPTURE_FAILHARD)
     private void notifyInventoryDecr1(World world_1, BlockPos blockPos_1, CallbackInfo ci, BlockPointerImpl blockPointerImpl_1, DispenserBlockEntity dispenserBlockEntity_1, int int_1, ItemStack itemStack_1, Direction direction_1, Inventory inventory_1) {
         if (hopperOptimizations.settings.Settings.optimizedInventories && dispenserBlockEntity_1 instanceof OptimizedInventory) {
-            InventoryOptimizer opt = ((OptimizedInventory) dispenserBlockEntity_1).getOptimizer();
+            InventoryOptimizer opt = ((OptimizedInventory) dispenserBlockEntity_1).getOptimizer(false);
             if (opt != null) opt.onItemStackCountChanged(int_1, -1);
         }
     }

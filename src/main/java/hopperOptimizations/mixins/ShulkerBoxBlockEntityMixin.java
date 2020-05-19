@@ -50,8 +50,8 @@ public abstract class ShulkerBoxBlockEntityMixin extends LootableContainerBlockE
     }
 
     @Nullable
-    public InventoryOptimizer getOptimizer() {
-        return (((ShulkerBoxBlockEntity) (Object) this).getClass() == ShulkerBoxBlockEntity.class) && Settings.optimizedInventories && this.world != null && !this.world.isClient && inventory instanceof InventoryListOptimized ? ((InventoryListOptimized) inventory).getCreateOrRemoveOptimizer(this) : null;
+    public InventoryOptimizer getOptimizer(boolean create) {
+        return (((ShulkerBoxBlockEntity) (Object) this).getClass() == ShulkerBoxBlockEntity.class) && Settings.optimizedInventories && this.world != null && !this.world.isClient && this.inventory instanceof InventoryListOptimized ? ((InventoryListOptimized) inventory).getCreateOrRemoveOptimizer(this, create) : null;
     }
 
     @Override

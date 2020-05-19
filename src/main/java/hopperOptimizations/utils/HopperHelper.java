@@ -155,13 +155,13 @@ public abstract class HopperHelper {
         if (!Settings.optimizedInventories) return;
         //Notify optimizers of change, if neccessary
         if (!replacedFromStack) {
-            InventoryOptimizer opt = from instanceof OptimizedInventory ? ((OptimizedInventory) from).getOptimizer() : null;
+            InventoryOptimizer opt = from instanceof OptimizedInventory ? ((OptimizedInventory) from).getOptimizer(false) : null;
             if (opt != null)
                 opt.onItemStackCountChanged(fromSlot, -1);
         }
 
         if (!replacedToStack) {
-            InventoryOptimizer opt = to instanceof OptimizedInventory ? ((OptimizedInventory) to).getOptimizer() : null;
+            InventoryOptimizer opt = to instanceof OptimizedInventory ? ((OptimizedInventory) to).getOptimizer(false) : null;
             if (opt != null)
                 opt.onItemStackCountChanged(toSlot, 1);
         }
