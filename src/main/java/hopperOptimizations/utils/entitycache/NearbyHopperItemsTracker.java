@@ -294,11 +294,11 @@ public class NearbyHopperItemsTracker extends NearbyEntityTrackerBox<ItemEntity>
         int index = 0;
         //get the bits for x,z,y chunk position
         if (this.chunkXZYBits > 0) {
-            int b = (this.chunkX2 - MathHelper.floor(entity.getX()) >> 4); //high for low chunkX index
+            int b = this.chunkX2 - (MathHelper.floor(entity.getX()) >> 4); //high for low chunkX index
             index |= b << (2 * this.chunkXZYBits);                         //stored in highest bits
-            b = (this.chunkZ2 - MathHelper.floor(entity.getZ()) >> 4);     //high for low chunkZ index
+            b = this.chunkZ2 - (MathHelper.floor(entity.getZ()) >> 4);     //high for low chunkZ index
             index |= b << (this.chunkXZYBits);                             //stored in the next bits
-            b = (this.chunkY2 - MathHelper.clamp(MathHelper.floor(entity.getY()) >> 4, 0, 15)); //high for low chunkY index
+            b = this.chunkY2 - MathHelper.clamp(MathHelper.floor(entity.getY()) >> 4, 0, 15); //high for low chunkY index
             index |= b;                                                    //stored in the lowest bits
         }
         if (index < 0)
@@ -324,7 +324,7 @@ public class NearbyHopperItemsTracker extends NearbyEntityTrackerBox<ItemEntity>
         return -1;
     }
 
-    @Override
+    //@Override
     public void onInitialEntitiesReceived() {
         this.initialized = true;
         if (this.searchEntitiesAfterInitialization) {

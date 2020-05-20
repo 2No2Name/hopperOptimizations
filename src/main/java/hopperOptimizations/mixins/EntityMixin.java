@@ -35,7 +35,7 @@ public class EntityMixin {
 
     @Inject(method = "move(Lnet/minecraft/entity/MovementType;Lnet/minecraft/util/math/Vec3d;)V", at = @At(value = "RETURN"))
     private void notifyHoppersOfExistence(CallbackInfo ci) {
-        if (EntityHopperInteraction.findHoppers && !this.world.isClient && Settings.optimizedEntityHopperInteraction) {
+        if (EntityHopperInteraction.findHoppers && !this.world.isClient) {
             EntityHopperInteraction.notifyHoppersObj(this);
         }
     }

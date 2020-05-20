@@ -1,6 +1,5 @@
 package hopperOptimizations.utils.entitycache;
 
-import me.jellysquid.mods.lithium.common.entity.tracker.nearby.ExactPositionListener;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityDimensions;
 import net.minecraft.util.math.Box;
@@ -17,7 +16,7 @@ import java.util.HashSet;
  *
  * @author 2No2Name
  */
-public class NearbyEntityTrackerBox<T> implements ExactPositionListener {
+public class NearbyEntityTrackerBox<T> /*implements ExactPositionListener*/ {
     protected final Box box;
     final Class<T> clazz;
     private final Collection<T> withinBox;
@@ -118,7 +117,7 @@ public class NearbyEntityTrackerBox<T> implements ExactPositionListener {
 
         //never happens, unless the code above has a bug
         assert false;
-        throw new ArithmeticException("[Lithium/2No2Name] Bug in calculateCutoffSubtracted with input " + Double.doubleToRawLongBits(c) + " " + Float.floatToRawIntBits(d));
+        throw new ArithmeticException("[HopperOptimizations/2No2Name] Bug in calculateCutoffSubtracted with input " + Double.doubleToRawLongBits(c) + " " + Float.floatToRawIntBits(d));
     }
 
     Collection<T> createCollection() {
@@ -142,14 +141,14 @@ public class NearbyEntityTrackerBox<T> implements ExactPositionListener {
 //        return x >= this.chunkX1 && x <= this.chunkX2 && y >= this.chunkY1 && y <= this.chunkY2 && z >= this.chunkZ1 && z <= this.chunkZ2;
 //    }
 
-    @Override
+    //@Override
     public int getChunkRange() {
         //this is a workaround for the remove code not working if the radius is 0
         return Math.max(1, this.rangeC);
     }
 
     @SuppressWarnings("unchecked")
-    @Override
+    //@Override
     public void onEntityEnteredTrackedSubchunk(Entity entity) {
         if (!this.clazz.isInstance(entity) || this.subchunkContains((T) entity)) {
             return;
@@ -160,7 +159,7 @@ public class NearbyEntityTrackerBox<T> implements ExactPositionListener {
     }
 
     @SuppressWarnings("unchecked")
-    @Override
+    //@Override
     public void onEntityLeftTrackedSubchunk(Entity entity) {
         if (this.withinBox.isEmpty() || !this.clazz.isInstance(entity)) {
             return;
@@ -170,7 +169,7 @@ public class NearbyEntityTrackerBox<T> implements ExactPositionListener {
     }
 
     @SuppressWarnings("unchecked")
-    @Override
+    //@Override
     public void onEntityMovedAnyDistance(Entity entity) {
         if (!this.clazz.isInstance(entity)) {
             return;
@@ -205,10 +204,10 @@ public class NearbyEntityTrackerBox<T> implements ExactPositionListener {
                 }
             }
         }
-        this.registerToEntityTrackerEngine(world, xs, ys, zs);
+        //this.registerToEntityTrackerEngine(world, xs, ys, zs);
     }
 
     public void removeFromEntityTracker(World world) {
-        this.deregisterFromEntityTrackerEngine(world);
+        //this.deregisterFromEntityTrackerEngine(world);
     }
 }
