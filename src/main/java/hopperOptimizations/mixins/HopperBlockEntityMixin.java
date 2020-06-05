@@ -1177,7 +1177,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
         inputArea = null;
     }
 
-    public void onBlockUpdate() {
+    public void onBlockChanged() {
         hasToCheckForInputInventoryBlock = true;
         hasToCheckForOutputInventoryBlock = true;
     }

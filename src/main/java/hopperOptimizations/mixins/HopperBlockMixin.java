@@ -3,6 +3,7 @@ package hopperOptimizations.mixins;
 import hopperOptimizations.annotation.Feature;
 import hopperOptimizations.settings.Settings;
 import hopperOptimizations.utils.IHopper;
+import hopperOptimizations.workarounds.Fixes;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.HopperBlock;
@@ -22,7 +23,14 @@ public class HopperBlockMixin {
         if (Settings.inventoryCheckOnBlockUpdate) {
             BlockEntity hopper = world.getBlockEntity(pos);
             if (hopper instanceof IHopper)
-                ((IHopper) hopper).onBlockUpdate();
+                ((IHopper) hopper).onBlockChanged();
+        }
+    }
+
+    @Inject(method = "onBlockAdded", at = @At(value = "INVOKE", target = "Lnet/minecraft/block/HopperBlock;updateEnabled(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/BlockState;)V", shift = At.Shift.AFTER))
+    private void hotfixVanillaUpdateSupression(BlockState state, World world, BlockPos pos, BlockState oldState, boolean moved, CallbackInfo ci) {
+        if (Settings.inventoryCheckOnBlockUpdate && world.getBlockState(pos) != state) {
+            Fixes.onInventoryBlockChangedWithoutBlockUpdate(world, pos);
         }
     }
 }

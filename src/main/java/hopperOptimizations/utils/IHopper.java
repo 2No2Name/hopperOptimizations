@@ -73,6 +73,6 @@ public interface IHopper {
     default void notifyOfNearbyEntity(Entity entity) {
     }
 
-    default void onBlockUpdate() {
+    default void onBlockChanged() {
     }
 }
