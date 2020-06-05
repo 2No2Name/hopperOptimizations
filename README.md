@@ -14,6 +14,10 @@ Optimized Inventory accesses - bloomfilters, cached BlockEntities and improved i
 ### optimizedEntityHopperInteraction
 Reworked interaction between hoppers and entities. Entities look for hoppers instead of hoppers searching for entities. This change should be barely detectable - the order in which items are picked up might be *slightly different from vanilla*. (For stationary items the order is mostly "oldest first", which is very similar to vanilla)
 
+### inventoryCheckOnBlockUpdate
+Makes hoppers cache whether there is an inventory block in front of them (tileentity, composter, none) until a block update is received. The hopper needs the block updates to realize an inventory block appeared, so using update supression next to hoppers will lead to non-vanilla behavior.
+
+
 ### optimizedItemStackEmptyCheck
 Speeds up checking whether an itemStack is empty by using cached information from vanilla. Mechanics like vanilla. 
 
