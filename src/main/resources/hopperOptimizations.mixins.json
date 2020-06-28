@@ -6,31 +6,28 @@
     "BarrelBlockEntityMixin",
     "BlockEntityMixin",
     "ChestBlockEntityMixin",
-    "CollisionView$1Mixin",
-    "ComposterBlockComposterInventoryMixin",
-    "ComposterBlockDummyInventoryMixin",
-    "ComposterBlockFullComposterInventoryMixin",
-    "ContainerMixin",
     "DispenserBlockEntityMixin",
-    "DispenserBlockMixin",
     "DoubleInventoryMixin",
-    "DropperBlockMixin",
     "EntityMixin",
     "HopperBlockEntityMixin",
-    "HopperBlockMixin",
     "HopperMinecartEntityMixin",
-    "InventoriesMixin",
     "ItemEntityMixin",
-    "ItemStackMixin",
-    "MinecraftServer_noopMixin",
     "ShulkerBoxBlockEntityMixin",
     "StorageMinecartEntityMixin",
     "TeleportCommandMixin",
     "WorldChunkMixin",
-    "WorldMixin"
+    "WorldMixin",
+    "fastSignalStrength.ContainerMixin",
+    "init.MinecraftServer_noopMixin",
+    "inventoryCheckOnBlockUpdate.ComposterBlockComposterInventoryMixin",
+    "inventoryCheckOnBlockUpdate.ComposterBlockDummyInventoryMixin",
+    "inventoryCheckOnBlockUpdate.ComposterBlockFullComposterInventoryMixin",
+    "inventoryCheckOnBlockUpdate.HopperBlockMixin",
+    "inventoryOptimizer.ItemStackMixin",
+    "optimizedEmptyCheck.ItemStackMixin"
   ],
   "client": [
-    "MinecraftClient_noopMixin"
+    "init.MinecraftClient_noopMixin"
   ],
   "injectors": {
     "defaultRequire": 1

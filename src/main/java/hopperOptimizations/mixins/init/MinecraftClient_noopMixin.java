@@ -1,4 +1,4 @@
-package hopperOptimizations.mixins;
+package hopperOptimizations.mixins.init;
 
 import hopperOptimizations.HopperOptimizationsExtension;
 import net.minecraft.client.MinecraftClient;

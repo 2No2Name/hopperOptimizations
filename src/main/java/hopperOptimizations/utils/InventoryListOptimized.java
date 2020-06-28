@@ -1,6 +1,5 @@
 package hopperOptimizations.utils;
 
-import hopperOptimizations.settings.Settings;
 import net.minecraft.inventory.Inventory;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.DefaultedList;
@@ -44,14 +43,21 @@ public class InventoryListOptimized extends DefaultedList<ItemStack> {
     }
 
     public ItemStack set(int slotIndex, ItemStack newStack) {
-        ItemStack prevStack = super.set(slotIndex, newStack);
         InventoryOptimizer opt = this.getCreateOrRemoveOptimizer(null, false);
-        if (opt != null) opt.onStackChanged(slotIndex, prevStack, 0);
+        if (opt != null) opt.onStackChange(slotIndex, newStack, -1);
+
+        ItemStack prevStack = super.set(slotIndex, newStack);
+        if (prevStack != newStack) {
+            //noinspection ConstantConditions
+            ((IItemStackCaller) (Object) prevStack).removeFromInventory(this, slotIndex);
+            //noinspection ConstantConditions
+            ((IItemStackCaller) (Object) newStack).setInInventory(this, slotIndex);
+        }
         return prevStack;
     }
 
     /*
-    //Debug code to see who causes trouble with item stacks
+    //Debug code to see who causes trouble with item stacks. Item stacks are sadly mutable, so tracking them is hell.
     public E get(int int_1) {
         if(printStackTrace)
             new UnsupportedOperationException().printStackTrace();
@@ -62,18 +68,12 @@ public class InventoryListOptimized extends DefaultedList<ItemStack> {
     }
     */
 
-    public void add(int int_1, ItemStack object_1) {
-        if (Settings.debugOptimizedInventories)
-            throw new UnsupportedOperationException("Won't resize optimized inventory!");
-        else
-            super.add(int_1, object_1);
+    public void add(int int_1, ItemStack itemStack) {
+        throw new UnsupportedOperationException("Won't resize optimized inventory!");
     }
 
     public ItemStack remove(int int_1) {
-        if (Settings.debugOptimizedInventories)
-            throw new UnsupportedOperationException("Won't resize optimized inventory!");
-        else
-            return super.remove(int_1);
+        throw new UnsupportedOperationException("Won't resize optimized inventory!");
     }
 
     public void clear() {
@@ -99,5 +99,17 @@ public class InventoryListOptimized extends DefaultedList<ItemStack> {
 
     public boolean optimizerIs(InventoryOptimizer inventoryOptimizer) {
         return this.optimizer == inventoryOptimizer;
+    }
+
+    public void itemStackChangesCount(ItemStack itemStack, int slotIndex, int oldCount, int newCount) {
+        if (this.optimizer != null) {
+            this.optimizer.onItemStackCountChange(itemStack, slotIndex, oldCount, newCount);
+        }
+    }
+
+    public interface IItemStackCaller {
+        void setInInventory(InventoryListOptimized myInventoryList, int slotIndex);
+
+        void removeFromInventory(InventoryListOptimized myInventoryList, int slotIndex);
     }
 }

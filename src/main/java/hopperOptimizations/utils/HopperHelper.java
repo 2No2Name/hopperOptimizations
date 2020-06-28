@@ -130,38 +130,20 @@ public abstract class HopperHelper {
             }
         }
 
-        boolean replacedToStack = false;
-        boolean replacedFromStack = false;
-
         if (toStack.isEmpty()) {
             if (fromStack.getCount() == 1) {
                 toStack = fromStack;
                 fromStack = ItemStack.EMPTY;
                 from.setInvStack(fromSlot, fromStack);
-                replacedFromStack = true;
             } else {
                 toStack = fromStack.copy();
                 toStack.setCount(1);
                 fromStack.decrement(1);
             }
             to.setInvStack(toSlot, toStack);
-            replacedToStack = true;
         } else {
             to.getInvStack(toSlot).increment(1);
             fromStack.decrement(1);
-        }
-
-        //Notify optimizers of change, if neccessary
-        if (!replacedFromStack) {
-            InventoryOptimizer opt = from instanceof OptimizedInventory ? ((OptimizedInventory) from).getOptimizer(false) : null;
-            if (opt != null)
-                opt.onItemStackCountChanged(fromSlot, -1);
-        }
-
-        if (!replacedToStack) {
-            InventoryOptimizer opt = to instanceof OptimizedInventory ? ((OptimizedInventory) to).getOptimizer(false) : null;
-            if (opt != null)
-                opt.onItemStackCountChanged(toSlot, 1);
         }
     }
 

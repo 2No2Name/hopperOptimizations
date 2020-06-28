@@ -151,14 +151,9 @@ public class InventoryOptimizer {
         return MathHelper.floor(float_1 * 14.0F) + (int_1 > 0 ? 1 : 0);
     }
 
-    public void onItemStackCountChanged(int index, int countChange) {
-        if (index >= totalSlots) {
-            if (Settings.debugOptimizedInventories) {
-                System.out.println("Detected too large index in InventoryOptimizer.onItemStackCountChanged");
-            }
-            return;
-        }
-        this.onStackChanged(index, null, countChange);
+    public void onItemStackCountChange(ItemStack itemStack, int slotIndex, int oldCount, int newCount) {
+        assert !Settings.debugOptimizedInventories || this.getSlot(slotIndex) == itemStack;
+        this.onStackChange(slotIndex, null, newCount);
     }
 
     protected ItemStack getSlot(int index) {
@@ -196,27 +191,27 @@ public class InventoryOptimizer {
     //control their inventory accesses, notify of the inventory of hidden stacksize changes (see HopperBlockEntityMixin and InventoriesMixin)
 
     /**
-     * Update the data after a slot has been modified.
+     * Update the data just before a slot is modified.
      *
      * @param slot Index of the modified slot
      */
-    void onStackChanged(int slot, @Nullable ItemStack prevStack, int countChange) {
+    void onStackChange(int slot, @Nullable ItemStack newStack, int newCount) {
         assert !(this instanceof DoubleInventoryOptimizer);
 
-        ItemStack newStack = stackList.get(slot);
+        ItemStack prevStack = stackList.get(slot);
         if (prevStack == newStack) return;
 
-        if (prevStack == null) {
-            prevStack = newStack;
+        if (newStack == null) {
+            newStack = prevStack;
+        } else {
+            newCount = newStack.getCount();
         }
-        Item newItem = newStack.getItem();
-        int prevC = prevStack.getCount() - countChange; //countChange only used when prevStack == newStack
-        int tmp = prevStack.getCount();
-        prevStack.setCount(tmp - countChange);
+        int prevCount = prevStack.getCount();
+
+        Item newItem = newCount <= 0 ? Items.AIR : newStack.getItem();
         Item prevItem = prevStack.getItem();
+
         int prevMaxC = prevStack.getMaxCount();
-        prevStack.setCount(tmp);
-        int newC = newStack.getCount();
         int newMaxC = newStack.getMaxCount();
 
         this.inventoryChanges++;
@@ -238,7 +233,7 @@ public class InventoryOptimizer {
                         this.stackSizeToSlotCount.remove(prevMaxC);
                 }
             }
-            if (prevC >= prevMaxC) {
+            if (prevCount >= prevMaxC) {
                 this.slotFullMask &= ~(1 << slot);
             }
         }
@@ -253,14 +248,14 @@ public class InventoryOptimizer {
                     this.stackSizeToSlotCount.put(newMaxC, this.stackSizeToSlotCount.getOrDefault(newMaxC, 0) + 1);
                 }
             }
-            if (newC >= newMaxC) {
+            if (newCount >= newMaxC) {
                 this.slotFullMask |= 1 << slot;
             }
             this.slotOccupiedMask |= 1 << slot;
         } else {
             this.slotOccupiedMask &= ~(1 << slot);
         }
-        this.weightedItemCount -= prevC * (int) (64F / prevMaxC) - newC * (int) (64F / newMaxC);
+        this.weightedItemCount -= prevCount * (int) (64F / prevMaxC) - newCount * (int) (64F / newMaxC);
 
         if (Settings.debugOptimizedInventories) consistencyCheck();
     }

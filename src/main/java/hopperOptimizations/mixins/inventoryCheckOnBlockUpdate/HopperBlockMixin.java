@@ -1,4 +1,4 @@
-package hopperOptimizations.mixins;
+package hopperOptimizations.mixins.inventoryCheckOnBlockUpdate;
 
 import hopperOptimizations.annotation.Feature;
 import hopperOptimizations.settings.Settings;

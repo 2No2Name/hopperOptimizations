@@ -46,17 +46,6 @@ public class DoubleInventoryOptimizer extends InventoryOptimizer {
         return secondOpt;
     }
 
-
-    @Override
-    public void onItemStackCountChanged(int index, int countChange) {
-        int firstSize = first.getInvSize();
-        if (index >= firstSize) {
-            if (secondOpt != null) secondOpt.onItemStackCountChanged(index - firstSize, countChange);
-        } else {
-            if (firstOpt != null) firstOpt.onItemStackCountChanged(index, countChange);
-        }
-    }
-
     @Override
     public int indexOf_extractable_endIndex(ItemStack stack, int maxExclusive) {
         int ret = firstOpt.indexOf_extractable_endIndex(stack, maxExclusive);

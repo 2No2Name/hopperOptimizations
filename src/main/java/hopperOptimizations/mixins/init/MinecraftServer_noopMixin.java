@@ -1,4 +1,4 @@
-package hopperOptimizations.mixins;
+package hopperOptimizations.mixins.init;
 
 import hopperOptimizations.HopperOptimizationsExtension;
 import net.minecraft.server.MinecraftServer;
@@ -15,7 +15,6 @@ public class MinecraftServer_noopMixin {
     // You need this one to run a server properly
     @Inject(method = "<init>", at = @At("RETURN"))
     private void loadMe(CallbackInfo ci) {
-
         try {
             Class.forName("carpet.CarpetExtension");
         } catch (ClassNotFoundException e) {

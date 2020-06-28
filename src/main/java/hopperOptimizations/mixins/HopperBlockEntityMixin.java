@@ -386,21 +386,6 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
     }
 
     /**
-     * Notifies the InventoryOptimizer of its inventory being changed.
-     *
-     * @param destination  Inventory that was changed
-     * @param index        Inventory slot index that was changed
-     * @param countChanged ItemStack count by which the inventory slot's stack was incremented
-     */
-    @Feature("optimizedInventories")
-    @Inject(method = "transfer(Lnet/minecraft/inventory/Inventory;Lnet/minecraft/inventory/Inventory;Lnet/minecraft/item/ItemStack;ILnet/minecraft/util/math/Direction;)Lnet/minecraft/item/ItemStack;", at = @At(value = "INVOKE", target = "Lnet/minecraft/item/ItemStack;increment(I)V", shift = At.Shift.AFTER), locals = LocalCapture.CAPTURE_FAILHARD)
-    private static void notifyOptimizedInventoryAboutChangedItemStack(Inventory inventory_1, Inventory destination, ItemStack itemStack_1, int index, Direction direction_1, CallbackInfoReturnable<ItemStack> cir, ItemStack itemStack_2, boolean boolean_1, boolean boolean_2, int int_2, int countChanged) {
-        InventoryOptimizer opt = destination instanceof OptimizedInventory ? ((OptimizedInventory) destination).getOptimizer(false) : null;
-        if (opt != null)
-            opt.onItemStackCountChanged(index, countChanged);
-    }
-
-    /**
      * Inject to use the optimizedInventories empty check
      *
      * @param inventory Inventory that is either empty or not
@@ -505,14 +490,12 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
                         itemEntity.setStack(ItemStack.EMPTY);
                         itemEntity.remove();
                         receivingStack.increment(transferCount);
-                        opt.onItemStackCountChanged(receivingSlot, transferCount);
                         cir.setReturnValue(true);
                         this.markDirty();
                         return itemEntity;
                     } else {
                         itemEntityStack.decrement(transferCount);
                         receivingStack.increment(transferCount);
-                        opt.onItemStackCountChanged(receivingSlot, transferCount);
                     }
                 }
             }

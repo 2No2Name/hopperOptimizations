@@ -1,4 +1,4 @@
-package hopperOptimizations.mixins;
+package hopperOptimizations.mixins.optimizedEmptyCheck;
 
 import hopperOptimizations.settings.Settings;
 import net.minecraft.item.Item;

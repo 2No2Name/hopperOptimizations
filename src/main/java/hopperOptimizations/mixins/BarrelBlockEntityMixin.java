@@ -7,7 +7,6 @@ import hopperOptimizations.utils.OptimizedInventory;
 import net.minecraft.block.entity.BarrelBlockEntity;
 import net.minecraft.block.entity.BlockEntityType;
 import net.minecraft.block.entity.LootableContainerBlockEntity;
-import net.minecraft.inventory.SidedInventory;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.DefaultedList;
 import org.spongepowered.asm.mixin.Mixin;
@@ -50,6 +49,6 @@ public abstract class BarrelBlockEntityMixin extends LootableContainerBlockEntit
 
     @Nullable
     public InventoryOptimizer getOptimizer(boolean create) {
-        return !(this instanceof SidedInventory) && this.world != null && !this.world.isClient && this.inventory instanceof InventoryListOptimized ? ((InventoryListOptimized) inventory).getCreateOrRemoveOptimizer(this, create) : null;
+        return this.getOptimizer(this.world, this.inventory, create);
     }
 }
