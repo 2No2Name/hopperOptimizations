@@ -119,8 +119,8 @@ public abstract class HopperHelper {
     public static void transferOneItem_knownSuccessful(Inventory to, int toSlot, Inventory from, int fromSlot) {
         //assume stack sizes were checked, assume item types were already compared
 
-        ItemStack fromStack = from.getInvStack(fromSlot);
-        ItemStack toStack = to.getInvStack(toSlot);
+        ItemStack fromStack = from.getStack(fromSlot);
+        ItemStack toStack = to.getStack(toSlot);
 
         if (Settings.debugOptimizedInventories) {
             if (!InventoryOptimizer.areItemsAndTagsEqual(fromStack, toStack) && !toStack.isEmpty() || fromStack.isEmpty()) {
@@ -134,15 +134,15 @@ public abstract class HopperHelper {
             if (fromStack.getCount() == 1) {
                 toStack = fromStack;
                 fromStack = ItemStack.EMPTY;
-                from.setInvStack(fromSlot, fromStack);
+                from.setStack(fromSlot, fromStack);
             } else {
                 toStack = fromStack.copy();
                 toStack.setCount(1);
                 fromStack.decrement(1);
             }
-            to.setInvStack(toSlot, toStack);
+            to.setStack(toSlot, toStack);
         } else {
-            to.getInvStack(toSlot).increment(1);
+            to.getStack(toSlot).increment(1);
             fromStack.decrement(1);
         }
     }
@@ -209,11 +209,11 @@ public abstract class HopperHelper {
             //crazy workaround to send stupid comparator updates to comparators and make the comparators send updates to even more redstone components
             //also required for comparator to schedule useless but detectable updates on themselves
             masterOpt.setFakeReducedSignalStrength();
-            inv.setInvStack(0, inv.getInvStack(0));
+            inv.setStack(0, inv.getStack(0));
             masterOpt.clearFakeChangedSignalStrength();
         }
 
-        inv.setInvStack(0, inv.getInvStack(0));
+        inv.setStack(0, inv.getStack(0));
     }
 
     public static void debugCompareInventoryEntities(NearbyHopperInventoriesTracker tracker, World world, double x, double y, double z) {

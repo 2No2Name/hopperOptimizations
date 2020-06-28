@@ -1,11 +1,10 @@
 package hopperOptimizations.mixins.inventoryCheckOnBlockUpdate;
 
-import hopperOptimizations.annotation.Feature;
 import hopperOptimizations.workarounds.IValidInventoryUntilBlockUpdate;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 
-@Feature("optimizedEntityHopperInteraction")
+//@Feature("optimizedEntityHopperInteraction")
 @Mixin(targets = "net.minecraft.block.ComposterBlock$FullComposterInventory")
 public class ComposterBlockFullComposterInventoryMixin implements IValidInventoryUntilBlockUpdate {
     @Shadow

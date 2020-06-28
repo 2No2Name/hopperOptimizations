@@ -1,6 +1,5 @@
 package hopperOptimizations.mixins;
 
-import hopperOptimizations.annotation.Feature;
 import hopperOptimizations.utils.DoubleInventoryOptimizer;
 import hopperOptimizations.utils.InventoryOptimizer;
 import hopperOptimizations.utils.OptimizedInventory;
@@ -18,7 +17,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import javax.annotation.Nullable;
 
-@Feature("optimizedInventories")
+//@Feature("optimizedInventories")
 @Mixin(DoubleInventory.class)
 public abstract class DoubleInventoryMixin implements OptimizedInventory {
     @Shadow

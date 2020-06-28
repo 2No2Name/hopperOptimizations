@@ -49,10 +49,10 @@ public class DoubleInventoryOptimizer extends InventoryOptimizer {
     @Override
     public int indexOf_extractable_endIndex(ItemStack stack, int maxExclusive) {
         int ret = firstOpt.indexOf_extractable_endIndex(stack, maxExclusive);
-        if (ret == -1 && first.getInvSize() < maxExclusive) {
-            ret = secondOpt.indexOf_extractable_endIndex(stack, maxExclusive - first.getInvSize());
+        if (ret == -1 && first.size() < maxExclusive) {
+            ret = secondOpt.indexOf_extractable_endIndex(stack, maxExclusive - first.size());
             if (ret != -1)
-                ret += first.getInvSize();
+                ret += first.size();
         }
         return ret;
     }
@@ -68,7 +68,7 @@ public class DoubleInventoryOptimizer extends InventoryOptimizer {
         if (ret < 0) {
             ret = Math.max(ret, secondOpt.findInsertSlot(stack, fromDirection, second));
             if (ret >= 0)
-                ret += first.getInvSize();
+                ret += first.size();
         }
         return ret;
     }
@@ -82,14 +82,14 @@ public class DoubleInventoryOptimizer extends InventoryOptimizer {
     @Override
     protected ItemStack getSlot(int index) {
         if (index < 0) return ItemStack.EMPTY;
-        int firstSize = first.getInvSize();
-        if (index < firstSize) return first.getInvStack(index);
-        return second.getInvStack(index - firstSize);
+        int firstSize = first.size();
+        if (index < firstSize) return first.getStack(index);
+        return second.getStack(index - firstSize);
     }
 
     @Override
     protected int size() {
-        return first.getInvSize() + second.getInvSize();
+        return first.size() + second.size();
     }
 
     @Override
@@ -103,7 +103,7 @@ public class DoubleInventoryOptimizer extends InventoryOptimizer {
         if (ret == -1) {
             ret = secondOpt.getFirstOccupiedSlot_extractable();
             if (ret != -1)
-                ret += first.getInvSize();
+                ret += first.size();
         }
         return ret;
     }
@@ -134,7 +134,7 @@ public class DoubleInventoryOptimizer extends InventoryOptimizer {
         if (ret == -1) {
             ret = secondOpt.indexOfObject(stack);
             if (ret != -1)
-                ret += first.getInvSize();
+                ret += first.size();
         }
         return ret;
     }

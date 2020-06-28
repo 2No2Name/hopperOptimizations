@@ -125,12 +125,12 @@ public class NearbyHopperItemsTracker extends NearbyEntityTrackerBox<ItemEntity>
             double tmp;
             //Offset box to the hopper position like vanilla. Keep +0.5D-0.5D to preserve vanilla rounding errors
             //keep the box (vanilla creates it from scratch every time)
-            double x1 = box.x1 + (tmp = (pos.getX() + 0.5D - 0.5D));
-            double x2 = box.x2 + tmp;
-            double y1 = box.y1 + (tmp = (pos.getY() + 0.5D - 0.5D));
-            double y2 = box.y2 + tmp;
-            double z1 = box.z1 + (tmp = (pos.getZ() + 0.5D - 0.5D));
-            double z2 = box.z2 + tmp;
+            double x1 = box.minX + (tmp = (pos.getX() + 0.5D - 0.5D));
+            double x2 = box.maxX + tmp;
+            double y1 = box.minY + (tmp = (pos.getY() + 0.5D - 0.5D));
+            double y2 = box.maxY + tmp;
+            double z1 = box.minZ + (tmp = (pos.getZ() + 0.5D - 0.5D));
+            double z2 = box.maxZ + tmp;
             this.collectionArea[i] = new Box(x1, y1, z1, x2, y2, z2);
             ++i;
 

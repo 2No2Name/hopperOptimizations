@@ -1,7 +1,6 @@
 package hopperOptimizations.mixins;
 
 
-import hopperOptimizations.annotation.Feature;
 import hopperOptimizations.settings.Settings;
 import hopperOptimizations.utils.HopperHelper;
 import hopperOptimizations.utils.IHopper;
@@ -11,7 +10,7 @@ import net.minecraft.inventory.Inventory;
 import org.spongepowered.asm.mixin.Mixin;
 
 
-@Feature("optimizedInventories")
+//@Feature("optimizedInventories")
 @Mixin(HopperMinecartEntity.class)
 public class HopperMinecartEntityMixin implements IHopper {
 
@@ -35,7 +34,7 @@ public class HopperMinecartEntityMixin implements IHopper {
      *                 Side effect: Sends comparator updates that would be sent on normal failed transfers.
      * @return Whether the current item transfer attempt is known to fail.
      */
-    @Feature("optimizedInventories")
+//@Feature("optimizedInventories")
     public boolean tryShortcutFailedExtract(InventoryOptimizer thisOpt, Inventory other, InventoryOptimizer otherOpt) {
         int thisChangeCount = thisOpt.getInventoryChangeCount();
         int otherChangeCount = otherOpt.getInventoryChangeCount();
@@ -63,15 +62,13 @@ public class HopperMinecartEntityMixin implements IHopper {
      *                 Side effect: Sends comparator updates that would be sent on normal failed transfers.
      * @return Whether the current item transfer attempt is known to fail.
      */
-    @Feature("optimizedInventories")
+//@Feature("optimizedInventories")
     public boolean tryShortcutFailedInsert(InventoryOptimizer thisOpt, InventoryOptimizer otherOpt) {
         return false; //hopper minecarts are not transferring items out. This won't break mods that implement it though.
     }
 
 
-
-
-    @Feature("optimizedInventories")
+    //@Feature("optimizedInventories")
     public void setMarkOtherDirty() {
         this.previousExtract_causeMarkDirty = true;
     }

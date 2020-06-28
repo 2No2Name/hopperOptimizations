@@ -1,6 +1,5 @@
 package hopperOptimizations.mixins.inventoryCheckOnBlockUpdate;
 
-import hopperOptimizations.annotation.Feature;
 import hopperOptimizations.settings.Settings;
 import hopperOptimizations.utils.IHopper;
 import hopperOptimizations.workarounds.WorldInterface;
@@ -16,7 +15,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-@Feature("inventoryCheckOnBlockupdate")
+//@Feature("inventoryCheckOnBlockupdate")
 @Mixin(HopperBlock.class)
 public class HopperBlockMixin {
     @Inject(method = "neighborUpdate(Lnet/minecraft/block/BlockState;Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/Block;Lnet/minecraft/util/math/BlockPos;Z)V", at = @At(value = "HEAD"))

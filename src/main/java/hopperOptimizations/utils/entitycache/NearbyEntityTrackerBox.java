@@ -35,12 +35,12 @@ public class NearbyEntityTrackerBox<T> /*implements ExactPositionListener*/ {
         this.box = box;
 
         int widthHalfCeil = MathHelper.ceil(entityDimensions.width / 2D + 1e-7);
-        this.chunkX1 = (MathHelper.floor(this.box.x1) - widthHalfCeil) >> 4;
-        this.chunkX2 = (MathHelper.floor(this.box.x2) + widthHalfCeil) >> 4;
-        this.chunkY1 = (MathHelper.floor(this.box.y1) - MathHelper.ceil(entityDimensions.height + 1e-7)) >> 4;
-        this.chunkY2 = (MathHelper.floor(this.box.y2)) >> 4;
-        this.chunkZ1 = (MathHelper.floor(this.box.z1) - widthHalfCeil) >> 4;
-        this.chunkZ2 = (MathHelper.floor(this.box.z2) + widthHalfCeil) >> 4;
+        this.chunkX1 = (MathHelper.floor(this.box.minX) - widthHalfCeil) >> 4;
+        this.chunkX2 = (MathHelper.floor(this.box.maxX) + widthHalfCeil) >> 4;
+        this.chunkY1 = (MathHelper.floor(this.box.minY) - MathHelper.ceil(entityDimensions.height + 1e-7)) >> 4;
+        this.chunkY2 = (MathHelper.floor(this.box.maxY)) >> 4;
+        this.chunkZ1 = (MathHelper.floor(this.box.minZ) - widthHalfCeil) >> 4;
+        this.chunkZ2 = (MathHelper.floor(this.box.maxZ) + widthHalfCeil) >> 4;
 
         int chunkDx = this.chunkX2 - this.chunkX1;
         int chunkDy = this.chunkY2 - this.chunkY1;

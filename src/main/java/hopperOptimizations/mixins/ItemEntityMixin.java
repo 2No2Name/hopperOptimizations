@@ -1,6 +1,5 @@
 package hopperOptimizations.mixins;
 
-import hopperOptimizations.annotation.Feature;
 import hopperOptimizations.settings.Settings;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
@@ -35,7 +34,7 @@ public abstract class ItemEntityMixin extends Entity {
         this.getDataTracker().set(STACK, ItemStack.EMPTY);
     }
 
-    @Feature("simplifyItemElevatorCheck")
+//@Feature("simplifyItemElevatorCheck")
     @Redirect(method = "tick()V", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/World;doesNotCollide(Lnet/minecraft/entity/Entity;)Z"))
     private boolean doNotCheckEntities(World world, Entity itemEntity) {
         if (!Settings.simplifiedItemElevatorCheck)

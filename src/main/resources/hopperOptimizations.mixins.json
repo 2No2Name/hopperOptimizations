@@ -17,7 +17,7 @@
     "TeleportCommandMixin",
     "WorldChunkMixin",
     "WorldMixin",
-    "fastSignalStrength.ContainerMixin",
+    "fastSignalStrength.ScreenHandler",
     "init.MinecraftServer_noopMixin",
     "inventoryCheckOnBlockUpdate.ComposterBlockComposterInventoryMixin",
     "inventoryCheckOnBlockUpdate.ComposterBlockDummyInventoryMixin",

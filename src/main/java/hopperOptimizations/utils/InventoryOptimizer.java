@@ -1,6 +1,5 @@
 package hopperOptimizations.utils;
 
-import carpet.CarpetServer;
 import hopperOptimizations.settings.Settings;
 import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
 import net.minecraft.block.entity.ShulkerBoxBlockEntity;
@@ -131,7 +130,7 @@ public class InventoryOptimizer {
         } catch (IllegalStateException e) {
             this.remove();
             Text text = new LiteralText("Detected broken optimizer ( " + e.getMessage() + ") at " + Arrays.toString(e.getStackTrace()));
-            CarpetServer.minecraft_server.getPlayerManager().broadcastChatMessage(text, false);
+//            CarpetServer.minecraft_server.getPlayerManager().broadcastChatMessage(text, false);
         }
     }
 
@@ -407,7 +406,7 @@ public class InventoryOptimizer {
         while (slotMask != 0 && slotIndex < maxExclusive) {
             assert ((slotMask & 1) == 1);
             if (areItemsAndTagsEqual(getSlot(slotIndex), stack) && (this.sidedInventory == null ||
-                    this.sidedInventory.canExtractInvStack(slotIndex, getSlot(slotIndex), Direction.DOWN))) {
+                    this.sidedInventory.canExtract(slotIndex, getSlot(slotIndex), Direction.DOWN))) {
                 return slotIndex;
             }
 
@@ -440,8 +439,8 @@ public class InventoryOptimizer {
         while (slotMask != 0) {
             assert ((slotMask & 1) == 1);
             if ((0 == (this.slotOccupiedMask & (1 << slotIndex)) || areItemsAndTagsEqual(getSlot(slotIndex), stack)) &&
-                    thisInventory.isValidInvStack(slotIndex, stack) &&
-                    (this.sidedInventory == null || this.sidedInventory.canInsertInvStack(slotIndex, stack, fromDirection))) {
+                    thisInventory.isValid(slotIndex, stack) &&
+                    (this.sidedInventory == null || this.sidedInventory.canInsert(slotIndex, stack, fromDirection))) {
                 return slotIndex;
             }
 

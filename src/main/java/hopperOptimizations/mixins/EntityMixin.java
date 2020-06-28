@@ -1,6 +1,5 @@
 package hopperOptimizations.mixins;
 
-import hopperOptimizations.annotation.Feature;
 import hopperOptimizations.settings.Settings;
 import hopperOptimizations.workarounds.EntityHopperInteraction;
 import net.minecraft.entity.Entity;
@@ -15,7 +14,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import javax.annotation.Nullable;
 
-@Feature("optimizedEntityHopperInteraction")
+//@Feature("optimizedEntityHopperInteraction")
 @Mixin(Entity.class)
 public class EntityMixin {
     @Shadow

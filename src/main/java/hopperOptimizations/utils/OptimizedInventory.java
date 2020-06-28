@@ -3,7 +3,7 @@ package hopperOptimizations.utils;
 import net.minecraft.inventory.Inventory;
 import net.minecraft.inventory.SidedInventory;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.DefaultedList;
+import net.minecraft.util.collection.DefaultedList;
 import net.minecraft.world.World;
 
 import javax.annotation.Nullable;

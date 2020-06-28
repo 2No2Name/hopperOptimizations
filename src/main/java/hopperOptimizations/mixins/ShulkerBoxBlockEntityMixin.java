@@ -1,6 +1,5 @@
 package hopperOptimizations.mixins;
 
-import hopperOptimizations.annotation.Feature;
 import hopperOptimizations.utils.InventoryListOptimized;
 import hopperOptimizations.utils.InventoryOptimizer;
 import hopperOptimizations.utils.OptimizedInventory;
@@ -8,7 +7,7 @@ import net.minecraft.block.entity.BlockEntityType;
 import net.minecraft.block.entity.LootableContainerBlockEntity;
 import net.minecraft.block.entity.ShulkerBoxBlockEntity;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.DefaultedList;
+import net.minecraft.util.collection.DefaultedList;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -19,7 +18,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import javax.annotation.Nullable;
 import java.util.Arrays;
 
-@Feature("optimizedInventories")
+//@Feature("optimizedInventories")
 @Mixin(ShulkerBoxBlockEntity.class)
 public abstract class ShulkerBoxBlockEntityMixin extends LootableContainerBlockEntity implements OptimizedInventory {
     @Shadow
@@ -32,7 +31,7 @@ public abstract class ShulkerBoxBlockEntityMixin extends LootableContainerBlockE
     }
 
     //Redirects and Injects to replace the inventory with an optimized Inventory
-    @Redirect(method = "<init>(Lnet/minecraft/util/DyeColor;)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/util/DefaultedList;ofSize(ILjava/lang/Object;)Lnet/minecraft/util/DefaultedList;"))
+    @Redirect(method = "<init>(Lnet/minecraft/util/DyeColor;)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/util/collection/DefaultedList;ofSize(ILjava/lang/Object;)Lnet/minecraft/util/collection/DefaultedList;"))
     private DefaultedList<ItemStack> createInventory(int int_1, Object object_1) {
         return InventoryListOptimized.ofSize(int_1, (ItemStack) object_1);
     }
@@ -43,7 +42,7 @@ public abstract class ShulkerBoxBlockEntityMixin extends LootableContainerBlockE
             inventory = new InventoryListOptimized(Arrays.asList((ItemStack[]) inventory.toArray()), ItemStack.EMPTY);
     }
 
-    @Redirect(method = "deserializeInventory", at = @At(value = "INVOKE", target = "Lnet/minecraft/util/DefaultedList;ofSize(ILjava/lang/Object;)Lnet/minecraft/util/DefaultedList;"))
+    @Redirect(method = "deserializeInventory", at = @At(value = "INVOKE", target = "Lnet/minecraft/util/collection/DefaultedList;ofSize(ILjava/lang/Object;)Lnet/minecraft/util/collection/DefaultedList;"))
     private DefaultedList<ItemStack> createInventory2(int int_1, Object object_1) {
         return InventoryListOptimized.ofSize(int_1, (ItemStack) object_1);
     }
@@ -52,12 +51,4 @@ public abstract class ShulkerBoxBlockEntityMixin extends LootableContainerBlockE
     public InventoryOptimizer getOptimizer(boolean create) {
         return (((ShulkerBoxBlockEntity) (Object) this).getClass() == ShulkerBoxBlockEntity.class) && this.world != null && !this.world.isClient && this.inventory instanceof InventoryListOptimized ? ((InventoryListOptimized) inventory).getCreateOrRemoveOptimizer(this, create) : null;
     }
-
-    /*
-    @Inject(method = "onInvOpen(Lnet/minecraft/entity/player/PlayerEntity;)V", at = @At(value = "HEAD"))
-    private void onInvOpened(PlayerEntity playerEntity_1, CallbackInfo ci) {
-        if (Settings.playerInventoryDeoptimization && !playerEntity_1.isSpectator())
-            invalidateOptimizer();
-    }*/
-
 }

@@ -2,7 +2,7 @@ package hopperOptimizations.utils;
 
 import net.minecraft.inventory.Inventory;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.DefaultedList;
+import net.minecraft.util.collection.DefaultedList;
 import org.apache.commons.lang3.Validate;
 
 import javax.annotation.Nullable;
@@ -34,7 +34,7 @@ public class InventoryListOptimized extends DefaultedList<ItemStack> {
 
     public InventoryOptimizer getCreateOrRemoveOptimizer(Inventory inventory, boolean create) {
         if (this.optimizer == null) {
-            if (!create || inventory.getInvSize() > InventoryOptimizer.MAX_INV_SIZE) {
+            if (!create || inventory.size() > InventoryOptimizer.MAX_INV_SIZE) {
                 return null;
             }
             this.optimizer = new InventoryOptimizer(this, inventory);

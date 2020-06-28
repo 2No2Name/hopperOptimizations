@@ -1,5 +1,5 @@
 plugins {
-	id 'fabric-loom' version '0.2.6-SNAPSHOT'
+	id 'fabric-loom' version '0.2.7-SNAPSHOT'
 	id 'maven-publish'
 }
 
@@ -24,11 +24,8 @@ dependencies {
 	minecraft "com.mojang:minecraft:${project.minecraft_version}"
 	mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
 	modCompile "net.fabricmc:fabric-loader:${project.loader_version}"
-	modCompileOnly "carpet:fabric-carpet:${project.minecraft_version}-${project.carpet_core_version}"
-	//modCompile "lithium:lithium:mc${project.minecraft_version}-${project.lithium_version}-mod"
-
-	include "com.moandjiezana.toml:toml4j:0.7.2"
-	compile "com.moandjiezana.toml:toml4j:0.7.2"
+	//modCompileOnly "carpet:fabric-carpet:${project.minecraft_version}-${project.carpet_core_version}"
+	modCompileOnly "carpet:fabric-carpet:1.16-1.4.0+v200623"
 
 
 	// PSA: Some older mods, compiled on Loom 0.2.1, might have outdated Maven POMs.
