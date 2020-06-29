@@ -42,6 +42,7 @@ public class InventoryListOptimized extends DefaultedList<ItemStack> {
         return this.optimizer;
     }
 
+    @Override
     public ItemStack set(int slotIndex, ItemStack newStack) {
         InventoryOptimizer opt = this.getCreateOrRemoveOptimizer(null, false);
         if (opt != null) opt.onStackChange(slotIndex, newStack, -1);
@@ -68,14 +69,17 @@ public class InventoryListOptimized extends DefaultedList<ItemStack> {
     }
     */
 
+    @Override
     public void add(int int_1, ItemStack itemStack) {
         throw new UnsupportedOperationException("Won't resize optimized inventory!");
     }
 
+    @Override
     public ItemStack remove(int int_1) {
         throw new UnsupportedOperationException("Won't resize optimized inventory!");
     }
 
+    @Override
     public void clear() {
         this.optimizer = null;
         super.clear();

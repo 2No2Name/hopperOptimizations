@@ -1,13 +1,11 @@
 package hopperOptimizations.utils;
 
+import hopperOptimizations.features.entityTracking.NearbyHopperInventoriesTracker;
 import hopperOptimizations.settings.Settings;
-import hopperOptimizations.utils.entitycache.NearbyHopperInventoriesTracker;
+import hopperOptimizations.utils.inventoryOptimizer.OptimizedInventory;
 import hopperOptimizations.workarounds.IValidInventoryUntilBlockUpdate;
 import hopperOptimizations.workarounds.Interfaces;
-import net.minecraft.block.Block;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.ChestBlock;
-import net.minecraft.block.InventoryProvider;
+import net.minecraft.block.*;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.block.entity.ChestBlockEntity;
 import net.minecraft.block.entity.Hopper;
@@ -23,6 +21,7 @@ import net.minecraft.text.LiteralText;
 import net.minecraft.text.Text;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
+import net.minecraft.util.math.Direction;
 import net.minecraft.world.World;
 
 import javax.annotation.Nullable;
@@ -84,7 +83,6 @@ public abstract class HopperHelper {
      * @return the randomly chosen inventory entity at the position
      */
     public static Inventory vanillaGetEntityInventory(World world, BlockPos pos) {
-
         List<Entity> inventoriesVanilla = HopperHelper.vanillaGetEntityInventories(world, pos);
         if (!inventoriesVanilla.isEmpty())
             return (Inventory) inventoriesVanilla.get(world.random.nextInt(inventoriesVanilla.size()));
@@ -103,6 +101,45 @@ public abstract class HopperHelper {
         double y = pos.getY();
         double z = pos.getZ();
         return world.getEntities((Entity) null, new Box(x, y, z, x + 1D, y + 1D, z + 1D), EntityPredicates.VALID_INVENTORIES);
+    }
+
+    /**
+     * Get the input inventory block with either vanilla or an optimized implementation.
+     * Will be overwritten by {@link hopperOptimizations.mixins.cacheInventories.HopperHelperMixin}
+     */
+    public static Inventory getInputBlockInventory(HopperBlockEntity hopperBlockEntity) {
+        Direction direction = hopperBlockEntity.getCachedState().get(HopperBlock.FACING);
+        //noinspection ConstantConditions
+        return vanillaGetBlockInventory(hopperBlockEntity.getWorld(), hopperBlockEntity.getPos().up());
+    }
+
+    /**
+     * Get the input inventory entity with either vanilla or an optimized implementation.
+     * Will be overwritten by {@link hopperOptimizations.mixins.entityTracking.HopperHelperMixin}
+     */
+    public static Inventory getInputEntityInventory(HopperBlockEntity hopperBlockEntity) {
+        Direction direction = hopperBlockEntity.getCachedState().get(HopperBlock.FACING);
+        return vanillaGetEntityInventory(hopperBlockEntity.getWorld(), hopperBlockEntity.getPos().up());
+    }
+
+
+    /**
+     * Get the input inventory block with either vanilla or an optimized implementation.
+     * Will be overwritten by {@link hopperOptimizations.mixins.cacheInventories.HopperHelperMixin}
+     */
+    public static Inventory getOutputBlockInventory(HopperBlockEntity hopperBlockEntity) {
+        Direction direction = hopperBlockEntity.getCachedState().get(HopperBlock.FACING);
+        //noinspection ConstantConditions
+        return vanillaGetBlockInventory(hopperBlockEntity.getWorld(), hopperBlockEntity.getPos().offset(direction));
+    }
+
+    /**
+     * Get the output inventory entity with either vanilla or an optimized implementation.
+     * Will be overwritten by {@link hopperOptimizations.mixins.entityTracking.HopperHelperMixin}
+     */
+    public static Inventory getOutputEntityInventory(HopperBlockEntity hopperBlockEntity) {
+        Direction direction = hopperBlockEntity.getCachedState().get(HopperBlock.FACING);
+        return vanillaGetEntityInventory(hopperBlockEntity.getWorld(), hopperBlockEntity.getPos().offset(direction));
     }
 
 

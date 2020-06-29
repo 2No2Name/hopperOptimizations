@@ -22,7 +22,7 @@ public class HopperOptimizationsExtension implements CarpetExtension {
         System.out.println("Hopper optimizations registered to the carpet mod options system!");
     }
 
-    public static void noop() {
+    public static void load() {
     }
 
     @Override

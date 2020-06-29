@@ -1,12 +1,10 @@
 package hopperOptimizations.utils;
 
-import net.minecraft.entity.Entity;
 import net.minecraft.inventory.Inventory;
 
 public interface IHopper {
 
 
-//    @Feature("optimizedInventories")
     void setMarkOtherDirty();
 
     /**
@@ -21,8 +19,9 @@ public interface IHopper {
      *                 Side effect: Sends comparator updates that would be sent on normal failed transfers.
      * @return Whether the current item transfer attempt is known to fail.
      */
-//    @Feature("optimizedInventories")
-    boolean tryShortcutFailedExtract(InventoryOptimizer thisOpt, Inventory other, InventoryOptimizer otherOpt);
+    default boolean tryShortcutFailedExtract(InventoryOptimizer thisOpt, Inventory other, InventoryOptimizer otherOpt) {
+        return false;
+    }
 
     /**
      * Checks whether the last item insert attempt was with the same inventory as the current one AND
@@ -35,12 +34,10 @@ public interface IHopper {
      *                 Side effect: Sends comparator updates that would be sent on normal failed transfers.
      * @return Whether the current item transfer attempt is known to fail.
      */
-//    @Feature("optimizedInventories")
-    boolean tryShortcutFailedInsert(InventoryOptimizer thisOpt, InventoryOptimizer otherOpt);
-
-    //    @Feature("optimizedEntityHopperInteraction")
-    default void notifyOfNearbyEntity(Entity entity) {
+    default boolean tryShortcutFailedInsert(InventoryOptimizer thisOpt, InventoryOptimizer otherOpt) {
+        return false;
     }
+
 
     default void onBlockUpdate() {
     }

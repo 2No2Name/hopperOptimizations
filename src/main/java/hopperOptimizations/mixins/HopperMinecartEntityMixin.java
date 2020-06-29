@@ -13,10 +13,6 @@ import org.spongepowered.asm.mixin.Mixin;
 //@Feature("optimizedInventories")
 @Mixin(HopperMinecartEntity.class)
 public class HopperMinecartEntityMixin implements IHopper {
-
-    //Duplicated code from HopperBlockEntityMixin, don't know where else to store those fields:
-    //Fields for optimizedInventories
-
     private int this_lastChangeCount_Extract;
     private InventoryOptimizer previousExtract;
     private int previousExtract_lastChangeCount;
@@ -34,7 +30,7 @@ public class HopperMinecartEntityMixin implements IHopper {
      *                 Side effect: Sends comparator updates that would be sent on normal failed transfers.
      * @return Whether the current item transfer attempt is known to fail.
      */
-//@Feature("optimizedInventories")
+    @Override
     public boolean tryShortcutFailedExtract(InventoryOptimizer thisOpt, Inventory other, InventoryOptimizer otherOpt) {
         int thisChangeCount = thisOpt.getInventoryChangeCount();
         int otherChangeCount = otherOpt.getInventoryChangeCount();
@@ -51,24 +47,7 @@ public class HopperMinecartEntityMixin implements IHopper {
         return true;
     }
 
-    /**
-     * Checks whether the last item insert attempt was with the same inventory as the current one AND
-     * since before the last item transfer attempt the hopper's inventory and the other inventory did not change.
-     * Requires optimizedInventories.
-     *
-     * @param thisOpt  InventoryOptimizer of this hopper
-     * @param otherOpt InventoryOptimizer of other
-     *                 <p>
-     *                 Side effect: Sends comparator updates that would be sent on normal failed transfers.
-     * @return Whether the current item transfer attempt is known to fail.
-     */
-//@Feature("optimizedInventories")
-    public boolean tryShortcutFailedInsert(InventoryOptimizer thisOpt, InventoryOptimizer otherOpt) {
-        return false; //hopper minecarts are not transferring items out. This won't break mods that implement it though.
-    }
-
-
-    //@Feature("optimizedInventories")
+    @Override
     public void setMarkOtherDirty() {
         this.previousExtract_causeMarkDirty = true;
     }

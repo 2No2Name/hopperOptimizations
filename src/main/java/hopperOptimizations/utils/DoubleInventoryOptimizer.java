@@ -1,6 +1,7 @@
 package hopperOptimizations.utils;
 
 import hopperOptimizations.settings.Settings;
+import hopperOptimizations.utils.inventoryOptimizer.OptimizedInventory;
 import net.minecraft.inventory.Inventory;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.math.Direction;

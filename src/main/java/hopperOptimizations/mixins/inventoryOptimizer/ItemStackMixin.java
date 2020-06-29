@@ -10,6 +10,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import javax.annotation.Nullable;
 
+/**
+ * Mixin to track item stack counts changing, which is relevant for updating the inventory optimizers.
+ */
 @Mixin(ItemStack.class)
 public abstract class ItemStackMixin implements InventoryListOptimized.IItemStackCaller {
     @Nullable
@@ -35,7 +38,7 @@ public abstract class ItemStackMixin implements InventoryListOptimized.IItemStac
 
     @Inject(method = "setCount", at = @At(value = "HEAD"))
     private void updateOptimizerData(int count, CallbackInfo ci) {
-        if (this.myInventoryList != null) {
+        if (this.myInventoryList != null && count != this.count) {
             this.myInventoryList.itemStackChangesCount((ItemStack) (Object) this, this.slotIndex, this.count, count);
         }
     }

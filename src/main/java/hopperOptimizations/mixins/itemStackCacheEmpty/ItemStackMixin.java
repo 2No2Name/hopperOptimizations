@@ -1,0 +1,39 @@
+package hopperOptimizations.mixins.itemStackCacheEmpty;
+
+import net.minecraft.item.Item;
+import net.minecraft.item.ItemStack;
+import net.minecraft.item.Items;
+import org.spongepowered.asm.mixin.Final;
+import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Overwrite;
+import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Redirect;
+
+@Mixin(ItemStack.class)
+public abstract class ItemStackMixin {
+    //Optimization: As ItemStack already caches whether it is empty, we only have to actually use the cached value.
+    @Shadow
+    private boolean empty;
+    @Shadow
+    private int count;
+    @Shadow
+    @Final
+    private Item item;
+
+    /**
+     * Overwrite to return faster than using Inject with setReturnValue.
+     *
+     * @author 2No2Name
+     */
+    @Overwrite
+    public boolean isEmpty() {
+        return this.empty;
+    }
+
+    @Redirect(method = "updateEmptyState", at = @At(value = "INVOKE", target = "Lnet/minecraft/item/ItemStack;isEmpty()Z"))
+    private boolean isEmptyRecalculate(ItemStack itemStack) {
+        return (this.item == null || this.item == Items.AIR || this.count <= 0);
+    }
+}
+
