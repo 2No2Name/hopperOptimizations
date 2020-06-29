@@ -2,7 +2,7 @@ package hopperOptimizations.mixins.inventoryCheckOnBlockUpdate;
 
 import hopperOptimizations.settings.Settings;
 import hopperOptimizations.utils.IHopper;
-import hopperOptimizations.workarounds.WorldInterface;
+import hopperOptimizations.workarounds.Interfaces;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.HopperBlock;
@@ -23,7 +23,7 @@ public class HopperBlockMixin {
         if (!Settings.inventoryCheckOnBlockUpdate) return;
         Direction facing = myBlockState.get(HopperBlock.FACING);
         if (neighborPos.getY() == myPos.getY() + 1 || neighborPos.getX() == myPos.getX() + facing.getOffsetX() && neighborPos.getY() == myPos.getY() + facing.getOffsetY() && neighborPos.getZ() == myPos.getZ() + facing.getOffsetZ()) {
-            BlockEntity hopper = ((WorldInterface) world).getExistingBlockEntity(myPos);
+            BlockEntity hopper = ((Interfaces.WorldInterface) world).getExistingBlockEntity(myPos);
             if (hopper instanceof IHopper)
                 ((IHopper) hopper).onBlockUpdate();
         }

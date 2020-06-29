@@ -4,9 +4,9 @@ import hopperOptimizations.settings.Settings;
 import hopperOptimizations.utils.*;
 import hopperOptimizations.utils.entitycache.NearbyHopperInventoriesTracker;
 import hopperOptimizations.utils.entitycache.NearbyHopperItemsTracker;
-import hopperOptimizations.workarounds.BlockEntityInterface;
 import hopperOptimizations.workarounds.EntityHopperInteraction;
 import hopperOptimizations.workarounds.INoExtractInventoryUntilBlockUpdate;
+import hopperOptimizations.workarounds.Interfaces;
 import net.minecraft.block.Block;
 import net.minecraft.block.HopperBlock;
 import net.minecraft.block.entity.*;
@@ -596,7 +596,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
 
         this.cachedExtractInventory = other;
         if (other instanceof BlockEntity) {
-            this.cachedExtractInventoryRemovedCount = ((BlockEntityInterface) other).getRemovedCount();
+            this.cachedExtractInventoryRemovedCount = ((Interfaces.BlockEntityInterface) other).getRemovedCount();
         }
 
         this.cachedExtractInventoryAfterLastBlockUpdate = true;
@@ -620,7 +620,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
 
         this.prevInsertInventory = other;
         if (other instanceof BlockEntity) {
-            this.prevInsertRemovedCount = ((BlockEntityInterface) other).getRemovedCount();
+            this.prevInsertRemovedCount = ((Interfaces.BlockEntityInterface) other).getRemovedCount();
         }
         this.cachedInsertInventoryAfterLastBlockUpdate = true;
 

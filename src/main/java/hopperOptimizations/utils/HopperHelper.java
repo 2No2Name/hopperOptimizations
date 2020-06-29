@@ -2,8 +2,8 @@ package hopperOptimizations.utils;
 
 import hopperOptimizations.settings.Settings;
 import hopperOptimizations.utils.entitycache.NearbyHopperInventoriesTracker;
-import hopperOptimizations.workarounds.BlockEntityInterface;
 import hopperOptimizations.workarounds.IValidInventoryUntilBlockUpdate;
+import hopperOptimizations.workarounds.Interfaces;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.ChestBlock;
@@ -166,7 +166,7 @@ public abstract class HopperHelper {
         }
 
         if (cachedInv instanceof BlockEntity) {
-            if (((BlockEntityInterface) cachedInv).getRemovedCount() == cachedRemovedCount) {
+            if (((Interfaces.BlockEntityInterface) cachedInv).getRemovedCount() == cachedRemovedCount) {
                 if (cachedInv instanceof ChestBlockEntity)
                     return ChestType.SINGLE != ((ChestBlockEntity) cachedInv).getCachedState().get(ChestBlock.CHEST_TYPE);
                 return false;

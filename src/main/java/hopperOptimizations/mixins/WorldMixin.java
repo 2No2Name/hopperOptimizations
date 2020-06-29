@@ -1,6 +1,6 @@
 package hopperOptimizations.mixins;
 
-import hopperOptimizations.workarounds.WorldInterface;
+import hopperOptimizations.workarounds.Interfaces;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
@@ -12,7 +12,7 @@ import org.spongepowered.asm.mixin.Shadow;
 import javax.annotation.Nullable;
 
 @Mixin(World.class)
-public abstract class WorldMixin implements WorldInterface {
+public abstract class WorldMixin implements Interfaces.WorldInterface {
     @Shadow
     @Final
     public boolean isClient;

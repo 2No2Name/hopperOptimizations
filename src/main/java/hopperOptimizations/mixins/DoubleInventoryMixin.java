@@ -3,7 +3,7 @@ package hopperOptimizations.mixins;
 import hopperOptimizations.utils.DoubleInventoryOptimizer;
 import hopperOptimizations.utils.InventoryOptimizer;
 import hopperOptimizations.utils.OptimizedInventory;
-import hopperOptimizations.workarounds.BlockEntityInterface;
+import hopperOptimizations.workarounds.Interfaces;
 import net.minecraft.block.entity.ChestBlockEntity;
 import net.minecraft.inventory.DoubleInventory;
 import net.minecraft.inventory.Inventory;
@@ -47,8 +47,8 @@ public abstract class DoubleInventoryMixin implements OptimizedInventory {
             invalid = true;
             return;
         }
-        firstRemovedCount = ((BlockEntityInterface) inventory_1).getRemovedCount();
-        secondRemovedCount = ((BlockEntityInterface) inventory_2).getRemovedCount();
+        firstRemovedCount = ((Interfaces.BlockEntityInterface) inventory_1).getRemovedCount();
+        secondRemovedCount = ((Interfaces.BlockEntityInterface) inventory_2).getRemovedCount();
         invalid = (firstRemovedCount == -1 || secondRemovedCount == -1);
     }
 
@@ -68,8 +68,8 @@ public abstract class DoubleInventoryMixin implements OptimizedInventory {
 
     //Allows caching the inventory safely
     public boolean isStillValid() {
-        return !this.invalid && !(this.invalid = firstRemovedCount != ((BlockEntityInterface) first).getRemovedCount()) &&
-                !(this.invalid = secondRemovedCount != ((BlockEntityInterface) second).getRemovedCount());
+        return !this.invalid && !(this.invalid = firstRemovedCount != ((Interfaces.BlockEntityInterface) first).getRemovedCount()) &&
+                !(this.invalid = secondRemovedCount != ((Interfaces.BlockEntityInterface) second).getRemovedCount());
     }
 
 }
