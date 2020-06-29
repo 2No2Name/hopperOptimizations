@@ -10,7 +10,6 @@ public class Interfaces {
     }
 
     public interface WorldInterface {
-
         BlockEntity getExistingBlockEntity(BlockPos pos);
     }
 }
