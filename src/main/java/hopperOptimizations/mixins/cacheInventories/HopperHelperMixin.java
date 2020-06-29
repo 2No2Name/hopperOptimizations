@@ -11,17 +11,19 @@ import org.spongepowered.asm.mixin.Overwrite;
 public class HopperHelperMixin {
     /**
      * @author 2No2Name
+     * @reason implement optimized variant
      */
-    @Overwrite
+    @Overwrite(remap = false)
     public static Inventory getOutputBlockInventory(HopperBlockEntity hopperBlockEntity) {
         return ((Interfaces.HopperWithInventoryCache) hopperBlockEntity).getOutputInventoryWithCache(hopperBlockEntity);
     }
 
     /**
      * @author 2No2Name
+     * @reason implement optimized variant
      */
-    @Overwrite
-    public static Inventory getInputBlockInventory(HopperBlockEntity hopperBlockEntity) {
-        return ((Interfaces.HopperWithInventoryCache) hopperBlockEntity).getInputInventoryWithCache(hopperBlockEntity);
+    @Overwrite(remap = false)
+    public static Inventory getInputBlockInventory(Object hopperBlockEntity) {
+        return ((Interfaces.HopperWithInventoryCache) hopperBlockEntity).getInputInventoryWithCache(((HopperBlockEntity) hopperBlockEntity));
     }
 }

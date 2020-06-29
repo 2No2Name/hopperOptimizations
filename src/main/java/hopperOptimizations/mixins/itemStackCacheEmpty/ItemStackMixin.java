@@ -22,9 +22,8 @@ public abstract class ItemStackMixin {
     private Item item;
 
     /**
-     * Overwrite to return faster than using Inject with setReturnValue.
-     *
      * @author 2No2Name
+     * @reason return as quickly as possible
      */
     @Overwrite
     public boolean isEmpty() {

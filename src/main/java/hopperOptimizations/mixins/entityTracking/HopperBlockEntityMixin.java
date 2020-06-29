@@ -64,18 +64,16 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
      */
     @Inject(method = "extract(Lnet/minecraft/block/entity/Hopper;)Z", at = @At(value = "INVOKE", target = "Lnet/minecraft/block/entity/HopperBlockEntity;getInputItemEntities(Lnet/minecraft/block/entity/Hopper;)Ljava/util/List;", shift = At.Shift.BEFORE), locals = LocalCapture.CAPTURE_FAILHARD, cancellable = true)
     private static void optimizeItemPickupMixin(Hopper hopper, CallbackInfoReturnable<Boolean> cir) {
-        if (!Settings.optimizedEntityHopperInteraction || !(hopper instanceof HopperBlockEntity)) {
+        if (!Settings.optimizedEntityHopperInteraction || !(hopper instanceof HopperBlockEntityMixin)) {
             return; //use vanilla code when optimization is off or this is a hopper minecart
         }
 
         if (!Settings.debugOptimizedEntityHopperInteraction) {
-            //noinspection ConstantConditions
-            ((HopperBlockEntityMixin) hopper).optimizeItemPickup((HopperBlockEntity) hopper, cir);
+            ((HopperBlockEntityMixin) hopper).optimizeItemPickup(hopper, cir);
         } else {
             try {
                 List<ItemEntity> itemEntities = HopperBlockEntity.getInputItemEntities(hopper);
-                //noinspection ConstantConditions
-                ItemEntity pickedUp = ((HopperBlockEntityMixin) hopper).optimizeItemPickup((HopperBlockEntity) hopper, cir);
+                ItemEntity pickedUp = ((HopperBlockEntityMixin) hopper).optimizeItemPickup(hopper, cir);
                 if (pickedUp == null) {
                     pickedUp = HopperHelper.vanillaPickupItem(hopper, itemEntities.iterator());
                     if (pickedUp != null)
@@ -163,7 +161,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
         return new Box(this.pos.up());
     }
 
-    private ItemEntity optimizeItemPickup(HopperBlockEntity hopperBlockEntity, CallbackInfoReturnable<Boolean> cir) {
+    private ItemEntity optimizeItemPickup(Object hopperBlockEntity, CallbackInfoReturnable<Boolean> cir) {
         final InventoryOptimizer opt = ((OptimizedInventory) hopperBlockEntity).getOptimizer(true);
         if (opt == null) {
             return null; //fallback to vanilla
@@ -172,7 +170,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
         //fix the entity cache in case it is not initialized
         if (this.inputItemEntities == null) {
             //keep a set of reachable items to be faster next time
-            this.inputItemEntities = new NearbyHopperItemsTracker(this.pos, hopperBlockEntity);
+            this.inputItemEntities = new NearbyHopperItemsTracker(this.pos, (Hopper) hopperBlockEntity);
             this.inputItemEntities.registerToEntityTracker(this.world);
             this.this_lastChangeCount_Pickup = 0;
         }

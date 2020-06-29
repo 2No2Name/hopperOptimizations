@@ -71,13 +71,14 @@ public abstract class HopperBlockEntityMixin_Main extends LootableContainerBlock
     private long lastTickTime;
     @Shadow
     private DefaultedList<ItemStack> inventory;
+
+    protected HopperBlockEntityMixin_Main(BlockEntityType<?> blockEntityType) {
+        super(blockEntityType);
+    }
+
     @Shadow
     private static ItemStack transfer(@Nullable Inventory from, Inventory to, ItemStack stack, int index, @Nullable Direction fromDirection) {
         throw new AssertionError();
-    }
-
-    public HopperBlockEntityMixin_Main() {
-        super(BlockEntityType.HOPPER);
     }
 
     /**
@@ -226,13 +227,12 @@ public abstract class HopperBlockEntityMixin_Main extends LootableContainerBlock
 
     @Redirect(method = "extract(Lnet/minecraft/block/entity/Hopper;)Z", at = @At(value = "INVOKE", target = "Lnet/minecraft/block/entity/HopperBlockEntity;getInputInventory(Lnet/minecraft/block/entity/Hopper;)Lnet/minecraft/inventory/Inventory;"))
     private static Inventory getInputInventoryFromCache(Hopper hopper) {
-        if (!(hopper instanceof HopperBlockEntity))
+        if (!(hopper instanceof HopperBlockEntityMixin_Main))
             return HopperBlockEntity.getInputInventory(hopper); //Hopper Minecarts do not cache Inventories
-
-        Inventory ret = HopperHelper.getInputBlockInventory((HopperBlockEntity) hopper);
+        Inventory ret = HopperHelper.getInputBlockInventory(hopper);
         if (ret != null)
             return ret;
-        return HopperHelper.getInputEntityInventory((HopperBlockEntity) hopper);
+        return HopperHelper.getInputEntityInventory(hopper);
     }
 
     @Override
@@ -333,20 +333,17 @@ public abstract class HopperBlockEntityMixin_Main extends LootableContainerBlock
     @Shadow
     public abstract int size();
 
-    //@Feature("optimizedInventories")
     @Redirect(method = "<init>()V", at = @At(value = "INVOKE", target = "Lnet/minecraft/util/collection/DefaultedList;ofSize(ILjava/lang/Object;)Lnet/minecraft/util/collection/DefaultedList;"))
     private DefaultedList<ItemStack> createInventory(int int_1, Object object_1) {
         return InventoryListOptimized.ofSize(int_1, (ItemStack) object_1);
     }
 
-    //@Feature("optimizedInventories")
     @Inject(method = "setInvStackList", at = @At("RETURN"))
     private void onSetStackList(DefaultedList<ItemStack> stackList, CallbackInfo ci) {
         if (!(inventory instanceof InventoryListOptimized))
             inventory = new InventoryListOptimized(Arrays.asList((ItemStack[]) inventory.toArray()), ItemStack.EMPTY);
     }
 
-    //@Feature("optimizedInventories")
     @Redirect(method = "fromTag", at = @At(value = "INVOKE", target = "Lnet/minecraft/util/collection/DefaultedList;ofSize(ILjava/lang/Object;)Lnet/minecraft/util/collection/DefaultedList;"))
     private DefaultedList<ItemStack> createInventory2(int int_1, Object object_1) {
         return InventoryListOptimized.ofSize(int_1, (ItemStack) object_1);
