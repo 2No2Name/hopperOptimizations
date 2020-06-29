@@ -12,8 +12,7 @@ public class Fixes {
 
     public static void onInventoryBlockChangedWithoutBlockUpdate(World world, BlockPos pos) {
         for (Direction direction : directions) {
-            //todo get only existing block entities, not create new ones
-            BlockEntity hopper = world.getBlockEntity(pos.offset(direction));
+            BlockEntity hopper = ((Interfaces.WorldInterface) world).getExistingBlockEntity(pos.offset(direction));
             if (hopper instanceof IHopper) {
                 ((IHopper) hopper).onBlockUpdate();
             }
