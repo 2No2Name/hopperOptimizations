@@ -1,7 +1,5 @@
 package hopperOptimizations.utils.inventoryOptimizer;
 
-import hopperOptimizations.utils.InventoryListOptimized;
-import hopperOptimizations.utils.InventoryOptimizer;
 import net.minecraft.inventory.Inventory;
 import net.minecraft.inventory.SidedInventory;
 import net.minecraft.item.ItemStack;

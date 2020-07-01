@@ -1,6 +1,6 @@
 package hopperOptimizations.mixins.cacheInventories.cacheInventoryBlocks;
 
-import hopperOptimizations.workarounds.IValidInventoryUntilBlockUpdate;
+import hopperOptimizations.features.cacheInventories.IValidInventoryUntilBlockUpdate;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 

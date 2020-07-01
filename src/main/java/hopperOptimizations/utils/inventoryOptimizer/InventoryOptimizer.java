@@ -1,4 +1,4 @@
-package hopperOptimizations.utils;
+package hopperOptimizations.utils.inventoryOptimizer;
 
 import hopperOptimizations.settings.Settings;
 import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
@@ -285,7 +285,7 @@ public class InventoryOptimizer {
     }
 
     //Used to trick comparators into sending block updates like in vanilla.
-    void setFakeReducedSignalStrength() {
+    public void setFakeReducedSignalStrength() {
         assert !(this instanceof DoubleInventoryOptimizer);
         this.fakeSignalStrength = this.getSignalStrength() - 1;
         if (fakeSignalStrength == -1) fakeSignalStrength = 0;
@@ -296,7 +296,7 @@ public class InventoryOptimizer {
         this.fakeSignalStrength = i;
     }
 
-    void clearFakeChangedSignalStrength() {
+    public void clearFakeChangedSignalStrength() {
         assert !(this instanceof DoubleInventoryOptimizer);
         this.fakeSignalStrength = -1;
     }
@@ -317,7 +317,7 @@ public class InventoryOptimizer {
     }
 
     //No override in DoubleInventoryOptimizer required
-    boolean canOneExtractDecreaseSignalStrength(InventoryOptimizer pulledFrom) {
+    public boolean canOneExtractDecreaseSignalStrength(InventoryOptimizer pulledFrom) {
         if (isEmpty()) return false;
 
         int maxExtractableItemWeight = (int) (64F / getMinExtractableItemStackSize(pulledFrom));

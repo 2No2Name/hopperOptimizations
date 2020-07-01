@@ -2,6 +2,7 @@
   "required": true,
   "package": "hopperOptimizations.mixins",
   "compatibilityLevel": "JAVA_8",
+  "plugin": "hopperOptimizations.mixins.HopperOptimizationsMixinPlugin",
   "mixins": [
     "HopperBlockEntityMixin_Main",
     "HopperMinecartEntityMixin",
@@ -24,6 +25,7 @@
     "inventoryOptimizer.inventories.ChestBlockEntityMixin",
     "inventoryOptimizer.inventories.DispenserBlockEntityMixin",
     "inventoryOptimizer.inventories.DoubleInventoryMixin",
+    "inventoryOptimizer.inventories.HopperBlockEntityMixin",
     "inventoryOptimizer.inventories.ShulkerBoxBlockEntityMixin",
     "inventoryOptimizer.inventories.StorageMinecartEntityMixin",
     "itemStackCacheEmpty.ItemStackMixin",

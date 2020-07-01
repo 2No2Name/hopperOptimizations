@@ -1,8 +1,8 @@
 package hopperOptimizations.mixins.inventoryOptimizer.inventories;
 
 
-import hopperOptimizations.utils.InventoryListOptimized;
-import hopperOptimizations.utils.InventoryOptimizer;
+import hopperOptimizations.utils.inventoryOptimizer.InventoryListOptimized;
+import hopperOptimizations.utils.inventoryOptimizer.InventoryOptimizer;
 import hopperOptimizations.utils.inventoryOptimizer.OptimizedInventory;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.vehicle.AbstractMinecartEntity;

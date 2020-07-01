@@ -1,4 +1,4 @@
-package hopperOptimizations.utils;
+package hopperOptimizations.utils.inventoryOptimizer;
 
 import net.minecraft.inventory.Inventory;
 import net.minecraft.item.ItemStack;

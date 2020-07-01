@@ -1,7 +1,7 @@
 package hopperOptimizations.mixins.inventoryOptimizer.inventories;
 
-import hopperOptimizations.utils.DoubleInventoryOptimizer;
-import hopperOptimizations.utils.InventoryOptimizer;
+import hopperOptimizations.utils.inventoryOptimizer.DoubleInventoryOptimizer;
+import hopperOptimizations.utils.inventoryOptimizer.InventoryOptimizer;
 import hopperOptimizations.utils.inventoryOptimizer.OptimizedInventory;
 import net.minecraft.inventory.DoubleInventory;
 import net.minecraft.inventory.Inventory;

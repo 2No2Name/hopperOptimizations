@@ -1,7 +1,7 @@
 package hopperOptimizations.mixins.inventoryOptimizer.inventories;
 
-import hopperOptimizations.utils.InventoryListOptimized;
-import hopperOptimizations.utils.InventoryOptimizer;
+import hopperOptimizations.utils.inventoryOptimizer.InventoryListOptimized;
+import hopperOptimizations.utils.inventoryOptimizer.InventoryOptimizer;
 import hopperOptimizations.utils.inventoryOptimizer.OptimizedInventory;
 import net.minecraft.block.entity.BlockEntityType;
 import net.minecraft.block.entity.ChestBlockEntity;
@@ -19,7 +19,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import javax.annotation.Nullable;
 import java.util.Arrays;
 
-//@Feature("optimizedInventories")
 @Mixin(ChestBlockEntity.class)
 public abstract class ChestBlockEntityMixin extends LootableContainerBlockEntity implements OptimizedInventory, Tickable {
     @Shadow

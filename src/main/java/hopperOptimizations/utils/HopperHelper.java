@@ -1,9 +1,11 @@
 package hopperOptimizations.utils;
 
+import hopperOptimizations.features.cacheInventories.IValidInventoryUntilBlockUpdate;
 import hopperOptimizations.features.entityTracking.NearbyHopperInventoriesTracker;
 import hopperOptimizations.settings.Settings;
+import hopperOptimizations.utils.inventoryOptimizer.DoubleInventoryOptimizer;
+import hopperOptimizations.utils.inventoryOptimizer.InventoryOptimizer;
 import hopperOptimizations.utils.inventoryOptimizer.OptimizedInventory;
-import hopperOptimizations.workarounds.IValidInventoryUntilBlockUpdate;
 import hopperOptimizations.workarounds.Interfaces;
 import net.minecraft.block.*;
 import net.minecraft.block.entity.BlockEntity;
@@ -191,13 +193,11 @@ public abstract class HopperHelper {
      * @return whether the inventory should still be used
      */
     public static boolean inventoryCacheInvalid(Inventory cachedInv, int cachedRemovedCount, boolean hasToCheckForInventoryBlock) {
-        if (Settings.inventoryCheckOnBlockUpdate) {
-            if (cachedInv == null) {
-                return hasToCheckForInventoryBlock;
-            } else if (cachedInv instanceof IValidInventoryUntilBlockUpdate) {
-                return hasToCheckForInventoryBlock
-                        && ((IValidInventoryUntilBlockUpdate) cachedInv).isValid();
-            }
+        if (cachedInv == null) {
+            return hasToCheckForInventoryBlock;
+        } else if (cachedInv instanceof IValidInventoryUntilBlockUpdate) {
+            return hasToCheckForInventoryBlock
+                    && ((IValidInventoryUntilBlockUpdate) cachedInv).isValid();
         }
 
         if (cachedInv instanceof BlockEntity) {

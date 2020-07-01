@@ -4,7 +4,7 @@ import hopperOptimizations.features.entityTracking.NearbyHopperInventoriesTracke
 import hopperOptimizations.features.entityTracking.NearbyHopperItemsTracker;
 import hopperOptimizations.settings.Settings;
 import hopperOptimizations.utils.HopperHelper;
-import hopperOptimizations.utils.InventoryOptimizer;
+import hopperOptimizations.utils.inventoryOptimizer.InventoryOptimizer;
 import hopperOptimizations.utils.inventoryOptimizer.OptimizedInventory;
 import hopperOptimizations.workarounds.HopperWithClearableCaches;
 import hopperOptimizations.workarounds.Interfaces;
@@ -64,7 +64,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
      */
     @Inject(method = "extract(Lnet/minecraft/block/entity/Hopper;)Z", at = @At(value = "INVOKE", target = "Lnet/minecraft/block/entity/HopperBlockEntity;getInputItemEntities(Lnet/minecraft/block/entity/Hopper;)Ljava/util/List;", shift = At.Shift.BEFORE), locals = LocalCapture.CAPTURE_FAILHARD, cancellable = true)
     private static void optimizeItemPickupMixin(Hopper hopper, CallbackInfoReturnable<Boolean> cir) {
-        if (!Settings.optimizedEntityHopperInteraction || !(hopper instanceof HopperBlockEntityMixin)) {
+        if (!(hopper instanceof HopperBlockEntityMixin)) {
             return; //use vanilla code when optimization is off or this is a hopper minecart
         }
 

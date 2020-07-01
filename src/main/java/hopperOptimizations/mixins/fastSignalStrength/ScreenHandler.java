@@ -1,6 +1,6 @@
 package hopperOptimizations.mixins.fastSignalStrength;
 
-import hopperOptimizations.utils.InventoryOptimizer;
+import hopperOptimizations.utils.inventoryOptimizer.InventoryOptimizer;
 import hopperOptimizations.utils.inventoryOptimizer.OptimizedInventory;
 import net.minecraft.inventory.Inventory;
 import org.spongepowered.asm.mixin.Mixin;

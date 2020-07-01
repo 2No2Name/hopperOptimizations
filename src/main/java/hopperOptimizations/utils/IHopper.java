@@ -1,5 +1,6 @@
 package hopperOptimizations.utils;
 
+import hopperOptimizations.utils.inventoryOptimizer.InventoryOptimizer;
 import net.minecraft.inventory.Inventory;
 
 public interface IHopper {

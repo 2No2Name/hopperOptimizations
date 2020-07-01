@@ -1,6 +1,5 @@
 package hopperOptimizations.mixins.cacheInventories.cacheInventoryBlocks;
 
-import hopperOptimizations.settings.Settings;
 import hopperOptimizations.utils.IHopper;
 import hopperOptimizations.workarounds.Fixes;
 import hopperOptimizations.workarounds.Interfaces;
@@ -20,7 +19,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public class HopperBlockMixin {
     @Inject(method = "neighborUpdate(Lnet/minecraft/block/BlockState;Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/Block;Lnet/minecraft/util/math/BlockPos;Z)V", at = @At(value = "HEAD"))
     private void updateBlockEntity(BlockState myBlockState, World world, BlockPos myPos, Block block, BlockPos neighborPos, boolean moved, CallbackInfo ci) {
-        if (!Settings.inventoryCheckOnBlockUpdate) return;
         Direction facing = myBlockState.get(HopperBlock.FACING);
         if (neighborPos.getY() == myPos.getY() + 1 || neighborPos.getX() == myPos.getX() + facing.getOffsetX() && neighborPos.getY() == myPos.getY() + facing.getOffsetY() && neighborPos.getZ() == myPos.getZ() + facing.getOffsetZ()) {
             BlockEntity hopper = ((Interfaces.WorldInterface) world).getExistingBlockEntity(myPos);
@@ -31,7 +29,7 @@ public class HopperBlockMixin {
 
     @Inject(method = "onBlockAdded", at = @At(value = "INVOKE", target = "Lnet/minecraft/block/HopperBlock;updateEnabled(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/BlockState;)V", shift = At.Shift.AFTER))
     private void hotfixVanillaUpdateSupression(BlockState state, World world, BlockPos pos, BlockState oldState, boolean moved, CallbackInfo ci) {
-        if (Settings.inventoryCheckOnBlockUpdate && world.getBlockState(pos) != state) {
+        if (world.getBlockState(pos) != state) {
             Fixes.onInventoryBlockChangedWithoutBlockUpdate(world, pos);
         }
     }

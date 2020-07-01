@@ -24,7 +24,9 @@ import java.util.List;
  * @author 2No2Name
  */
 public class NearbyHopperItemsTracker extends NearbyEntityTrackerBox<ItemEntity> {
+    @SuppressWarnings("MismatchedQueryAndUpdateOfCollection")
     private static final List<ItemEntity> EMPTY_LIST = new ArrayList<>(0);
+
     private static final VoxelShape inputAreaShape;
     private static final List<Box> boxes;
 
@@ -63,7 +65,6 @@ public class NearbyHopperItemsTracker extends NearbyEntityTrackerBox<ItemEntity>
 
     private boolean initialized = false;
     private boolean searchEntitiesAfterInitialization = false;
-    private Box collectionAreaEnclosingBox;
 
     public NearbyHopperItemsTracker(BlockPos hopperPos, Hopper hopper) {
         super(ItemEntity.class);

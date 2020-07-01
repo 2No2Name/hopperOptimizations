@@ -4,13 +4,12 @@ package hopperOptimizations.mixins;
 import hopperOptimizations.settings.Settings;
 import hopperOptimizations.utils.HopperHelper;
 import hopperOptimizations.utils.IHopper;
-import hopperOptimizations.utils.InventoryOptimizer;
+import hopperOptimizations.utils.inventoryOptimizer.InventoryOptimizer;
 import net.minecraft.entity.vehicle.HopperMinecartEntity;
 import net.minecraft.inventory.Inventory;
 import org.spongepowered.asm.mixin.Mixin;
 
 
-//@Feature("optimizedInventories")
 @Mixin(HopperMinecartEntity.class)
 public class HopperMinecartEntityMixin implements IHopper {
     private int this_lastChangeCount_Extract;

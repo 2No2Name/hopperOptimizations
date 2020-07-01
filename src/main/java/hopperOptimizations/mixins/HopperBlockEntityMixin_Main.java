@@ -1,22 +1,19 @@
 package hopperOptimizations.mixins;
 
+import hopperOptimizations.features.cacheInventories.INoExtractInventoryUntilBlockUpdate;
 import hopperOptimizations.settings.Settings;
 import hopperOptimizations.utils.HopperHelper;
 import hopperOptimizations.utils.IHopper;
-import hopperOptimizations.utils.InventoryListOptimized;
-import hopperOptimizations.utils.InventoryOptimizer;
+import hopperOptimizations.utils.inventoryOptimizer.InventoryOptimizer;
 import hopperOptimizations.utils.inventoryOptimizer.OptimizedInventory;
 import hopperOptimizations.workarounds.HopperWithClearableCaches;
-import hopperOptimizations.workarounds.INoExtractInventoryUntilBlockUpdate;
 import net.minecraft.block.entity.BlockEntityType;
 import net.minecraft.block.entity.Hopper;
 import net.minecraft.block.entity.HopperBlockEntity;
 import net.minecraft.block.entity.LootableContainerBlockEntity;
 import net.minecraft.entity.vehicle.HopperMinecartEntity;
 import net.minecraft.inventory.Inventory;
-import net.minecraft.inventory.SidedInventory;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.collection.DefaultedList;
 import net.minecraft.util.math.Direction;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -28,49 +25,11 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
 
 import javax.annotation.Nullable;
-import java.util.Arrays;
 
 @Mixin(HopperBlockEntity.class)
-public abstract class HopperBlockEntityMixin_Main extends LootableContainerBlockEntity implements OptimizedInventory, IHopper, Hopper, HopperWithClearableCaches {
-
-    //-----------------------------------------------
-    //Fields for optimizedHopperPickupShape
-    //-----------------------------------------------
-    //Fields for OptimizedEntityHopperInteraction
-
-    //set for item entities that are above the hopper. item entities add themselves to the set when they move, but
-    //when they move away or die the hopper has to remove them again
-    //the set only exists/is valid when the hopper is not interacting with an inventory instead
-    //getting entities from this set instead of the world improves performance by a lot
-    //private LinkedHashSet<ItemEntity> inputItemEntities;
-    //separate set for entities that have an item type that matches an inventory slot. It becomes invalid when not all hopper slots occupied or hopper slot item types change
-    //intended to improve performance when a lot of non-fitting item entities are on top of a hopper
-    //private LinkedHashSet<ItemEntity> fittingItems;
-
-    //value of the counter when fittingItems was initialized. a change of the item types means that fitting items is outdated
-    //private int lastItemTypeChangeCount; //when this.getOptimizer().itemTypeChanges increments, invalidate reachableFittingItems
-
-
-    //private boolean itemEntityCacheInvalid = true;
-    //private boolean inputInventoryEntityCacheInvalid = true;
-    //private boolean outputInventoryEntityCacheInvalid = true;
-    //used to invalidate caches that are unused for a longer time
-
-
-
-    //-----------------------------------------------
-    //-----------------------------------------------
-    //Fields for optimizedInventories
-
-    //-----------------------------------------------
-    //Fields for inventoryCheckOnBlockUpdate
-
-    //-----------------------------------------------
-
+public abstract class HopperBlockEntityMixin_Main extends LootableContainerBlockEntity implements IHopper, Hopper, HopperWithClearableCaches {
     @Shadow
     private long lastTickTime;
-    @Shadow
-    private DefaultedList<ItemStack> inventory;
 
     protected HopperBlockEntityMixin_Main(BlockEntityType<?> blockEntityType) {
         super(blockEntityType);
@@ -88,7 +47,6 @@ public abstract class HopperBlockEntityMixin_Main extends LootableContainerBlock
      * Shall behave exactly like the vanilla implementation, just using the advantages of optimizedInventories.
      *
      */
-//@Feature("optimizedInventories")
     @Inject(method = "transfer(Lnet/minecraft/inventory/Inventory;Lnet/minecraft/inventory/Inventory;Lnet/minecraft/item/ItemStack;Lnet/minecraft/util/math/Direction;)Lnet/minecraft/item/ItemStack;", at = @At("HEAD"), cancellable = true)
     private static void optimizedTransfer(Inventory from, Inventory to, ItemStack stack, Direction fromDirection, CallbackInfoReturnable<ItemStack> cir) {
         if (to instanceof OptimizedInventory) {
@@ -210,7 +168,6 @@ public abstract class HopperBlockEntityMixin_Main extends LootableContainerBlock
      * @param wasEmpty     whether the hopper was empty before the transfer
      * @param lastTickTime the tick time the transferring hopper was last ticked
      */
-//@Feature("optimizedInventories")
     private static void setReceiverCooldown(Inventory receiver, boolean wasEmpty, long lastTickTime) {
         if (wasEmpty && receiver instanceof HopperBlockEntityMixin_Main) {
             HopperBlockEntityMixin_Main hopperBlockEntity_1 = (HopperBlockEntityMixin_Main) receiver;
@@ -223,16 +180,6 @@ public abstract class HopperBlockEntityMixin_Main extends LootableContainerBlock
             }
         }
         receiver.markDirty();
-    }
-
-    @Redirect(method = "extract(Lnet/minecraft/block/entity/Hopper;)Z", at = @At(value = "INVOKE", target = "Lnet/minecraft/block/entity/HopperBlockEntity;getInputInventory(Lnet/minecraft/block/entity/Hopper;)Lnet/minecraft/inventory/Inventory;"))
-    private static Inventory getInputInventoryFromCache(Hopper hopper) {
-        if (!(hopper instanceof HopperBlockEntityMixin_Main))
-            return HopperBlockEntity.getInputInventory(hopper); //Hopper Minecarts do not cache Inventories
-        Inventory ret = HopperHelper.getInputBlockInventory(hopper);
-        if (ret != null)
-            return ret;
-        return HopperHelper.getInputEntityInventory(hopper);
     }
 
     @Override
@@ -249,7 +196,6 @@ public abstract class HopperBlockEntityMixin_Main extends LootableContainerBlock
      * @param inventory Inventory that is either empty or not
      * @return false when the value is unused in vanilla, otherwise inventory.isInvEmpty() or optimized equivalent
      */
-//@Feature("optimizedInventories")
     @Redirect(require = 0, method = "transfer(Lnet/minecraft/inventory/Inventory;Lnet/minecraft/inventory/Inventory;Lnet/minecraft/item/ItemStack;ILnet/minecraft/util/math/Direction;)Lnet/minecraft/item/ItemStack;", at = @At(value = "INVOKE", target = "Lnet/minecraft/inventory/Inventory;isEmpty()Z"))
     private static boolean isInvEmptyOpt(Inventory inventory) {
         if (!(inventory instanceof HopperBlockEntity))
@@ -270,7 +216,6 @@ public abstract class HopperBlockEntityMixin_Main extends LootableContainerBlock
      * @param inventory Inventory that is either empty or not
      * @param direction Expected constant Direction.DOWN
      */
-//@Feature("optimizedInventories")
     @Inject(require = 0, method = "isInventoryEmpty", at = @At(value = "HEAD"), cancellable = true)
     private static void isInventoryEmptyOpt(Inventory inventory, Direction direction, CallbackInfoReturnable<Boolean> cir) {
         if (inventory instanceof OptimizedInventory && direction == Direction.DOWN) {
@@ -304,21 +249,21 @@ public abstract class HopperBlockEntityMixin_Main extends LootableContainerBlock
         }
     }
 
-
-    //@Feature("optimizedInventories")
-    @Redirect(require = 0, allow = 1, method = "insertAndExtract", at = @At(value = "INVOKE", target = "Lnet/minecraft/block/entity/HopperBlockEntity;isEmpty()Z"))
-    private boolean isEmptyOpt(HopperBlockEntity hopperBlockEntity) {
-        InventoryOptimizer opt = this.getOptimizer(true);
-        if (opt != null) return opt.getFirstOccupiedSlot_extractable() == -1;
-        return isEmpty();
+    @Redirect(method = "extract(Lnet/minecraft/block/entity/Hopper;)Z", at = @At(value = "INVOKE", target = "Lnet/minecraft/block/entity/HopperBlockEntity;getInputInventory(Lnet/minecraft/block/entity/Hopper;)Lnet/minecraft/inventory/Inventory;"))
+    private static Inventory getInputInventoryFromCache(Hopper hopper) {
+        if (!(hopper instanceof HopperBlockEntityMixin_Main))
+            return HopperBlockEntity.getInputInventory(hopper); //Hopper Minecarts do not cache Inventories
+        Inventory ret = HopperHelper.getInputBlockInventory(hopper);
+        if (ret != null)
+            return ret;
+        return HopperHelper.getInputEntityInventory(hopper);
     }
 
-    //@Feature("optimizedInventories")
-    @Redirect(require = 0, allow = 1, method = "insertAndExtract", at = @At(value = "INVOKE", target = "Lnet/minecraft/block/entity/HopperBlockEntity;isFull()Z"))
-    private boolean isFullOpt(HopperBlockEntity hopperBlockEntity) {
-        InventoryOptimizer opt = this.getOptimizer(true);
-        if (opt != null) return opt.isFull_insertable(null);
-        return isFull();
+    @Redirect(require = 0, allow = 1, method = "insertAndExtract", at = @At(value = "INVOKE", target = "Lnet/minecraft/block/entity/HopperBlockEntity;isEmpty()Z"))
+    private boolean isEmptyOpt(HopperBlockEntity hopperBlockEntity) {
+        InventoryOptimizer opt = ((OptimizedInventory) this).getOptimizer(true);
+        if (opt != null) return opt.getFirstOccupiedSlot_extractable() == -1;
+        return isEmpty();
     }
 
     @Inject(method = "isInventoryFull", at = @At(value = "HEAD"), cancellable = true)
@@ -333,27 +278,6 @@ public abstract class HopperBlockEntityMixin_Main extends LootableContainerBlock
     @Shadow
     public abstract int size();
 
-    @Redirect(method = "<init>()V", at = @At(value = "INVOKE", target = "Lnet/minecraft/util/collection/DefaultedList;ofSize(ILjava/lang/Object;)Lnet/minecraft/util/collection/DefaultedList;"))
-    private DefaultedList<ItemStack> createInventory(int int_1, Object object_1) {
-        return InventoryListOptimized.ofSize(int_1, (ItemStack) object_1);
-    }
-
-    @Inject(method = "setInvStackList", at = @At("RETURN"))
-    private void onSetStackList(DefaultedList<ItemStack> stackList, CallbackInfo ci) {
-        if (!(inventory instanceof InventoryListOptimized))
-            inventory = new InventoryListOptimized(Arrays.asList((ItemStack[]) inventory.toArray()), ItemStack.EMPTY);
-    }
-
-    @Redirect(method = "fromTag", at = @At(value = "INVOKE", target = "Lnet/minecraft/util/collection/DefaultedList;ofSize(ILjava/lang/Object;)Lnet/minecraft/util/collection/DefaultedList;"))
-    private DefaultedList<ItemStack> createInventory2(int int_1, Object object_1) {
-        return InventoryListOptimized.ofSize(int_1, (ItemStack) object_1);
-    }
-
-    @Override
-    @Nullable
-    public InventoryOptimizer getOptimizer(boolean create) {
-        return !(this instanceof SidedInventory) && this.world != null && !this.world.isClient && this.inventory instanceof InventoryListOptimized ? ((InventoryListOptimized) inventory).getCreateOrRemoveOptimizer(this, create) : null;
-    }
 
     @Inject(method = "insert()Z", at = @At(value = "INVOKE", target = "Lnet/minecraft/block/entity/HopperBlockEntity;isInventoryFull(Lnet/minecraft/inventory/Inventory;Lnet/minecraft/util/math/Direction;)Z", shift = At.Shift.BEFORE), cancellable = true, locals = LocalCapture.CAPTURE_FAILHARD)
     private void optimizeInsert(CallbackInfoReturnable<Boolean> cir, Inventory to, Direction insertFromDirection) {
@@ -415,4 +339,12 @@ public abstract class HopperBlockEntityMixin_Main extends LootableContainerBlock
             return ret;
         return HopperHelper.getOutputEntityInventory(hopper);
     }
+
+    @Redirect(require = 0, allow = 1, method = "insertAndExtract", at = @At(value = "INVOKE", target = "Lnet/minecraft/block/entity/HopperBlockEntity;isFull()Z"))
+    private boolean isFullOpt(HopperBlockEntity hopperBlockEntity) {
+        InventoryOptimizer opt = ((OptimizedInventory) this).getOptimizer(true);
+        if (opt != null) return opt.isFull_insertable(null);
+        return isFull();
+    }
+
 }

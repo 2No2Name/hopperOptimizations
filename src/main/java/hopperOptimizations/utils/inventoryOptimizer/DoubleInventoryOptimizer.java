@@ -1,7 +1,6 @@
-package hopperOptimizations.utils;
+package hopperOptimizations.utils.inventoryOptimizer;
 
 import hopperOptimizations.settings.Settings;
-import hopperOptimizations.utils.inventoryOptimizer.OptimizedInventory;
 import net.minecraft.inventory.Inventory;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.math.Direction;
@@ -31,19 +30,19 @@ public class DoubleInventoryOptimizer extends InventoryOptimizer {
         return firstOpt == null || firstOpt.isRemoved() || secondOpt == null || secondOpt.isRemoved();
     }
 
-    Inventory getFirstInventory() {
+    public Inventory getFirstInventory() {
         return first;
     }
 
-    Inventory getSecondInventory() {
+    public Inventory getSecondInventory() {
         return second;
     }
 
-    InventoryOptimizer getFirstOptimizer() {
+    public InventoryOptimizer getFirstOptimizer() {
         return firstOpt;
     }
 
-    InventoryOptimizer getSecondOptimizer() {
+    public InventoryOptimizer getSecondOptimizer() {
         return secondOpt;
     }
 
@@ -166,7 +165,7 @@ public class DoubleInventoryOptimizer extends InventoryOptimizer {
 
     //Used to trick comparators into sending block updates like in vanilla.
     @Override
-    void setFakeReducedSignalStrength() {
+    public void setFakeReducedSignalStrength() {
         if (Settings.debugOptimizedInventories && this.hasFakeSignalStrength())
             throw new IllegalStateException("Already using fake signal strength");
 
@@ -174,7 +173,7 @@ public class DoubleInventoryOptimizer extends InventoryOptimizer {
     }
 
     @Override
-    void clearFakeChangedSignalStrength() {
+    public void clearFakeChangedSignalStrength() {
         firstOpt.clearFakeChangedSignalStrength();
     }
 

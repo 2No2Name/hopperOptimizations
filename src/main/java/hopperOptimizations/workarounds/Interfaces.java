@@ -17,13 +17,11 @@ public class Interfaces {
 
     public interface HopperWithInventoryCache {
         Inventory getOutputInventoryWithCache(HopperBlockEntity hopperBlockEntity);
-
         Inventory getInputInventoryWithCache(HopperBlockEntity hopperBlockEntity);
     }
 
     public interface HopperWithEntityInventoryCache {
         Inventory getOutputEntityInventoryWithCache(HopperBlockEntity hopperBlockEntity);
-
         Inventory getInputEntityInventoryWithCache(HopperBlockEntity hopperBlockEntity);
     }
 }
