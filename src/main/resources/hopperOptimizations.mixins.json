@@ -15,7 +15,6 @@
     "cacheInventories.cacheInventoryBlocks.ComposterBlockFullComposterInventoryMixin",
     "cacheInventories.cacheInventoryBlocks.HopperBlockMixin",
     "cacheInventories.cacheInventoryBlocks.WorldMixin",
-    "carpetIntegration.MinecraftServer_noopMixin",
     "entityTracking.HopperBlockEntityMixin",
     "entityTracking.HopperHelperMixin",
     "entityTracking.ItemEntityMixin",
@@ -33,7 +32,6 @@
     "nonVanillaLagReduction.ItemEntityMixin"
   ],
   "client": [
-    "carpetIntegration.MinecraftClient_noopMixin"
   ],
   "injectors": {
     "defaultRequire": 1

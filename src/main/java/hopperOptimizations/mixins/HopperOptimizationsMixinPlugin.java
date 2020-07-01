@@ -22,15 +22,6 @@ public class HopperOptimizationsMixinPlugin implements IMixinConfigPlugin {
     @Override
     public boolean shouldApplyMixin(String targetClassName, String mixinClassName) {
         if (mixinClassName.startsWith("hopperOptimizations.mixins.")) {
-//            if (mixinClassName.startsWith("hopperOptimizations.mixins.entityTracking.")) {
-//                try {
-//                    ExactPositionListener.class.getClass();
-//                    return true;
-//                } catch (Exception ignored) {
-//                    System.out.println("Mixin for entity tracking disabled because the required mod 'lithium fork by 2No2Name' is not present");
-//                    return false;
-//                }
-//            }
             return !mixinClassName.startsWith("hopperOptimizations.mixins.nonVanillaLagReduction");
         }
 

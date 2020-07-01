@@ -130,7 +130,6 @@ public class InventoryOptimizer {
         } catch (IllegalStateException e) {
             this.remove();
             Text text = new LiteralText("Detected broken optimizer ( " + e.getMessage() + ") at " + Arrays.toString(e.getStackTrace()));
-//            CarpetServer.minecraft_server.getPlayerManager().broadcastChatMessage(text, false);
         }
     }
 

@@ -27,7 +27,7 @@ import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
 import javax.annotation.Nullable;
 
 @Mixin(HopperBlockEntity.class)
-public abstract class HopperBlockEntityMixin_Main extends LootableContainerBlockEntity implements IHopper, Hopper, HopperWithClearableCaches {
+public abstract class HopperBlockEntityMixin_Main extends LootableContainerBlockEntity implements IHopper, Hopper, HopperWithClearableCaches, OptimizedInventory {
     @Shadow
     private long lastTickTime;
 
@@ -261,7 +261,7 @@ public abstract class HopperBlockEntityMixin_Main extends LootableContainerBlock
 
     @Redirect(require = 0, allow = 1, method = "insertAndExtract", at = @At(value = "INVOKE", target = "Lnet/minecraft/block/entity/HopperBlockEntity;isEmpty()Z"))
     private boolean isEmptyOpt(HopperBlockEntity hopperBlockEntity) {
-        InventoryOptimizer opt = ((OptimizedInventory) this).getOptimizer(true);
+        InventoryOptimizer opt = this.getOptimizer(true);
         if (opt != null) return opt.getFirstOccupiedSlot_extractable() == -1;
         return isEmpty();
     }
@@ -283,7 +283,7 @@ public abstract class HopperBlockEntityMixin_Main extends LootableContainerBlock
     private void optimizeInsert(CallbackInfoReturnable<Boolean> cir, Inventory to, Direction insertFromDirection) {
         InventoryOptimizer toOpt, fromOpt;
         if (to instanceof OptimizedInventory && (toOpt = ((OptimizedInventory) to).getOptimizer(true)) != null) {
-            fromOpt = ((OptimizedInventory) this).getOptimizer(true);
+            fromOpt = this.getOptimizer(true);
             if (fromOpt != null && this.tryShortcutFailedInsert(fromOpt, toOpt)) {
                 cir.setReturnValue(false);
                 return;
@@ -342,7 +342,7 @@ public abstract class HopperBlockEntityMixin_Main extends LootableContainerBlock
 
     @Redirect(require = 0, allow = 1, method = "insertAndExtract", at = @At(value = "INVOKE", target = "Lnet/minecraft/block/entity/HopperBlockEntity;isFull()Z"))
     private boolean isFullOpt(HopperBlockEntity hopperBlockEntity) {
-        InventoryOptimizer opt = ((OptimizedInventory) this).getOptimizer(true);
+        InventoryOptimizer opt = this.getOptimizer(true);
         if (opt != null) return opt.isFull_insertable(null);
         return isFull();
     }
