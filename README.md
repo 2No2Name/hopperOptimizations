@@ -1,22 +1,21 @@
 # Hopper Optimizations Mod
-This Mod optimizes hoppers interacting with inventories and item entities. All modifications are toggleable and
- off by default. The most performance improving settings are optimizedInventories and optimizedEntityHopperInteraction.
- All other features are also recommended.
+This Mod optimizes hoppers interacting with inventories and item entities. Only modifications that only optimize the game without
+ changing any behavior ingame are enabled by default. This branch of hopper optimizations requires installing 2No2Name's fork of Lithium.
  
- Be aware that optimizedEntityHopperInteraction, simplifiedHopperPickupShape and simplifiedItemElevatorCheck are 
- detectable with redstone contraptions and therefore might make your contraption work differently or stop working.
- In case you suspect one of these features to be the problem, turn it off to immediately restore vanilla behavior.
-## Features
-Use `/carpet <rulename> true` to enable:
-### optimizedInventories
-Optimized Inventory accesses - bloomfilters, cached BlockEntities and improved item transfers. All mechanics should work the same as in vanilla, just with less lag.
+## Enabled Features (partially toggleable in the future)
+### Inventory Optimizer
+Inventories keep extra data (modification counter, item type -> slot mask lookup table, empty & full slot masks) to be able to skip searching though the whole inventory
+### Entity Tracking
+Hoppers use Lithium's entity tracker engine (adapted in 2No2Name's fork of Lithium) to avoid searching for entities (items + inventory minecarts)
+### Cache Inventories
+Hoppers keep a reference to the inventory blocks (block entities or composters) they interact with to avoid retrieving them from the world all the time.
+### Fast Signal Strength
+Comparators use the extra data from Inventory Optimizer (weighted item counter) to determine the signal strength of an inventory without accessing its slots.
+### Use cached empty state of Item stacks
+Item stacks cache whether they are empty in vanilla, but at the same time the value is recalculated often for no reason. Instead always use the cached value.
 
-### optimizedEntityHopperInteraction
-Reworked interaction between hoppers and entities. Entities look for hoppers instead of hoppers searching for entities. This change should be barely detectable - the order in which items are picked up might be *slightly different from vanilla*. (For stationary items the order is mostly "oldest first", which is very similar to vanilla)
-
-### optimizedItemStackEmptyCheck
-Speeds up checking whether an itemStack is empty by using cached information from vanilla. Mechanics like vanilla. 
-
+## Disabled Features (toggleable in the future)
+These optimizations have effects that are detectable ingame, so they might break contraptions and are disabled until a toggle system is added.
 ### simplifiedHopperPickupShape
 Simplified hopper box shape when picking up items. This box contains the ring around the hopper's bowl. This change is barely detectable in gameplay (requires entity moving into the collision box, e.g. in item elevators with a hopper inside, the item may be picked up slightly earlier) but still *non-vanilla behavior*.
 
