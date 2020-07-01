@@ -325,7 +325,7 @@ public class NearbyHopperItemsTracker extends NearbyEntityTrackerBox<ItemEntity>
         return -1;
     }
 
-    //@Override
+    @Override
     public void onInitialEntitiesReceived() {
         this.initialized = true;
         if (this.searchEntitiesAfterInitialization) {

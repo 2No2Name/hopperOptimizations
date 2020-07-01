@@ -1,5 +1,6 @@
 package hopperOptimizations.features.entityTracking;
 
+import me.jellysquid.mods.lithium.common.entity.tracker.nearby.ExactPositionListener;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityDimensions;
 import net.minecraft.util.math.Box;
@@ -16,7 +17,7 @@ import java.util.HashSet;
  *
  * @author 2No2Name
  */
-public class NearbyEntityTrackerBox<T> /*implements ExactPositionListener*/ {
+public class NearbyEntityTrackerBox<T> implements ExactPositionListener {
     protected final Box box;
     final Class<T> clazz;
     private final Collection<T> withinBox;
@@ -142,11 +143,13 @@ public class NearbyEntityTrackerBox<T> /*implements ExactPositionListener*/ {
 //    }
 
     //@Override
+    @Override
     public int getChunkRange() {
         //this is a workaround for the remove code not working if the radius is 0
         return Math.max(1, this.rangeC);
     }
 
+    @Override
     @SuppressWarnings("unchecked")
     //@Override
     public void onEntityEnteredTrackedSubchunk(Entity entity) {
@@ -158,6 +161,7 @@ public class NearbyEntityTrackerBox<T> /*implements ExactPositionListener*/ {
         }
     }
 
+    @Override
     @SuppressWarnings("unchecked")
     //@Override
     public void onEntityLeftTrackedSubchunk(Entity entity) {
@@ -168,6 +172,7 @@ public class NearbyEntityTrackerBox<T> /*implements ExactPositionListener*/ {
         this.removeEntity((T) entity);
     }
 
+    @Override
     @SuppressWarnings("unchecked")
     //@Override
     public void onEntityMovedAnyDistance(Entity entity) {
@@ -182,11 +187,6 @@ public class NearbyEntityTrackerBox<T> /*implements ExactPositionListener*/ {
             withinBox.remove((T) entity);
         }
     }
-
-//    @Override
-//    public int subchunksInRange() {
-//        return numSubchunks;
-//    }
 
     public void registerToEntityTracker(World world) {
         int[] xs = new int[this.numSubchunks];
@@ -204,10 +204,10 @@ public class NearbyEntityTrackerBox<T> /*implements ExactPositionListener*/ {
                 }
             }
         }
-        //this.registerToEntityTrackerEngine(world, xs, ys, zs);
+        this.registerToEntityTrackerEngine(world, xs, ys, zs);
     }
 
     public void removeFromEntityTracker(World world) {
-        //this.deregisterFromEntityTrackerEngine(world);
+        this.deregisterFromEntityTrackerEngine(world);
     }
 }
