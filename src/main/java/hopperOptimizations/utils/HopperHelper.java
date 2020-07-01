@@ -197,7 +197,7 @@ public abstract class HopperHelper {
             return hasToCheckForInventoryBlock;
         } else if (cachedInv instanceof IValidInventoryUntilBlockUpdate) {
             return hasToCheckForInventoryBlock
-                    && ((IValidInventoryUntilBlockUpdate) cachedInv).isValid();
+                    || !((IValidInventoryUntilBlockUpdate) cachedInv).isValid();
         }
 
         if (cachedInv instanceof BlockEntity) {
