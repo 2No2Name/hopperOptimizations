@@ -76,9 +76,11 @@ public class NearbyHopperInventoriesTracker extends NearbyEntityTrackerBox<Inven
         //swap around to get fast remove
         int arrayEndIndex = this.withinBox2.size() - 1;
         Inventory swapped = (Inventory) this.withinBox2.get(arrayEndIndex);
-        this.withinBox2.set(i, (Entity) swapped);
         this.withinBox2.remove(arrayEndIndex);
-        this.withinBox1.put(swapped, i);
+        if (i < arrayEndIndex) {
+            this.withinBox2.set(i, (Entity) swapped);
+            this.withinBox1.put(swapped, i);
+        }
     }
 
     @Override
