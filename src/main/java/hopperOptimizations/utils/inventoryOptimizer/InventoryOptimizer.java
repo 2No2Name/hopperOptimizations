@@ -445,7 +445,11 @@ public class InventoryOptimizer {
 
             int shift = Integer.numberOfTrailingZeros(slotMask & 0xFFFFFFFE);
             slotIndex += shift;
-            slotMask = slotMask >>> shift;
+            if (shift >= 32)
+                slotMask = 0;
+            else {
+                slotMask = slotMask >>> shift;
+            }
         }
         return -1;
     }
