@@ -2,8 +2,6 @@ package hopperOptimizations.mixins.entityTracking;
 
 import hopperOptimizations.features.entityTracking.NearbyHopperInventoriesTracker;
 import hopperOptimizations.features.entityTracking.NearbyHopperItemsTracker;
-import hopperOptimizations.settings.Settings;
-import hopperOptimizations.utils.HopperHelper;
 import hopperOptimizations.utils.inventoryOptimizer.InventoryOptimizer;
 import hopperOptimizations.utils.inventoryOptimizer.OptimizedInventory;
 import hopperOptimizations.workarounds.HopperWithClearableCaches;
@@ -18,7 +16,6 @@ import net.minecraft.entity.ItemEntity;
 import net.minecraft.inventory.Inventory;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.collection.DefaultedList;
-import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Direction;
 import org.spongepowered.asm.mixin.Mixin;
@@ -29,7 +26,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
 
 import java.util.Iterator;
-import java.util.List;
 
 @Mixin(HopperBlockEntity.class)
 public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntity implements Interfaces.HopperWithEntityInventoryCache, HopperWithClearableCaches {
@@ -68,22 +64,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
             return; //use vanilla code when optimization is off or this is a hopper minecart
         }
 
-        if (!Settings.debugOptimizedEntityHopperInteraction) {
-            ((HopperBlockEntityMixin) hopper).optimizeItemPickup(hopper, cir);
-        } else {
-            try {
-                List<ItemEntity> itemEntities = HopperBlockEntity.getInputItemEntities(hopper);
-                ItemEntity pickedUp = ((HopperBlockEntityMixin) hopper).optimizeItemPickup(hopper, cir);
-                if (pickedUp == null) {
-                    pickedUp = HopperHelper.vanillaPickupItem(hopper, itemEntities.iterator());
-                    if (pickedUp != null)
-                        throw new IllegalStateException("HopperOptimizations picked up no item even though vanilla could pick up: " + pickedUp.toString());
-                } else if (!itemEntities.contains(pickedUp))
-                    throw new IllegalStateException("HopperOptimizations picked up an item that vanilla couldn't pick up: " + pickedUp.toString());
-            } catch (IllegalStateException e) {
-                System.out.println("Detected wrong entity hopper interaction ( " + e.getMessage() + ")!");
-            }
-        }
+        ((HopperBlockEntityMixin) hopper).optimizeItemPickup(hopper, cir);
     }
 
     @Override
@@ -118,14 +99,6 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
         }
         this.lastTickTime_used_OutputInventoryEntityCache = this.lastTickTime;
 
-        if (Settings.debugOptimizedEntityHopperInteraction) {
-            BlockPos pos = this.pos.offset(this.getDir());
-            double x = pos.getX() + 0.5D;
-            double y = pos.getY() + 0.5D;
-            double z = pos.getZ() + 0.5D;
-            //noinspection ConstantConditions
-            HopperHelper.debugCompareInventoryEntities(this.outputInventoryEntities, this.world, x, y, z);
-        }
         //noinspection ConstantConditions
         return this.outputInventoryEntities.getRandomInventoryEntity(this.world.random);
     }
@@ -137,11 +110,6 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
             this.inputInventoryEntities.registerToEntityTracker(this.world);
         }
         this.lastTickTime_used_InputInventoryEntityCache = this.lastTickTime;
-
-        if (Settings.debugOptimizedEntityHopperInteraction) {
-            //noinspection ConstantConditions
-            HopperHelper.debugCompareInventoryEntities(this.inputInventoryEntities, this.world, hopperBlockEntity.getHopperX(), hopperBlockEntity.getHopperY() + 1.0D, hopperBlockEntity.getHopperZ());
-        }
 
         //noinspection ConstantConditions
         return this.inputInventoryEntities.getRandomInventoryEntity(this.world.random);
@@ -161,10 +129,10 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
         return new Box(this.pos.up());
     }
 
-    private ItemEntity optimizeItemPickup(Object hopperBlockEntity, CallbackInfoReturnable<Boolean> cir) {
+    private void optimizeItemPickup(Object hopperBlockEntity, CallbackInfoReturnable<Boolean> cir) {
         final InventoryOptimizer opt = ((OptimizedInventory) hopperBlockEntity).getOptimizer(true);
         if (opt == null) {
-            return null; //fallback to vanilla
+            return; //fallback to vanilla
         }
 
         //fix the entity cache in case it is not initialized
@@ -185,7 +153,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
                 //nothing changed after the last transfer attempt
                 //so we don't try to transfer at all
                 cir.setReturnValue(false);
-                return null;
+                return;
             }
             this.inputItemEntities_changeCount = tmp2;
         }
@@ -205,7 +173,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
                     itemEntity.remove();
                     cir.setReturnValue(true);
                     this.markDirty();
-                    return itemEntity;
+                    return;
                 } else {
                     int transferCount = receivingStack.getMaxCount() - receivingStack.getCount();
                     final int itemEntityStackCount = itemEntityStack.getCount();
@@ -216,7 +184,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
                         receivingStack.increment(transferCount);
                         cir.setReturnValue(true);
                         this.markDirty();
-                        return itemEntity;
+                        return;
                     } else {
                         itemEntityStack.decrement(transferCount);
                         receivingStack.increment(transferCount);
@@ -227,6 +195,5 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
         //return false when nothing was picked up
         //also return false when no item entity was removed, but we still picked up items (like vanilla!)
         cir.setReturnValue(false);
-        return null;
     }
 }

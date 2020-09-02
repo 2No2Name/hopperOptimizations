@@ -27,9 +27,7 @@
     "inventoryOptimizer.inventories.HopperBlockEntityMixin",
     "inventoryOptimizer.inventories.ShulkerBoxBlockEntityMixin",
     "inventoryOptimizer.inventories.StorageMinecartEntityMixin",
-    "itemStackCacheEmpty.ItemStackMixin",
-    "nonVanillaLagReduction.HopperBlockEntityMixin",
-    "nonVanillaLagReduction.ItemEntityMixin"
+    "itemStackCacheEmpty.ItemStackMixin"
   ],
   "client": [
   ],

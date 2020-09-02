@@ -1,8 +1,6 @@
 package hopperOptimizations.utils.inventoryOptimizer;
 
-import hopperOptimizations.settings.Settings;
 import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
-import net.minecraft.block.entity.ShulkerBoxBlockEntity;
 import net.minecraft.inventory.Inventory;
 import net.minecraft.inventory.SidedInventory;
 import net.minecraft.item.Item;
@@ -53,13 +51,6 @@ public class InventoryOptimizer {
         this.slotMask = (1 << stackList.size()) - 1;
         this.sidedInventory = inventory instanceof SidedInventory ? (SidedInventory) inventory : null;
         this.totalSlots = size();
-
-        if (Settings.debugOptimizedInventories && this.sidedInventory != null && !(this.sidedInventory instanceof ShulkerBoxBlockEntity)) {
-            //Shulkerbox restrictions are slot independent.
-            //Slot dependent restrictions aren't checked atm, since there is no large inventory that has those.
-            //OptimizedInventory doesn't seem viable for small inventories. - maybe add a version without complex datastructures for those
-            throw new UnsupportedOperationException("Implement OptimizedInventory with more complex item insert conditions before using those.");
-        }
 
         this.fakeSignalStrength = -1;
         this.inventoryChanges = 0;
@@ -114,7 +105,6 @@ public class InventoryOptimizer {
                     if (firstOccupiedSlot >= this.totalSlots)
                         firstOccupiedSlot = i;
                     occupiedSlots++;
-                    if (stack.getCount() >= stack.getMaxCount()) ;
 
                 } else if (firstFreeSlot >= this.totalSlots) {
                     firstFreeSlot = i;
@@ -150,7 +140,6 @@ public class InventoryOptimizer {
     }
 
     public void onItemStackCountChange(ItemStack itemStack, int slotIndex, int oldCount, int newCount) {
-        assert !Settings.debugOptimizedInventories || this.getSlot(slotIndex) == itemStack;
         this.onStackChange(slotIndex, null, newCount);
     }
 
@@ -255,7 +244,6 @@ public class InventoryOptimizer {
         }
         this.weightedItemCount -= prevCount * (int) (64F / prevMaxC) - newCount * (int) (64F / newMaxC);
 
-        if (Settings.debugOptimizedInventories) consistencyCheck();
     }
 
     public boolean hasFakeSignalStrength() {
@@ -302,10 +290,11 @@ public class InventoryOptimizer {
 
     public int getMinExtractableItemStackSize(InventoryOptimizer pulledFrom) {
         //Override in DoubleInventoryOptimizer
-        if (Settings.debugOptimizedInventories && pulledFrom != this)
+        if (pulledFrom != this) {
             throw new IllegalArgumentException("InventoryOptimizer must be this.");
+        }
 
-        int minExtractableItemStackSize = 2147483647;
+        int minExtractableItemStackSize = Integer.MAX_VALUE;
 
         int stackSize;
         for (Map.Entry<Integer, Integer> entry : this.stackSizeToSlotCount.entrySet()) {
@@ -445,9 +434,10 @@ public class InventoryOptimizer {
 
             int shift = Integer.numberOfTrailingZeros(slotMask & 0xFFFFFFFE);
             slotIndex += shift;
-            if (shift >= 32)
+            if (shift >= 32) {
+                // x >> y is actually x >> (y & 31), we want x >> 32 to be 0 though
                 slotMask = 0;
-            else {
+            } else {
                 slotMask = slotMask >>> shift;
             }
         }

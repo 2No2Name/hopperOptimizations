@@ -2,7 +2,6 @@ package hopperOptimizations.utils;
 
 import hopperOptimizations.features.cacheInventories.IValidInventoryUntilBlockUpdate;
 import hopperOptimizations.features.entityTracking.NearbyHopperInventoriesTracker;
-import hopperOptimizations.settings.Settings;
 import hopperOptimizations.utils.inventoryOptimizer.DoubleInventoryOptimizer;
 import hopperOptimizations.utils.inventoryOptimizer.InventoryOptimizer;
 import hopperOptimizations.utils.inventoryOptimizer.OptimizedInventory;
@@ -102,7 +101,7 @@ public abstract class HopperHelper {
         double x = pos.getX();
         double y = pos.getY();
         double z = pos.getZ();
-        return world.getEntities((Entity) null, new Box(x, y, z, x + 1D, y + 1D, z + 1D), EntityPredicates.VALID_INVENTORIES);
+        return world.getOtherEntities(null, new Box(x, y, z, x + 1D, y + 1D, z + 1D), EntityPredicates.VALID_INVENTORIES);
     }
 
     /**
@@ -158,14 +157,6 @@ public abstract class HopperHelper {
 
         ItemStack fromStack = from.getStack(fromSlot);
         ItemStack toStack = to.getStack(toSlot);
-
-        if (Settings.debugOptimizedInventories) {
-            if (!InventoryOptimizer.areItemsAndTagsEqual(fromStack, toStack) && !toStack.isEmpty() || fromStack.isEmpty()) {
-                throw new IllegalArgumentException("Item transfer with non matching items");
-            } else if (toStack.getCount() >= toStack.getMaxCount()) {
-                throw new IllegalArgumentException("Item transfer to already full item stack");
-            }
-        }
 
         if (toStack.isEmpty()) {
             if (fromStack.getCount() == 1) {
@@ -256,7 +247,7 @@ public abstract class HopperHelper {
             List<Entity> inventoryEntities = tracker.getAllForDebug();
             inventoryEntities.removeIf((Entity inv) -> inv.removed);
 
-            List<Entity> inventoriesVanilla = world.getEntities((Entity) null, new Box(x - 0.5D, y - 0.5D, z - 0.5D, x + 0.5D, y + 0.5D, z + 0.5D), EntityPredicates.VALID_INVENTORIES);
+            List<Entity> inventoriesVanilla = world.getOtherEntities(null, new Box(x - 0.5D, y - 0.5D, z - 0.5D, x + 0.5D, y + 0.5D, z + 0.5D), EntityPredicates.VALID_INVENTORIES);
             if (!inventoryEntities.containsAll(inventoriesVanilla)) {
                 throw new IllegalStateException("HopperOptimizations did not find inventory entity/entities that vanilla found.");
             }

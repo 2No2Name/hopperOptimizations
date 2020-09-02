@@ -1,6 +1,5 @@
 package hopperOptimizations.utils.inventoryOptimizer;
 
-import hopperOptimizations.settings.Settings;
 import net.minecraft.inventory.Inventory;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.math.Direction;
@@ -146,13 +145,10 @@ public class DoubleInventoryOptimizer extends InventoryOptimizer {
         if (secondOpt == pulledFrom && !secondOpt.isEmpty())
             return secondOpt.getMinExtractableItemStackSize(pulledFrom);
 
-        if (Settings.debugOptimizedInventories)
-            throw new IllegalArgumentException("InventoryOptimizer must be child of this.");
-        else
-            return 64;
+        return 64;
     }
 
-    //store state of take signal strength in first opt, as the double inventory optimizer should be stateless
+    //store state of fake signal strength in first opt, as the double inventory optimizer should be stateless
     @Override
     public boolean hasFakeSignalStrength() {
         return firstOpt.hasFakeSignalStrength();
@@ -166,8 +162,9 @@ public class DoubleInventoryOptimizer extends InventoryOptimizer {
     //Used to trick comparators into sending block updates like in vanilla.
     @Override
     public void setFakeReducedSignalStrength() {
-        if (Settings.debugOptimizedInventories && this.hasFakeSignalStrength())
+        if (this.hasFakeSignalStrength()) {
             throw new IllegalStateException("Already using fake signal strength");
+        }
 
         firstOpt.setFakeReducedSignalStrength(this.getSignalStrength() - 1);
     }

@@ -1,7 +1,6 @@
 package hopperOptimizations.mixins;
 
 import hopperOptimizations.features.cacheInventories.INoExtractInventoryUntilBlockUpdate;
-import hopperOptimizations.settings.Settings;
 import hopperOptimizations.utils.HopperHelper;
 import hopperOptimizations.utils.IHopper;
 import hopperOptimizations.utils.inventoryOptimizer.InventoryOptimizer;
@@ -76,16 +75,14 @@ public abstract class HopperBlockEntityMixin_Main extends LootableContainerBlock
             boolean isFull = toOpt.isFull_insertable(null);
             if (isFull) { //full hoppers cannot extract more
                 if (to instanceof HopperMinecartEntity) {
-                    if (!Settings.failedTransferNoComparatorUpdates) {
-                        if (!(from instanceof OptimizedInventory)) {
-                            return; //vanilla fallback, should never happen
-                        }
-                        InventoryOptimizer opt = ((OptimizedInventory) from).getOptimizer(true);
-                        if (opt == null) {
-                            return; //vanilla fallback
-                        }
-                        HopperHelper.markDirtyLikeHopperWould(from, opt, null);
+                    if (!(from instanceof OptimizedInventory)) {
+                        return; //vanilla fallback, should never happen
                     }
+                    InventoryOptimizer opt = ((OptimizedInventory) from).getOptimizer(true);
+                    if (opt == null) {
+                        return; //vanilla fallback
+                    }
+                    HopperHelper.markDirtyLikeHopperWould(from, opt, null);
                 } else {
                     System.out.println("Hopper is full even though it wasn't");
                 }
@@ -145,8 +142,7 @@ public abstract class HopperBlockEntityMixin_Main extends LootableContainerBlock
 
                 //For Inventory Blocks that calls markDirty on setInvStack, but also implements canExtract behaviors this might be incorrect
                 //if (getAvailableSlots(from, Direction.DOWN).anyMatch((int i) -> true)) { //this is true for any optimized inventory, no sided inventories besides shulkerboxes
-                if (!Settings.failedTransferNoComparatorUpdates)
-                    HopperHelper.markDirtyLikeHopperWould(from, fromOpt, null);
+                HopperHelper.markDirtyLikeHopperWould(from, fromOpt, null);
                 ((IHopper) to).setMarkOtherDirty();
                 //}
 

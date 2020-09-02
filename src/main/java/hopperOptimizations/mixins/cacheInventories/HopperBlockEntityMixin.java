@@ -1,7 +1,6 @@
 package hopperOptimizations.mixins.cacheInventories;
 
 
-import hopperOptimizations.settings.Settings;
 import hopperOptimizations.utils.HopperHelper;
 import hopperOptimizations.utils.IHopper;
 import hopperOptimizations.utils.inventoryOptimizer.InventoryOptimizer;
@@ -196,7 +195,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
             return false;
         }
 
-        if (this.previousExtract_causeMarkDirty && !Settings.failedTransferNoComparatorUpdates)
+        if (this.previousExtract_causeMarkDirty)
             HopperHelper.markDirtyLikeHopperWould(other, otherOpt, null); //failed transfers sometimes cause comparator updates
         return true;
     }

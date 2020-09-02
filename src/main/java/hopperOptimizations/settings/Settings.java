@@ -11,13 +11,4 @@ public static boolean simplifiedHopperPickupShape = false;
 //            category = {OPTIMIZATION, FEATURE, "hopperoptimizations"})
     public static boolean simplifiedItemElevatorCheck = false;
 
-    //    @Rule(desc = "Can break contraptions: Doesn't do comparator updates when an item transfer fails unlike vanilla (when the transfer would have changed the signal strength)",
-//            category = {OPTIMIZATION, FEATURE, "hopperoptimizations"})
-    public static boolean failedTransferNoComparatorUpdates = false;
-
-    //    @Rule(desc = "Search for errors in optimized inventories on every known inventory modification. Prints errors in chat and resets the optimization state in case any error is detected. Massive lag, only enable for debugging. Partially requires assertions.", category = {"hopperoptimizations"})
-    public static boolean debugOptimizedInventories = false;
-
-    //    @Rule(desc = "Search for errors in optimized entity-hopper-interaction on every entity search. Prints errors in chat and resets the optimization state in case any error is detected. Massive lag, only enable for debugging.", category = {"hopperoptimizations"})
-    public static boolean debugOptimizedEntityHopperInteraction = false;
 }

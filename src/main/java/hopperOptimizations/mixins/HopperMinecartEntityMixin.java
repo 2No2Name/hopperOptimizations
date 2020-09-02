@@ -1,7 +1,6 @@
 package hopperOptimizations.mixins;
 
 
-import hopperOptimizations.settings.Settings;
 import hopperOptimizations.utils.HopperHelper;
 import hopperOptimizations.utils.IHopper;
 import hopperOptimizations.utils.inventoryOptimizer.InventoryOptimizer;
@@ -40,7 +39,7 @@ public class HopperMinecartEntityMixin implements IHopper {
             previousExtract_causeMarkDirty = false;
             return false;
         }
-        if (previousExtract_causeMarkDirty && !Settings.failedTransferNoComparatorUpdates)
+        if (previousExtract_causeMarkDirty)
             HopperHelper.markDirtyLikeHopperWould(other, otherOpt, null); //failed transfers sometimes cause comparator updates
 
         return true;
