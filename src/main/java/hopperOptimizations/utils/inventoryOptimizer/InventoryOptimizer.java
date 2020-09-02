@@ -1,5 +1,6 @@
 package hopperOptimizations.utils.inventoryOptimizer;
 
+import it.unimi.dsi.fastutil.ints.Int2IntArrayMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
 import net.minecraft.inventory.Inventory;
 import net.minecraft.inventory.SidedInventory;
@@ -31,7 +32,7 @@ public class InventoryOptimizer {
     private final int slotMask;
     private int slotFullMask;
     //number of inventory slots are occupied with stacks of a given size: e.g. 64->6, 16->1, 1->3
-    private final Map<Integer, Integer> stackSizeToSlotCount;
+    private final Int2IntArrayMap stackSizeToSlotCount;
 
     private final SidedInventory sidedInventory; //only use when required, inventory handling should be mostly independent from the container
     //number of slots
@@ -46,7 +47,7 @@ public class InventoryOptimizer {
 
     public InventoryOptimizer(InventoryListOptimized stackList, Inventory inventory) {
         this.stackList = stackList;
-        this.stackSizeToSlotCount = new HashMap<>();
+        this.stackSizeToSlotCount = new Int2IntArrayMap();
         this.itemToSlotMask = new Reference2IntOpenHashMap<>();
         this.slotMask = (1 << stackList.size()) - 1;
         this.sidedInventory = inventory instanceof SidedInventory ? (SidedInventory) inventory : null;
@@ -79,7 +80,7 @@ public class InventoryOptimizer {
         this.stackList.removeOptimizer(this);
     }
 
-    //todo overwrite in DoubleInventoryOptimizer
+    //seems to be unused, but why?
     public boolean isRemoved() {
         return !this.stackList.optimizerIs(this);
     }

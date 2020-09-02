@@ -1,83 +1,62 @@
 package hopperOptimizations.utils;
 
 import hopperOptimizations.features.cacheInventories.IValidInventoryUntilBlockUpdate;
-import hopperOptimizations.features.entityTracking.NearbyHopperInventoriesTracker;
 import hopperOptimizations.utils.inventoryOptimizer.DoubleInventoryOptimizer;
 import hopperOptimizations.utils.inventoryOptimizer.InventoryOptimizer;
 import hopperOptimizations.utils.inventoryOptimizer.OptimizedInventory;
 import hopperOptimizations.workarounds.Interfaces;
-import net.minecraft.block.*;
+import net.minecraft.block.Block;
+import net.minecraft.block.BlockState;
+import net.minecraft.block.ChestBlock;
+import net.minecraft.block.InventoryProvider;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.block.entity.ChestBlockEntity;
-import net.minecraft.block.entity.Hopper;
-import net.minecraft.block.entity.HopperBlockEntity;
 import net.minecraft.block.enums.ChestType;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.ItemEntity;
 import net.minecraft.inventory.DoubleInventory;
 import net.minecraft.inventory.Inventory;
 import net.minecraft.item.ItemStack;
 import net.minecraft.predicate.entity.EntityPredicates;
-import net.minecraft.text.LiteralText;
-import net.minecraft.text.Text;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
-import net.minecraft.util.math.Direction;
 import net.minecraft.world.World;
 
 import javax.annotation.Nullable;
-import java.util.Iterator;
 import java.util.List;
 
 public abstract class HopperHelper {
 
     /**
-     * Picks up items exactly like vanilla does.
-     *
-     * @param hopper       the hopper that is picking up items
-     * @param itemEntities the list of itemEntities to pick from
-     * @return the itemEntity that was picked from
-     */
-    @Nullable
-    public static ItemEntity vanillaPickupItem(Hopper hopper, Iterator<ItemEntity> itemEntities) {
-        ItemEntity itemEntity;
-        while (itemEntities.hasNext()) {
-            itemEntity = itemEntities.next();
-            if (HopperBlockEntity.extract(hopper, itemEntity))
-                return itemEntity;
-        }
-        return null;
-    }
-
-    /**
      * Gets the block inventory at the given position, exactly like vanilla gets it.
+     * Needed because we don't want to search for entity inventories like the vanilla method does.
      *
-     * @param world_1    world we are searching in
-     * @param blockPos_1 position of the block inventory
+     * @param world    world we are searching in
+     * @param blockPos position of the block inventory
      * @return the block inventory at the given position
      */
     @Nullable
-    public static Inventory vanillaGetBlockInventory(World world_1, BlockPos blockPos_1) {
-        //code copied from vanilla
-        Inventory inventory_1 = null;
-        BlockState blockState_1 = world_1.getBlockState(blockPos_1);
-        Block block_1 = blockState_1.getBlock();
-        if (block_1 instanceof InventoryProvider) {
-            inventory_1 = ((InventoryProvider) block_1).getInventory(blockState_1, world_1, blockPos_1);
-        } else if (block_1.hasBlockEntity()) {
-            BlockEntity blockEntity_1 = world_1.getBlockEntity(blockPos_1);
-            if (blockEntity_1 instanceof Inventory) {
-                inventory_1 = (Inventory) blockEntity_1;
-                if (inventory_1 instanceof ChestBlockEntity && block_1 instanceof ChestBlock) {
-                    inventory_1 = ChestBlock.getInventory((ChestBlock) block_1, blockState_1, world_1, blockPos_1, true);
+    public static Inventory vanillaGetBlockInventory(World world, BlockPos blockPos) {
+        //[VanillaCopy]
+        Inventory inventory = null;
+        BlockState blockstate = world.getBlockState(blockPos);
+        Block block = blockstate.getBlock();
+        if (block instanceof InventoryProvider) {
+            inventory = ((InventoryProvider) block).getInventory(blockstate, world, blockPos);
+        } else if (block.hasBlockEntity()) {
+            BlockEntity blockEntity = world.getBlockEntity(blockPos);
+            if (blockEntity instanceof Inventory) {
+                inventory = (Inventory) blockEntity;
+                if (inventory instanceof ChestBlockEntity && block instanceof ChestBlock) {
+                    inventory = ChestBlock.getInventory((ChestBlock) block, blockstate, world, blockPos, true);
                 }
             }
         }
-        return inventory_1;
+        return inventory;
     }
 
     /**
      * Randomly choose an inventory entity at the position in the given world, like a hopper would do it.
+     * Needed because we don't want to search for block inventories like the vanilla method does.
      *
      * @param world the world
      * @param pos   the position the hopper is searching entities at
@@ -101,44 +80,7 @@ public abstract class HopperHelper {
         double x = pos.getX();
         double y = pos.getY();
         double z = pos.getZ();
-        return world.getOtherEntities(null, new Box(x, y, z, x + 1D, y + 1D, z + 1D), EntityPredicates.VALID_INVENTORIES);
-    }
-
-    /**
-     * Get the input inventory block with either vanilla or an optimized implementation.
-     * Will be overwritten by {@link hopperOptimizations.mixins.cacheInventories.HopperHelperMixin}
-     */
-    public static Inventory getInputBlockInventory(Object hopperBlockEntity) {
-        //noinspection ConstantConditions
-        return vanillaGetBlockInventory(((HopperBlockEntity) hopperBlockEntity).getWorld(), ((HopperBlockEntity) hopperBlockEntity).getPos().up());
-    }
-
-    /**
-     * Get the input inventory entity with either vanilla or an optimized implementation.
-     * Will be overwritten by {@link hopperOptimizations.mixins.entityTracking.HopperHelperMixin}
-     */
-    public static Inventory getInputEntityInventory(Object hopperBlockEntity) {
-        return vanillaGetEntityInventory(((HopperBlockEntity) hopperBlockEntity).getWorld(), ((HopperBlockEntity) hopperBlockEntity).getPos().up());
-    }
-
-
-    /**
-     * Get the input inventory block with either vanilla or an optimized implementation.
-     * Will be overwritten by {@link hopperOptimizations.mixins.cacheInventories.HopperHelperMixin}
-     */
-    public static Inventory getOutputBlockInventory(HopperBlockEntity hopperBlockEntity) {
-        Direction direction = hopperBlockEntity.getCachedState().get(HopperBlock.FACING);
-        //noinspection ConstantConditions
-        return vanillaGetBlockInventory(hopperBlockEntity.getWorld(), hopperBlockEntity.getPos().offset(direction));
-    }
-
-    /**
-     * Get the output inventory entity with either vanilla or an optimized implementation.
-     * Will be overwritten by {@link hopperOptimizations.mixins.entityTracking.HopperHelperMixin}
-     */
-    public static Inventory getOutputEntityInventory(HopperBlockEntity hopperBlockEntity) {
-        Direction direction = hopperBlockEntity.getCachedState().get(HopperBlock.FACING);
-        return vanillaGetEntityInventory(hopperBlockEntity.getWorld(), hopperBlockEntity.getPos().offset(direction));
+        return world.getEntities((Entity) null, new Box(x, y, z, x + 1D, y + 1D, z + 1D), EntityPredicates.VALID_INVENTORIES);
     }
 
 
@@ -170,8 +112,8 @@ public abstract class HopperHelper {
             }
             to.setStack(toSlot, toStack);
         } else {
-            to.getStack(toSlot).increment(1);
             fromStack.decrement(1);
+            to.getStack(toSlot).increment(1);
         }
     }
 
@@ -240,26 +182,5 @@ public abstract class HopperHelper {
         }
 
         inv.setStack(0, inv.getStack(0));
-    }
-
-    public static void debugCompareInventoryEntities(NearbyHopperInventoriesTracker tracker, World world, double x, double y, double z) {
-        try {
-            List<Entity> inventoryEntities = tracker.getAllForDebug();
-            inventoryEntities.removeIf((Entity inv) -> inv.removed);
-
-            List<Entity> inventoriesVanilla = world.getOtherEntities(null, new Box(x - 0.5D, y - 0.5D, z - 0.5D, x + 0.5D, y + 0.5D, z + 0.5D), EntityPredicates.VALID_INVENTORIES);
-            if (!inventoryEntities.containsAll(inventoriesVanilla)) {
-                throw new IllegalStateException("HopperOptimizations did not find inventory entity/entities that vanilla found.");
-            }
-            if (!inventoriesVanilla.containsAll(inventoryEntities)) {
-                throw new IllegalStateException("HopperOptimizations found inventory entity/entities that vanilla did not find.");
-            }
-            if (inventoriesVanilla.size() != inventoryEntities.size()) {
-                throw new IllegalStateException("HopperOptimizations did not find the same number of entities as vanilla."); //duplicate entries!
-            }
-        } catch (IllegalStateException e) {
-            Text text = new LiteralText("Detected wrong entity hopper interaction ( " + e.getMessage() + ")!");
-            e.printStackTrace();
-        }
     }
 }

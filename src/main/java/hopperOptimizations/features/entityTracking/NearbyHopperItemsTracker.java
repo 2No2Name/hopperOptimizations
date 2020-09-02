@@ -2,6 +2,7 @@ package hopperOptimizations.features.entityTracking;
 
 import it.unimi.dsi.fastutil.longs.Long2ObjectAVLTreeMap;
 import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
+import me.jellysquid.mods.lithium.common.entity.tracker.nearby.ExactPositionListener;
 import net.minecraft.block.entity.Hopper;
 import net.minecraft.block.entity.HopperBlockEntity;
 import net.minecraft.entity.Entity;
@@ -10,9 +11,9 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.shape.VoxelShape;
+import net.minecraft.world.World;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 
@@ -23,17 +24,19 @@ import java.util.List;
  *
  * @author 2No2Name
  */
-public class NearbyHopperItemsTracker extends NearbyEntityTrackerBox<ItemEntity> {
+public class NearbyHopperItemsTracker implements ExactPositionListener {
     @SuppressWarnings("MismatchedQueryAndUpdateOfCollection")
     private static final List<ItemEntity> EMPTY_LIST = new ArrayList<>(0);
 
-    private static final VoxelShape inputAreaShape;
-    private static final List<Box> boxes;
+    private static final VoxelShape INPUT_AREA_SHAPE;
+    private static final List<Box> INPUT_BOXES;
 
     static {
-        inputAreaShape = new HopperBlockEntity().getInputAreaShape();
-        boxes = inputAreaShape.getBoundingBoxes();
+        INPUT_AREA_SHAPE = new HopperBlockEntity().getInputAreaShape();
+        INPUT_BOXES = INPUT_AREA_SHAPE.getBoundingBoxes();
     }
+
+    int chunkX1, chunkY1, chunkZ1, chunkX2, chunkY2, chunkZ2;
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     //Fields that are practically final after their first initialization
@@ -67,7 +70,6 @@ public class NearbyHopperItemsTracker extends NearbyEntityTrackerBox<ItemEntity>
     private boolean searchEntitiesAfterInitialization = false;
 
     public NearbyHopperItemsTracker(BlockPos hopperPos, Hopper hopper) {
-        super(ItemEntity.class);
         assert hopper instanceof HopperBlockEntity;
         this.myHopper = (HopperBlockEntity) hopper;
         this.init(hopperPos);
@@ -100,13 +102,12 @@ public class NearbyHopperItemsTracker extends NearbyEntityTrackerBox<ItemEntity>
         int chunkDz = this.chunkZ2 - this.chunkZ1;
 
         this.chunkXZYBits = 32 - Integer.numberOfLeadingZeros(Math.max(chunkDx, Math.max(chunkDy, chunkDz)));
-        this.numSubchunks = (chunkDx + 1) * (chunkDy + 1) * (chunkDz + 1);
-
 
         if (this.chunkXZYBits > 1 || this.boxBits != 1) {
             if (this.chunkXZYBits * 3 + this.boxBits > 30) {
+                //63 bits shared between entity counter ordering and bits for chunk and box ordering
                 //30+ bits for entity counter recommended. billions of items should be indexable at once, vanilla probably has a high or no limit besides lag!
-                System.out.println("Hopper pickup area very complex or huge. This can lead to problems when many items gather on top of a hopper.");
+                throw new IllegalStateException("Another mod changed the entity detection area shape in a way that is incompatible with this mod. Disable the entity tracking hopper optimization to work around this.");
             }
         }
 
@@ -116,8 +117,8 @@ public class NearbyHopperItemsTracker extends NearbyEntityTrackerBox<ItemEntity>
     }
 
     private void createPositionAndEntitySizeAdjustedBoxes(BlockPos pos) {
-        List<Box> boxes = this.myHopper.getInputAreaShape() == NearbyHopperItemsTracker.inputAreaShape
-                ? NearbyHopperItemsTracker.boxes : this.myHopper.getInputAreaShape().getBoundingBoxes();
+        List<Box> boxes = this.myHopper.getInputAreaShape() == NearbyHopperItemsTracker.INPUT_AREA_SHAPE
+                ? NearbyHopperItemsTracker.INPUT_BOXES : this.myHopper.getInputAreaShape().getBoundingBoxes();
 
         //int widthHalfCeil = MathHelper.ceil(entityDimensions.width / 2D + 1e-7);
         this.collectionArea = new Box[boxes.size()];
@@ -249,11 +250,6 @@ public class NearbyHopperItemsTracker extends NearbyEntityTrackerBox<ItemEntity>
         this.withinAreaSorted.remove(oldPriority);
     }
 
-    @Override
-    protected void addEntity(ItemEntity entity) {
-        throw new UnsupportedOperationException();
-    }
-
     @Deprecated
     private void addEntity(ItemEntity entity, long priority, boolean isNew) {
         this.withinAreaSorted.put(priority, entity);
@@ -268,18 +264,6 @@ public class NearbyHopperItemsTracker extends NearbyEntityTrackerBox<ItemEntity>
             this.withinAreaSorted.remove(priority);
         }
         this.withinSubchunksObjectToKey.remove(entity, priority);
-    }
-
-
-
-    @Override
-    protected void removeEntity(ItemEntity entity) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    Collection<ItemEntity> createCollection() {
-        return null;
     }
 
     /**
@@ -302,8 +286,9 @@ public class NearbyHopperItemsTracker extends NearbyEntityTrackerBox<ItemEntity>
             b = this.chunkY2 - MathHelper.clamp(MathHelper.floor(entity.getY()) >> 4, 0, 15); //high for low chunkY index
             index |= b;                                                    //stored in the lowest bits
         }
-        if (index < 0)
-            throw new AssertionError();
+        if (index < 0) {
+            throw new IllegalStateException();
+        }
         assert index < (1 << 3 * this.chunkXZYBits);
 
         return index;
@@ -319,6 +304,7 @@ public class NearbyHopperItemsTracker extends NearbyEntityTrackerBox<ItemEntity>
         final Box entityBox = entity.getBoundingBox();
         for (int i = 0; i < this.collectionArea.length; ++i) {
             if (this.collectionArea[i].intersects(entityBox)) {
+                //todo special case this here to prevent the upper box seeing lazy moved entities from too low subchunks and the lower box seeing entities from too high subchunks and subchunks too far from the side
                 return i;
             }
         }
@@ -337,10 +323,34 @@ public class NearbyHopperItemsTracker extends NearbyEntityTrackerBox<ItemEntity>
         return this.newEntityCount;
     }
 
-    public Object[] getAllForDebug() {
-        if (this.withinAreaSorted != null) {
-            return this.withinAreaSorted.values().toArray();
+    public void registerToEntityTracker(World world) {
+
+        //technically this is not registering to the correct positions, each box is listening to its own chunk sections
+        //todo lazy pushed entities might behave differently here
+        int chunkDx = this.chunkX2 - this.chunkX1;
+        int chunkDy = this.chunkY2 - this.chunkY1;
+        int chunkDz = this.chunkZ2 - this.chunkZ1;
+        int numSubchunks = (chunkDx + 1) * (chunkDy + 1) * (chunkDz + 1);
+
+        int[] xs = new int[numSubchunks];
+        int[] ys = new int[numSubchunks];
+        int[] zs = new int[numSubchunks];
+
+        int i = 0;
+        for (int x = this.chunkX1; x <= this.chunkX2; x++) {
+            for (int y = this.chunkY1; y <= this.chunkY2; y++) {
+                for (int z = this.chunkZ1; z <= this.chunkZ2; z++) {
+                    xs[i] = x;
+                    ys[i] = y;
+                    zs[i] = z;
+                    i++;
+                }
+            }
         }
-        return new Object[0];
+        this.registerToEntityTrackerEngine(world, xs, ys, zs);
+    }
+
+    public void removeFromEntityTracker(World world) {
+        this.deregisterFromEntityTrackerEngine(world);
     }
 }
