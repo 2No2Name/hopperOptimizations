@@ -14,7 +14,6 @@
   },
   "license": "MIT",
   "icon": "assets/modid/icon.png",
-
   "environment": "*",
   "entrypoints": {
     "main": [
@@ -23,7 +22,7 @@
   "mixins": [
     "hopperOptimizations.mixins.json"
   ],
-
+  "accessWidener": "hopperOptimizations.accesswidener",
   "depends": {
     "fabricloader": ">=0.4.0"
   },

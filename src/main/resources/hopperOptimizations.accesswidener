@@ -1,0 +1,9 @@
+accessWidener v1 named
+
+accessible field net/minecraft/util/collection/DefaultedList delegate Ljava/util/List;
+accessible field net/minecraft/util/collection/DefaultedList initialElement Ljava/lang/Object;
+
+accessible field net/minecraft/inventory/DoubleInventory first Lnet/minecraft/inventory/Inventory;
+accessible field net/minecraft/inventory/DoubleInventory second Lnet/minecraft/inventory/Inventory;
+
+accessible method net/minecraft/util/collection/DefaultedList <init> (Ljava/util/List;Ljava/lang/Object;)V

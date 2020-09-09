@@ -7,7 +7,7 @@ import net.minecraft.util.math.BlockPos;
 
 public class Interfaces {
 
-    public interface BlockEntityInterface {
+    public interface RemovedCounter {
         int getRemovedCount();
     }
 

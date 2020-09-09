@@ -1,39 +1,54 @@
 package hopperOptimizations.mixins.inventoryOptimizer.inventories;
 
-import hopperOptimizations.utils.inventoryOptimizer.DoubleInventoryOptimizer;
-import hopperOptimizations.utils.inventoryOptimizer.InventoryOptimizer;
 import hopperOptimizations.utils.inventoryOptimizer.OptimizedInventory;
+import hopperOptimizations.utils.inventoryOptimizer.OptimizedStackList;
 import net.minecraft.inventory.DoubleInventory;
 import net.minecraft.inventory.Inventory;
-import net.minecraft.inventory.SidedInventory;
+import net.minecraft.item.ItemStack;
+import net.minecraft.util.collection.DefaultedList;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
-
-import javax.annotation.Nullable;
 
 @Mixin(DoubleInventory.class)
 public abstract class DoubleInventoryMixin implements OptimizedInventory {
     @Shadow
     @Final
-    private Inventory first;
+    public Inventory first;
     @Shadow
     @Final
-    private Inventory second;
+    public Inventory second;
 
-    private DoubleInventoryOptimizer optimizer; //Make sure this is only used when both of its halfs have optimizers
+    private OptimizedStackList stackList;
+    private DefaultedList<ItemStack> firstList, secondList;
 
     @Override
-    @Nullable
-    public InventoryOptimizer getOptimizer(boolean create) {
-        if (this.optimizer == null) {
-            if (!create || (this instanceof SidedInventory) ||
-                    !(this.first instanceof OptimizedInventory) || !(this.second instanceof OptimizedInventory) ||
-                    ((OptimizedInventory) first).getOptimizer(true) == null || ((OptimizedInventory) second).getOptimizer(true) == null) {
+    public OptimizedStackList getOptimizedStackList() {
+        if (this.stackList == null) {
+            if (!(this.first instanceof OptimizedInventory) || !(this.second instanceof OptimizedInventory)) {
                 return null;
             }
-            this.optimizer = new DoubleInventoryOptimizer((OptimizedInventory) first, (OptimizedInventory) second);
+            this.initOptimizedStackList();
+        } else {
+            //if the inventory's stacklist was replaced, discard the OptimizedStackList, which references the outdated object in its fields
+            if (this.firstList != ((OptimizedInventory) this.first).getDowngradedStackList() ||
+                    this.secondList != ((OptimizedInventory) this.first).getDowngradedStackList()) {
+                this.stackList = null;
+
+                this.initOptimizedStackList();
+            }
         }
-        return this.optimizer;
+        return this.stackList;
+    }
+
+    private void initOptimizedStackList() {
+        this.firstList = ((OptimizedInventory) this.first).getDowngradedStackList();
+        this.secondList = ((OptimizedInventory) this.second).getDowngradedStackList();
+        this.stackList = OptimizedStackList.convertFrom((DoubleInventory) (Object) this);
+    }
+
+    @Override
+    public DefaultedList<ItemStack> getDowngradedStackList() {
+        throw new UnsupportedOperationException("Nested double inventories are cursed. Uninstall and run.");
     }
 }

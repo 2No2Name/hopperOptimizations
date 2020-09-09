@@ -1,28 +1,24 @@
 package hopperOptimizations.utils.inventoryOptimizer;
 
+import hopperOptimizations.mixins.InventoryAccessor;
+import hopperOptimizations.utils.InventoryListOptimizedAccess;
 import net.minecraft.inventory.Inventory;
-import net.minecraft.inventory.SidedInventory;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.collection.DefaultedList;
-import net.minecraft.world.World;
 
 import javax.annotation.Nullable;
 
 public interface OptimizedInventory extends Inventory {
     @Nullable
-    InventoryOptimizer getOptimizer(boolean create);
-
-    default InventoryOptimizer getOptimizer(World world, DefaultedList<ItemStack> inventory, boolean create) {
-        return !(this instanceof SidedInventory) && world != null && !world.isClient && inventory instanceof InventoryListOptimized ?
-                ((InventoryListOptimized) inventory).getCreateOrRemoveOptimizer(this, create) :
-                null;
+    default OptimizedStackList getOptimizedStackList() {
+        return InventoryListOptimizedAccess.getOptimizedInventoryListOrUpgrade((InventoryAccessor) this);
     }
 
-    @Nullable
-    World getWorld();
-
-    //Only used for chests, cached double inventories can check whether they are still up to date. e.g. both chest halfs still exist
-    default boolean isStillValid() {
-        return true;
+    default DefaultedList<ItemStack> getDowngradedStackList() {
+        DefaultedList<ItemStack> inventory = ((InventoryAccessor) this).getInventory();
+        if (inventory instanceof OptimizedStackList) {
+            ((InventoryAccessor) this).setInventory(((OptimizedStackList) inventory).getDowngraded());
+        }
+        return inventory;
     }
 }

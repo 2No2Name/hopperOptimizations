@@ -6,6 +6,7 @@
   "mixins": [
     "HopperBlockEntityMixin_Main",
     "HopperMinecartEntityMixin",
+    "InventoryAccessor",
     "cacheInventories.BlockEntityMixin",
     "cacheInventories.DoubleInventoryMixin",
     "cacheInventories.cacheInventoryBlocks.ComposterBlockComposterInventoryMixin",
@@ -13,16 +14,11 @@
     "cacheInventories.cacheInventoryBlocks.ComposterBlockFullComposterInventoryMixin",
     "cacheInventories.cacheInventoryBlocks.HopperBlockMixin",
     "cacheInventories.cacheInventoryBlocks.WorldMixin",
-    "entityTracking.ItemEntityMixin",
-    "fastSignalStrength.ScreenHandler",
+    "fastSignalStrength.ItemMixin",
+    "fastSignalStrength.ScreenHandlerMixin",
+    "fixVanilla.StorageMinecartEntityMixin",
     "inventoryOptimizer.ItemStackMixin",
-    "inventoryOptimizer.inventories.BarrelBlockEntityMixin",
-    "inventoryOptimizer.inventories.ChestBlockEntityMixin",
-    "inventoryOptimizer.inventories.DispenserBlockEntityMixin",
     "inventoryOptimizer.inventories.DoubleInventoryMixin",
-    "inventoryOptimizer.inventories.HopperBlockEntityMixin",
-    "inventoryOptimizer.inventories.ShulkerBoxBlockEntityMixin",
-    "inventoryOptimizer.inventories.StorageMinecartEntityMixin",
     "itemStackCacheEmpty.ItemStackMixin"
   ],
   "client": [

@@ -8,7 +8,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(BlockEntity.class)
-public class BlockEntityMixin implements Interfaces.BlockEntityInterface {
+public class BlockEntityMixin implements Interfaces.RemovedCounter {
     //keep track how often the blockentity was removed from the world, e.g. by movable TE
     //the count can be used by caches to realize the blockentity might have changed position or something else
     private int removedCount;
