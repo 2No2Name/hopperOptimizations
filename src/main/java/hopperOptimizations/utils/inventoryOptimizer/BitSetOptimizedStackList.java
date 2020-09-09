@@ -121,7 +121,7 @@ public class BitSetOptimizedStackList extends OptimizedStackList {
     }
 
     @Override
-    public int indexOf_extractable_maxIndex(ItemStack stack, int maxExclusive) {
+    public int indexOfInAvailableSlots_extractable_maxIndex(ItemStack stack, int maxExclusive) {
         if (maxExclusive > this.size()) maxExclusive = this.size();
         if (stack.isEmpty()) {
             assert false;
@@ -132,11 +132,15 @@ public class BitSetOptimizedStackList extends OptimizedStackList {
             return -1;
         }
         if (this.isSided) {
-            for (int slotIndex : ((SidedInventory) this.parent).getAvailableSlots(Direction.DOWN)) {
+            int[] availableSlots = ((SidedInventory) this.parent).getAvailableSlots(Direction.DOWN);
+            for (int i = 0; i < availableSlots.length; i++) {
+                int slotIndex = availableSlots[i];
                 if (slotMask.get(slotIndex) &&
                         areItemsAndTagsEqual(get(slotIndex), stack) &&
                         ((SidedInventory) this.parent).canExtract(slotIndex, this.get(slotIndex), Direction.DOWN)) {
-                    return slotIndex;
+                    //return index in available slots instead of the slot index itself. It will be converted
+                    //later, but the index is required for determining which slot is "first"
+                    return i;
                 }
             }
         } else {

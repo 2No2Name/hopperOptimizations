@@ -250,15 +250,6 @@ public class NearbyHopperItemsTracker implements ExactPositionListener {
         this.withinAreaSorted.remove(oldPriority);
     }
 
-    @Deprecated
-    private void addEntity(ItemEntity entity, long priority, boolean isNew) {
-        this.withinAreaSorted.put(priority, entity);
-        this.withinSubchunksObjectToKey.put(entity, priority);
-        if (isNew) {
-            ++this.newEntityCount;
-        }
-    }
-
     private void removeEntity(ItemEntity entity, long priority) {
         if ((priority & 0x8000000000000000L) == 0) {
             this.withinAreaSorted.remove(priority);

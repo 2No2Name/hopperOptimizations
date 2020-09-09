@@ -134,11 +134,19 @@ public abstract class OptimizedStackList extends DefaultedList<ItemStack> {
 
     public abstract boolean isFull_insertable(Direction fromDirection);
 
-    public abstract int indexOf_extractable_maxIndex(ItemStack stack, int maxExclusive);
+    public abstract int indexOfInAvailableSlots_extractable_maxIndex(ItemStack stack, int maxExclusive);
 
     public abstract int getInsertSlot(ItemStack stack, Direction fromDirection);
 
     public abstract int getIndexForMaximumSignalStrengthDecrease(int inventoryScanStart, int inventoryScanExclusiveEnd);
+
+    public int getAvailableSlotsEntry(int index, Direction fromDirection) {
+        if (this.isSided) {
+            return ((SidedInventory) this.parent).getAvailableSlots(fromDirection)[index];
+        } else {
+            return index;
+        }
+    }
 
     public void decreaseSignalStrength() {
         this.cachedSignalStrength = this.getSignalStrength() - 1;

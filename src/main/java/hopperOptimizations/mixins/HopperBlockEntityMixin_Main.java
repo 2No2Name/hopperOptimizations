@@ -17,6 +17,7 @@ import net.minecraft.entity.EntityType;
 import net.minecraft.entity.ItemEntity;
 import net.minecraft.entity.vehicle.HopperMinecartEntity;
 import net.minecraft.inventory.Inventory;
+import net.minecraft.inventory.SidedInventory;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.collection.DefaultedList;
 import net.minecraft.util.math.Box;
@@ -177,7 +178,6 @@ public abstract class HopperBlockEntityMixin_Main extends LootableContainerBlock
                 cir.setReturnValue(true);
                 return;
             } else if (fromOpt.getNumOccupiedSlots() > 5) { //&& !to.isFull
-                //todo handle out of order sided inventories (furnace but with shulker box size)
                 //When the hopper has no empty slots, try to pull items instead of pushing, because the hopper
                 //inventory is small, and therefore the for loop is shorter.
 
@@ -189,7 +189,7 @@ public abstract class HopperBlockEntityMixin_Main extends LootableContainerBlock
                 for (int toSlot = 0; firstFromSlot > 0 && toSlot < to.size(); toSlot++) {
                     ItemStack stack = to.getStack(toSlot);
                     if (stack.getMaxCount() > stack.getCount()) {
-                        int fromSlot = fromOpt.indexOf_extractable_maxIndex(stack, firstFromSlot - 1);
+                        int fromSlot = fromOpt.indexOfInAvailableSlots_extractable_maxIndex(stack, firstFromSlot - 1);
                         if (fromSlot != -1 && (fromSlot < firstFromSlot)) {//Lower fromSlot found, remember corresponding slot
                             firstFromSlot = fromSlot;
                             correspondingToSlot = toSlot;
@@ -197,6 +197,7 @@ public abstract class HopperBlockEntityMixin_Main extends LootableContainerBlock
                     }
                 }
                 if (firstFromSlot != Integer.MAX_VALUE) {
+                    firstFromSlot = fromOpt.getAvailableSlotsEntry(firstFromSlot, Direction.DOWN);
                     ComparatorUpdateFakeMode fakeMode = HopperHelper.markDirtyOnHopperInteraction(from, 0, firstFromSlot, true, null);
                     HopperHelper.transferOneItem_knownSuccessful(to, correspondingToSlot, from, firstFromSlot);
                     ((IHopper) to).setComparatorUpdateFakeMode(fakeMode);
@@ -204,8 +205,10 @@ public abstract class HopperBlockEntityMixin_Main extends LootableContainerBlock
                     return;
                 }
             } else {
-                for (int fromSlot = firstOccupiedSlot; fromSlot < from.size(); fromSlot++) {
-                    //todo handle out of order sided inventories (furnace)
+                int i = from instanceof SidedInventory ? 0 : firstOccupiedSlot;
+                int[] availableSlots = from instanceof SidedInventory ? ((SidedInventory) from).getAvailableSlots(Direction.DOWN) : null;
+                for (; availableSlots != null ? i < availableSlots.length : i < from.size(); i++) {
+                    int fromSlot = availableSlots != null ? availableSlots[i] : i;
                     if (fromOpt.cannotExtractFrom(fromSlot)) {
                         continue;
                     }
@@ -691,8 +694,8 @@ public abstract class HopperBlockEntityMixin_Main extends LootableContainerBlock
         return new Box(this.pos.up());
     }
 
-    private void optimizeItemPickup(Object hopperBlockEntity, CallbackInfoReturnable<Boolean> cir) {
-        final OptimizedStackList opt = ((OptimizedInventory) hopperBlockEntity).getOptimizedStackList();
+    private void optimizeItemPickup(Object thisCast, CallbackInfoReturnable<Boolean> cir) {
+        final OptimizedStackList opt = this.getOptimizedStackList();
         if (opt == null) {
             return; //fallback to vanilla
         }
@@ -700,9 +703,10 @@ public abstract class HopperBlockEntityMixin_Main extends LootableContainerBlock
         //fix the entity cache in case it is not initialized
         if (this.inputItemEntities == null) {
             //keep a set of reachable items to be faster next time
-            this.inputItemEntities = new NearbyHopperItemsTracker(this.pos, (Hopper) hopperBlockEntity);
+            this.inputItemEntities = new NearbyHopperItemsTracker(this.pos, (Hopper) thisCast);
             this.inputItemEntities.registerToEntityTracker(this.world);
             this.this_lastChangeCount_Pickup = 0;
+            this.inputItemEntities_changeCount = 0;
         }
         //item entity cache up to date and valid
         this.lastTickTime_used_ItemEntityCache = this.lastTickTime;
