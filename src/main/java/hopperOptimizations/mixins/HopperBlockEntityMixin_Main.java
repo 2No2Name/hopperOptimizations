@@ -8,6 +8,7 @@ import hopperOptimizations.utils.HopperHelper;
 import hopperOptimizations.utils.IHopper;
 import hopperOptimizations.utils.inventoryOptimizer.OptimizedInventory;
 import hopperOptimizations.utils.inventoryOptimizer.OptimizedStackList;
+import hopperOptimizations.workarounds.Cast;
 import hopperOptimizations.workarounds.ComparatorUpdateFakeMode;
 import hopperOptimizations.workarounds.Interfaces;
 import net.minecraft.block.HopperBlock;
@@ -42,10 +43,6 @@ public abstract class HopperBlockEntityMixin_Main extends LootableContainerBlock
 
     @Shadow
     private DefaultedList<ItemStack> inventory;
-
-    protected HopperBlockEntityMixin_Main(BlockEntityType<?> blockEntityType) {
-        super(blockEntityType);
-    }
 
     private Direction direction;
 
@@ -84,6 +81,10 @@ public abstract class HopperBlockEntityMixin_Main extends LootableContainerBlock
     //counter of the input area
     private int inputItemEntities_changeCount;
     private long lastTickTime_used_ItemEntityCache;
+
+    protected HopperBlockEntityMixin_Main(BlockEntityType<?> blockEntityType) {
+        super(blockEntityType);
+    }
 
     @Shadow
     protected abstract boolean isDisabled();
@@ -300,16 +301,14 @@ public abstract class HopperBlockEntityMixin_Main extends LootableContainerBlock
     private static Inventory getInputInventory_optimized(Hopper hopper) {
         if (!(hopper instanceof HopperBlockEntityMixin_Main))
             return HopperBlockEntity.getInputInventory(hopper); //Hopper Minecarts do not cache Inventories
-        //noinspection ConstantConditions
         Inventory ret = Settings.cacheInventories ?
                 ((HopperBlockEntityMixin_Main) hopper).getInputInventoryWithCache() :
-                HopperHelper.vanillaGetBlockInventory(((HopperBlockEntity) hopper).getWorld(), ((HopperBlockEntity) hopper).getPos().up());
+                HopperHelper.vanillaGetBlockInventory(Cast.toHopperBlockEntity(hopper).getWorld(), Cast.toHopperBlockEntity(hopper).getPos().up());
         if (ret != null)
             return ret;
-        //noinspection ConstantConditions
         return Settings.useEntityTrackerEngine ?
                 ((HopperBlockEntityMixin_Main) hopper).getInputEntityInventoryWithCache() :
-                HopperHelper.vanillaGetEntityInventory(((HopperBlockEntity) hopper).getWorld(), ((HopperBlockEntity) hopper).getPos().up());
+                HopperHelper.vanillaGetEntityInventory(Cast.toHopperBlockEntity(hopper).getWorld(), Cast.toHopperBlockEntity(hopper).getPos().up());
     }
 
     @Shadow
@@ -585,7 +584,7 @@ public abstract class HopperBlockEntityMixin_Main extends LootableContainerBlock
             return false;
         }
 
-        this.previousMarkDirtyMode = HopperHelper.markDirtyOnUnchangedHopperInteraction(other, this.previousMarkDirtyMode, null);
+        this.previousMarkDirtyMode = HopperHelper.markDirtyOnUnchangedHopperInteraction(other, this.previousMarkDirtyMode, other);
         return true;
     }
 

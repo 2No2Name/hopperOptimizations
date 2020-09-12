@@ -82,7 +82,7 @@ public abstract class HopperHelper {
         double x = pos.getX();
         double y = pos.getY();
         double z = pos.getZ();
-        return world.getEntities((Entity) null, new Box(x, y, z, x + 1D, y + 1D, z + 1D), EntityPredicates.VALID_INVENTORIES);
+        return world.getOtherEntities(null, new Box(x, y, z, x + 1D, y + 1D, z + 1D), EntityPredicates.VALID_INVENTORIES);
     }
 
 

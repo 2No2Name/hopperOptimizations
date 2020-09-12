@@ -4,12 +4,16 @@ package hopperOptimizations.settings;
 public class Settings {
 
     public static final boolean cacheInventories = true;
+    public static final boolean useEntityTrackerEngine;
 
-    //    @Rule(desc = "Can break contraptions: Removes check whether item entities have to move out of another entity (boat, shulker).",
-//            category = {OPTIMIZATION, FEATURE, "hopperoptimizations"})
-    public static boolean simplifiedItemElevatorCheck = false;
-    public static final boolean useEntityTrackerEngine = true;
-    //    @Rule(desc = "Can break contraptions: Simplified hopper box shape when picking up items. This box contains the ring around the hopper's bowl.",
-//            category = {OPTIMIZATION, FEATURE, "hopperoptimizations"})
-    public static boolean simplifiedHopperPickupShape = false;
+    static {
+        boolean present = true;
+        try {
+            Class.forName("me.jellysquid.mods.lithium.common.entity.tracker.nearby.ExactPositionListener");
+        } catch (ClassNotFoundException e) {
+            System.out.println("Hopper Optimizations did not find Lithium with ExactPositionListeners. Disabling optimization!");
+            present = false;
+        }
+        useEntityTrackerEngine = present;
+    }
 }

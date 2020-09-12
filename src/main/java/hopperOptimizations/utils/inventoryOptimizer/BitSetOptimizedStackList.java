@@ -253,9 +253,13 @@ public class BitSetOptimizedStackList extends OptimizedStackList {
         if (prevItem != Items.AIR) {
             if (prevItem != newItem) {
                 BitSet itemSlotMask = this.itemToSlotMask.get(prevItem);
-                itemSlotMask.clear(slot);
-                if (itemSlotMask.isEmpty()) {
-                    this.itemToSlotMask.remove(prevItem);
+                if (itemSlotMask != null) {
+                    itemSlotMask.clear(slot);
+                    if (itemSlotMask.isEmpty()) {
+                        this.itemToSlotMask.remove(prevItem);
+                    }
+                } else {
+                    throw new IllegalStateException("Removing item from inventory that wasn't in its optimizer!");
                 }
 
                 if (this.stackSizeToSlotMask != null && (prevMaxC != newMaxC || newItem == Items.AIR)) {
@@ -282,7 +286,7 @@ public class BitSetOptimizedStackList extends OptimizedStackList {
                 if (this.stackSizeToSlotMask != null && (prevMaxC != newMaxC || prevItem == Items.AIR)) {
                     BitSet sizeSlotMask = this.stackSizeToSlotMask.get(newMaxC);
                     if (sizeSlotMask == null) {
-                        this.itemToSlotMask.put(newItem, (sizeSlotMask = new BitSet(this.size())));
+                        this.stackSizeToSlotMask.put(newMaxC, (sizeSlotMask = new BitSet(this.size())));
                     }
                     sizeSlotMask.set(slot);
                 }

@@ -26,6 +26,9 @@ dependencies {
 	mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
 	modCompile "net.fabricmc:fabric-loader:${project.loader_version}"
 	modCompile "lithium:lithium-fabric-fork-by-2no2name:mc${project.minecraft_version}-${project.lithium_version}"
+	runtime('net.fabricmc:sponge-mixin:0.8+build.18') { //fix NoSuchMethodError https://github.com/jellysquid3/lithium-fabric/issues/121
+		force = true
+	}
 
 
 	// PSA: Some older mods, compiled on Loom 0.2.1, might have outdated Maven POMs.

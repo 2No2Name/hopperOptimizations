@@ -6,7 +6,6 @@
   "mixins": [
     "HopperBlockEntityMixin_Main",
     "HopperMinecartEntityMixin",
-    "InventoryAccessor",
     "cacheInventories.BlockEntityMixin",
     "cacheInventories.DoubleInventoryMixin",
     "cacheInventories.cacheInventoryBlocks.ComposterBlockComposterInventoryMixin",
@@ -17,6 +16,14 @@
     "fastSignalStrength.ItemMixin",
     "fastSignalStrength.ScreenHandlerMixin",
     "fixVanilla.StorageMinecartEntityMixin",
+    "inventoryAccessor.InventoryAccessor$InventoryAccessorAbstractFurnaceBlockEntity",
+    "inventoryAccessor.InventoryAccessor$InventoryAccessorBarrelBlockEntity",
+    "inventoryAccessor.InventoryAccessor$InventoryAccessorBrewingStandBlockEntity",
+    "inventoryAccessor.InventoryAccessor$InventoryAccessorChestBlockEntity",
+    "inventoryAccessor.InventoryAccessor$InventoryAccessorDispenserBlockEntity",
+    "inventoryAccessor.InventoryAccessor$InventoryAccessorHopperBlockEntity",
+    "inventoryAccessor.InventoryAccessor$InventoryAccessorShulkerBoxBlockEntity",
+    "inventoryAccessor.InventoryAccessor$InventoryAccessorStorageMinecartEntity",
     "inventoryOptimizer.ItemStackMixin",
     "inventoryOptimizer.inventories.DoubleInventoryMixin",
     "itemStackCacheEmpty.ItemStackMixin"

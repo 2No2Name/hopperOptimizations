@@ -37,7 +37,7 @@ public class HopperMinecartEntityMixin implements IHopper {
             return false;
         }
 
-        this.previousMarkDirtyMode = HopperHelper.markDirtyOnUnchangedHopperInteraction(other, this.previousMarkDirtyMode, null);
+        this.previousMarkDirtyMode = HopperHelper.markDirtyOnUnchangedHopperInteraction(other, this.previousMarkDirtyMode, other);
         return true;
     }
 

@@ -1,16 +1,15 @@
 {
   "schemaVersion": 1,
   "id": "hopperoptimizations",
-  "version": "0.2.1",
+  "version": "0.3",
   "name": "Hopper Optimizations",
   "description": "Optimization Mod for hoppers and everything that interacts with it.",
   "authors": [
-    "2No2Name",
-    "skyrising"
+    "2No2Name"
   ],
   "contact": {
     "homepage": "https://github.com/2no2name",
-    "sources": "https://github.com/2no2name"
+    "sources": "https://github.com/2no2name/hopperOptimizations"
   },
   "license": "MIT",
   "icon": "assets/modid/icon.png",
