@@ -16,7 +16,7 @@ public interface OptimizedInventory extends Inventory {
     default DefaultedList<ItemStack> getDowngradedStackList() {
         DefaultedList<ItemStack> inventory = this.getInventory();
         if (inventory instanceof OptimizedStackList) {
-            this.setInventory(((OptimizedStackList) inventory).getDowngraded());
+            this.setInventory(inventory = (((OptimizedStackList) inventory).getDowngraded()));
         }
         return inventory;
     }

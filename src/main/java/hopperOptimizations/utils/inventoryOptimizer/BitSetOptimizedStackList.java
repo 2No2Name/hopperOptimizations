@@ -44,7 +44,6 @@ public class BitSetOptimizedStackList extends OptimizedStackList {
             ItemStack stack = this.get(slot);
             if (!stack.isEmpty()) {
                 int stackMaxCount = Math.min(stack.getMaxCount(), maxStackSize);
-                this.contentWeight += stack.getCount() * (64 / stackMaxCount);
 
                 this.slotOccupiedMask.set(slot);
                 if (stack.getCount() >= stackMaxCount) {

@@ -19,7 +19,7 @@ public abstract class OptimizedStackList extends DefaultedList<ItemStack> {
     long contentChangeCount;
     int contentWeight; //unstackable weigh 64, 16-stackable 4 and 64-stackable 1
 
-    int cachedSignalStrength;
+    int cachedSignalStrength; //reset together with contentChangeCount increment
 
 
     public OptimizedStackList(List<ItemStack> delegate, @Nullable ItemStack initialElement, Inventory containedIn) {
@@ -108,6 +108,7 @@ public abstract class OptimizedStackList extends DefaultedList<ItemStack> {
 
         this.contentWeight -= prevCount * (int) (64F / prevMaxC) - newCount * (int) (64F / newMaxC);
         this.contentChangeCount++;
+        this.cachedSignalStrength = -1;
     }
 
     public int getSignalStrength() {
@@ -118,7 +119,8 @@ public abstract class OptimizedStackList extends DefaultedList<ItemStack> {
     }
 
     public int getSignalStrengthSimulateDecrementAt(int decrementIndex) {
-        return (int) (((this.getContentWeight() - Math.min(this.parent.getMaxCountPerStack(), this.get(decrementIndex).getMaxCount())) / ((float) this.size() * 64)) * 14) + (this.isEmpty() ? 0 : 1);
+        int decrWeight = this.getContentWeight() - (64 / Math.min(this.get(decrementIndex).getMaxCount(), this.parent.getMaxCountPerStack()));
+        return (int) ((decrWeight / ((float) this.size() * 64)) * 14) + (decrWeight > 0 ? 1 : 0);
     }
 
     @Override
