@@ -212,10 +212,10 @@ public class BitSetOptimizedStackList extends OptimizedStackList {
             }
         }
 
-        int maxStackSizeInsideRange = -1;
-        int slotWithMaxStackSizeInsideRange = -1;
+        int minMaxStackSizeInsideRange = Integer.MAX_VALUE;
+        int slotWithMinMaxStackSizeInsideRange = -1;
         for (int maxStackSize : this.stackSizeToSlotMask.keySet()) {
-            if (maxStackSize > maxStackSizeInsideRange) {
+            if (maxStackSize < minMaxStackSizeInsideRange) {
                 BitSet bitSet = this.stackSizeToSlotMask.get(maxStackSize);
                 int slotWithStackSize = bitSet.nextSetBit(inventoryScanStart);
                 while (this.isSided && slotWithStackSize >= 0 && slotWithStackSize < inventoryScanExclusiveEnd &&
@@ -223,12 +223,12 @@ public class BitSetOptimizedStackList extends OptimizedStackList {
                     slotWithStackSize = bitSet.nextSetBit(inventoryScanStart + 1);
                 }
                 if (slotWithStackSize >= 0 && slotWithStackSize < inventoryScanExclusiveEnd) {
-                    maxStackSizeInsideRange = maxStackSize;
-                    slotWithMaxStackSizeInsideRange = slotWithStackSize;
+                    minMaxStackSizeInsideRange = maxStackSize;
+                    slotWithMinMaxStackSizeInsideRange = slotWithStackSize;
                 }
             }
         }
-        return slotWithMaxStackSizeInsideRange;
+        return slotWithMinMaxStackSizeInsideRange;
     }
 
     @Override
