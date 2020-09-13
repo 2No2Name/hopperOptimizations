@@ -1,11 +1,12 @@
 plugins {
 	id 'fabric-loom' version '0.2.7-SNAPSHOT'
-	id 'maven-publish'
 }
 
 repositories {
-	maven {
-		url 'https://masa.dy.fi/maven'
+	allprojects {
+		repositories {
+			maven { url 'https://jitpack.io' }
+		}
 	}
 }
 
@@ -14,7 +15,6 @@ targetCompatibility = JavaVersion.VERSION_1_8
 
 archivesBaseName = project.archives_base_name
 version = project.minecraft_version+'-'+project.mod_version
-group = project.maven_group
 
 minecraft {
 	accessWidener = file("src/main/resources/hopperOptimizations.accesswidener")
@@ -25,12 +25,10 @@ dependencies {
 	minecraft "com.mojang:minecraft:${project.minecraft_version}"
 	mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
 	modCompile "net.fabricmc:fabric-loader:${project.loader_version}"
-	modCompile "lithium:lithium-fabric-fork-by-2no2name:mc${project.minecraft_version}-${project.lithium_version}"
+	modCompile "com.github.2No2Name:lithium-fabric:v${project.lithium_version}"
 	runtime('net.fabricmc:sponge-mixin:0.8+build.18') { //fix NoSuchMethodError https://github.com/jellysquid3/lithium-fabric/issues/121
 		force = true
 	}
-
-
 	// PSA: Some older mods, compiled on Loom 0.2.1, might have outdated Maven POMs.
 	// You may need to force-disable transitiveness on them.
 
@@ -70,23 +68,3 @@ jar {
 	from "LICENSE"
 }
 
-// configure the maven publication
-publishing {
-	publications {
-		mavenJava(MavenPublication) {
-			// add all the jars that should be included when publishing to maven
-			artifact(jar) {
-				builtBy remapJar
-			}
-			artifact(sourcesJar) {
-				builtBy remapSourcesJar
-			}
-		}
-	}
-
-	// select the repositories you want to publish to
-	repositories {
-		// uncomment to publish to the local maven
-		// mavenLocal()
-	}
-}
