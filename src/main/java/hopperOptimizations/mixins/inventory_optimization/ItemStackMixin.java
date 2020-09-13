@@ -47,7 +47,7 @@ public abstract class ItemStackMixin implements OptimizedStackList.IItemStackCal
         if (this.myInventoryList == myInventoryList && this.slotIndex == slotIndex) {
             this.myInventoryList = null;
             this.slotIndex = 0;
-        } else {
+        } else if (!this.isEmpty()) {
             Logger.getLogger("HopperOptimizations").warning(
                     String.format("Removing stack from inventory: %s but stack says it is in: %s!",
                             myInventoryList.parent,

@@ -135,8 +135,8 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
     private static void optimizeExtract(Hopper to, CallbackInfoReturnable<Boolean> cir, Inventory from) {
         if (to instanceof OptimizedInventory && from instanceof OptimizedInventory) {
             OptimizedStackList toOpt = ((OptimizedInventory) to).getOptimizedStackList();
-            OptimizedStackList fromOpt = ((OptimizedInventory) from).getOptimizedStackList();
-            if (toOpt == null || fromOpt == null) {
+            OptimizedStackList fromOpt;
+            if (toOpt == null) {
                 return;
             }
 
@@ -144,6 +144,10 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
 
             if (isFull) { //full hoppers cannot extract more, but hopper minecarts try anyways
                 if (to instanceof HopperMinecartEntity) {
+                    fromOpt = ((OptimizedInventory) from).getOptimizedStackList();
+                    if (fromOpt == null) {
+                        return;
+                    }
                     if (fromOpt.isAnyExtractableSlotOccupied()) {
                         MarkDirtyHelper.markDirtyOnHopperInteraction(from, 0, from.size(), false, null);
                     }
@@ -154,6 +158,10 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
                 return;
             }
 
+            fromOpt = ((OptimizedInventory) from).getOptimizedStackList();
+            if (fromOpt == null) {
+                return;
+            }
             if (to instanceof IHopper && ((IHopper) to).tryShortcutFailedExtract(toOpt, (OptimizedInventory) from, fromOpt)) {
                 cir.setReturnValue(false);
                 return;

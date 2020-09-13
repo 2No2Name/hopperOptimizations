@@ -32,11 +32,7 @@ public class BitSetOptimizedStackList extends OptimizedStackList {
         this.slotFullMask = new BitSet(this.size());
         this.slotOccupiedMask = new BitSet(this.size());
 
-//        if (this.size() > 5) {
         this.itemToSlotMask = new Reference2ReferenceOpenHashMap<>();
-//        } else {
-//            this.itemToSlotMask = null;
-//        }
         this.stackSizeToSlotMask = null;
 
         int maxStackSize = this.parent.getMaxCountPerStack();

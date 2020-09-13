@@ -24,13 +24,15 @@ public class ListInventoryPair extends AbstractList<ItemStack> {
 
     @Override
     public ItemStack set(int index, ItemStack element) {
+        ItemStack prev;
         if ((index < this.inventory1.size())) {
+            prev = this.inventory1.getStack(index);
             this.inventory1.setStack(index, element);
         } else {
+            prev = this.inventory2.getStack(index - inventory1.size());
             this.inventory2.setStack(index - inventory1.size(), element);
         }
-        //unused
-        return null;
+        return prev;
     }
 
     @Override

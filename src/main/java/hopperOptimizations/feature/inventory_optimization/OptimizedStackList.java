@@ -1,9 +1,11 @@
 package hopperOptimizations.feature.inventory_optimization;
 
 import hopperOptimizations.utils.ListInventoryPair;
+import net.minecraft.block.entity.LootableContainerBlockEntity;
 import net.minecraft.inventory.DoubleInventory;
 import net.minecraft.inventory.Inventory;
 import net.minecraft.inventory.SidedInventory;
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.collection.DefaultedList;
 import net.minecraft.util.math.Direction;
@@ -24,7 +26,7 @@ public abstract class OptimizedStackList extends DefaultedList<ItemStack> {
 
     public OptimizedStackList(List<ItemStack> delegate, @Nullable ItemStack initialElement, Inventory containedIn) {
         super(delegate, initialElement);
-        assert !(containedIn instanceof DoubleInventory);
+        assert !(containedIn instanceof Item);
         this.parent = containedIn;
         this.isSided = this.parent instanceof SidedInventory;
         this.contentChangeCount = 0;
@@ -46,6 +48,9 @@ public abstract class OptimizedStackList extends DefaultedList<ItemStack> {
     }
 
     public static OptimizedStackList convertFrom(DefaultedList<ItemStack> convertFrom, Inventory parent) {
+        if (parent instanceof LootableContainerBlockEntity) {
+            ((LootableContainerBlockEntity) parent).checkLootInteraction(null);
+        }
         //reuse the arraylist from the defaulted list to avoid another copy
         return new BitSetOptimizedStackList(convertFrom.delegate, convertFrom.initialElement, parent);
     }
@@ -61,14 +66,14 @@ public abstract class OptimizedStackList extends DefaultedList<ItemStack> {
         return ItemStack.areTagsEqual(a, b);
     }
 
-    public DefaultedList<ItemStack> getDowngraded() {
+    public DefaultedList<ItemStack> getDoubleInventoryHalfStackList(DoubleInventory parent) {
         for (int i = 0; i < this.size(); i++) {
             ItemStack stack = this.get(i);
             //noinspection ConstantConditions
             ((IItemStackCaller) (Object) stack).removeFromInventory(this, i);
         }
         //now this OptimizedStackList is invalid and needs to be garbage collected. It is essential that it is no longer touched
-        return new DefaultedList<>(this.delegate, this.initialElement);
+        return new DoubleInventoryHalfStackList(this.delegate, this.initialElement, parent);
     }
 
     public long getContentChangeCount() {
@@ -88,7 +93,8 @@ public abstract class OptimizedStackList extends DefaultedList<ItemStack> {
             //noinspection ConstantConditions
             ((IItemStackCaller) (Object) prevStack).removeFromInventory(this, slotIndex);
             //noinspection ConstantConditions
-            ((IItemStackCaller) (Object) newStack).setInInventory(this, slotIndex);
+            if (!newStack.isEmpty())
+                ((IItemStackCaller) (Object) newStack).setInInventory(this, slotIndex);
         }
         return prevStack;
     }

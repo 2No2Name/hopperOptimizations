@@ -1,6 +1,7 @@
 package hopperOptimizations.feature.inventory_optimization;
 
 import hopperOptimizations.utils.InventoryListOptimizedAccess;
+import net.minecraft.inventory.DoubleInventory;
 import net.minecraft.inventory.Inventory;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.collection.DefaultedList;
@@ -13,10 +14,15 @@ public interface OptimizedInventory extends Inventory {
         return InventoryListOptimizedAccess.getOptimizedInventoryListOrUpgrade(this);
     }
 
-    default DefaultedList<ItemStack> getDowngradedStackList() {
+    default DefaultedList<ItemStack> getDoubleInventoryHalfStackList(Object parent) {
         DefaultedList<ItemStack> inventory = this.getInventory();
-        if (inventory instanceof OptimizedStackList) {
-            this.setInventory(inventory = (((OptimizedStackList) inventory).getDowngraded()));
+        if (!(inventory instanceof DoubleInventoryHalfStackList) || ((DoubleInventoryHalfStackList) inventory).parent != parent) {
+            if (inventory instanceof OptimizedStackList) {
+                inventory = ((OptimizedStackList) inventory).getDoubleInventoryHalfStackList((DoubleInventory) parent);
+            } else {
+                inventory = new DoubleInventoryHalfStackList(inventory.delegate, inventory.initialElement, (DoubleInventory) parent);
+            }
+            this.setInventory(inventory);
         }
         return inventory;
     }
