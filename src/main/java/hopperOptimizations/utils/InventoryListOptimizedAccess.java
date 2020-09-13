@@ -1,8 +1,8 @@
 package hopperOptimizations.utils;
 
-import hopperOptimizations.utils.inventoryOptimizer.BitSetOptimizedStackList;
-import hopperOptimizations.utils.inventoryOptimizer.OptimizedInventory;
-import hopperOptimizations.utils.inventoryOptimizer.OptimizedStackList;
+import hopperOptimizations.feature.inventory_optimization.BitSetOptimizedStackList;
+import hopperOptimizations.feature.inventory_optimization.OptimizedInventory;
+import hopperOptimizations.feature.inventory_optimization.OptimizedStackList;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.collection.DefaultedList;
 

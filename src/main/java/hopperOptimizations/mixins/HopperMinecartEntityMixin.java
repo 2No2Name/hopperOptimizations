@@ -1,11 +1,11 @@
 package hopperOptimizations.mixins;
 
 
-import hopperOptimizations.utils.HopperHelper;
+import hopperOptimizations.feature.comparator_updating.ComparatorUpdateFakeMode;
+import hopperOptimizations.feature.comparator_updating.MarkDirtyHelper;
+import hopperOptimizations.feature.inventory_optimization.OptimizedInventory;
+import hopperOptimizations.feature.inventory_optimization.OptimizedStackList;
 import hopperOptimizations.utils.IHopper;
-import hopperOptimizations.utils.inventoryOptimizer.OptimizedInventory;
-import hopperOptimizations.utils.inventoryOptimizer.OptimizedStackList;
-import hopperOptimizations.workarounds.ComparatorUpdateFakeMode;
 import net.minecraft.entity.vehicle.HopperMinecartEntity;
 import org.spongepowered.asm.mixin.Mixin;
 
@@ -37,7 +37,7 @@ public class HopperMinecartEntityMixin implements IHopper {
             return false;
         }
 
-        this.previousMarkDirtyMode = HopperHelper.markDirtyOnUnchangedHopperInteraction(other, this.previousMarkDirtyMode, other);
+        this.previousMarkDirtyMode = MarkDirtyHelper.markDirtyOnUnchangedHopperInteraction(other, this.previousMarkDirtyMode, other);
         return true;
     }
 

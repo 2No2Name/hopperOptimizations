@@ -1,8 +1,8 @@
 package hopperOptimizations.utils;
 
-import hopperOptimizations.utils.inventoryOptimizer.OptimizedInventory;
-import hopperOptimizations.utils.inventoryOptimizer.OptimizedStackList;
-import hopperOptimizations.workarounds.ComparatorUpdateFakeMode;
+import hopperOptimizations.feature.comparator_updating.ComparatorUpdateFakeMode;
+import hopperOptimizations.feature.inventory_optimization.OptimizedInventory;
+import hopperOptimizations.feature.inventory_optimization.OptimizedStackList;
 
 public interface IHopper {
 

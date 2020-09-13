@@ -11,7 +11,6 @@ public class HopperOptimizationsMixinPlugin implements IMixinConfigPlugin {
 
     @Override
     public void onLoad(String mixinPackage) {
-
     }
 
     @Override
@@ -21,10 +20,7 @@ public class HopperOptimizationsMixinPlugin implements IMixinConfigPlugin {
 
     @Override
     public boolean shouldApplyMixin(String targetClassName, String mixinClassName) {
-        if (mixinClassName.startsWith("hopperOptimizations.mixins.")) {
-            return !mixinClassName.startsWith("hopperOptimizations.mixins.nonVanillaLagReduction");
-        }
-
+        //Todo allow disabling optional mixins here using a config file. E.g. cache_item_stack_empty
         return true;
     }
 
