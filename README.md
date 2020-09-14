@@ -1,10 +1,9 @@
 # Hopper Optimizations Mod
-This mod is in an experimental stage for a few days due to many changes. Expect bugs and report them to have them fixed!
-Performance comparisons with vs. without this mod are always welcome.
-
 This Mod optimizes hoppers interacting with inventories and item entities. It implements optimizations _without changing
  any observable behavior_ (besides the better performance).
  This branch of hopper optimizations **requires** installing my fork of Lithium.
+ 
+ Performance measurements are welcome. If you find a bug, please report it on the issue tracker.
 
 ## Installation instructions
 - Install the fabric mod loader. https://fabricmc.net/use/
@@ -13,7 +12,8 @@ This Mod optimizes hoppers interacting with inventories and item entities. It im
 - start the game (no configuration required)
 
 ## Features 
-These features are not visible in-game, but they speed up minecraft hoppers, effectively fixing hopper lag.
+These features are speeding up minecraft hoppers, effectively fixing hopper lag. Besides the lag reduction the 
+behavior is exactly like vanilla.
 ### Inventory Optimizations
 Inventories keep extra data such as a _modification counter_, an _item type -> slot mask map_, and _empty & full slot masks_.
 This allows replacing vanilla's linear search though the whole inventory with a few mask operations to find slots that
