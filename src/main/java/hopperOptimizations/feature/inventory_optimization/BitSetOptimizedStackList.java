@@ -116,6 +116,12 @@ public class BitSetOptimizedStackList extends OptimizedStackList {
     }
 
     @Override
+    public boolean isFull() {
+        return this.slotFullMask.nextClearBit(0) >= this.size();
+    }
+
+
+    @Override
     public int indexOfInAvailableSlots_extractable_maxIndex(ItemStack stack, int maxExclusive) {
         if (maxExclusive > this.size()) maxExclusive = this.size();
         if (stack.isEmpty()) {

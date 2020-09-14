@@ -83,7 +83,7 @@ public class MarkDirtyHelper {
 
     public static ComparatorUpdateFakeMode markDirtyOnUnchangedHopperInteraction(Inventory inventory, ComparatorUpdateFakeMode fakeMode, Inventory invForSignalStrength) {
         if (fakeMode == ComparatorUpdateFakeMode.UNDETERMINED) {
-            fakeMode = markDirtyOnHopperInteraction(inventory, 0, inventory.size(), false, inventory);
+            fakeMode = markDirtyOnHopperInteraction(inventory, 0, inventory.size(), false, invForSignalStrength);
             return fakeMode;
         }
         if (fakeMode.isSimple()) {

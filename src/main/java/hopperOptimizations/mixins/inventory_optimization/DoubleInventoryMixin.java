@@ -57,14 +57,14 @@ public abstract class DoubleInventoryMixin implements OptimizedInventory {
             }
         }
 
-        this.firstList = ((OptimizedInventory) this.first).getDoubleInventoryHalfStackList(this);
-        this.secondList = ((OptimizedInventory) this.second).getDoubleInventoryHalfStackList(this);
+        this.firstList = ((OptimizedInventory) this.first).getDoubleInventoryHalfStackList(this, 0);
+        this.secondList = ((OptimizedInventory) this.second).getDoubleInventoryHalfStackList(this, this.first.size());
 
         this.stackList = OptimizedStackList.convertFrom((DoubleInventory) (Object) this);
     }
 
     @Override
-    public DefaultedList<ItemStack> getDoubleInventoryHalfStackList(Object parent) {
+    public DefaultedList<ItemStack> getDoubleInventoryHalfStackList(Object parent, int offset) {
         throw new UnsupportedOperationException("Nested double inventories are cursed. Uninstall and run.");
     }
 
@@ -74,6 +74,7 @@ public abstract class DoubleInventoryMixin implements OptimizedInventory {
 
     /**
      * @author 2No2Name
+     * @reason go through OptimizedStackList to use optimization data
      */
     @Override
     @Overwrite
@@ -87,6 +88,7 @@ public abstract class DoubleInventoryMixin implements OptimizedInventory {
 
     /**
      * @author 2No2Name
+     * @reason go through OptimizedStackList
      */
     @Override
     @Overwrite
@@ -100,6 +102,7 @@ public abstract class DoubleInventoryMixin implements OptimizedInventory {
 
     /**
      * @author 2No2Name
+     * @reason go through OptimizedStackList to update optimization data
      */
     @Override
     @Overwrite
@@ -121,6 +124,7 @@ public abstract class DoubleInventoryMixin implements OptimizedInventory {
 
     /**
      * @author 2No2Name
+     * @reason go through OptimizedStackList to update optimization data
      */
     @Override
     @Overwrite
@@ -134,6 +138,7 @@ public abstract class DoubleInventoryMixin implements OptimizedInventory {
 
     /**
      * @author 2No2Name
+     * @reason go through OptimizedStackList to update optimization data
      */
     @Override
     @Overwrite

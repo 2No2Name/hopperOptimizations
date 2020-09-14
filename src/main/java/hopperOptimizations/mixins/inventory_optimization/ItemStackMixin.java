@@ -47,10 +47,7 @@ public abstract class ItemStackMixin implements OptimizedStackList.IItemStackCal
 
     @Override
     public void unregisterFromInventory(@Nullable OptimizedStackList myInventoryList, int slotIndex) {
-        if (this.isEmpty() || this.slotIndex == slotIndex && (myInventoryList == this.myInventoryList || myInventoryList == null)) {
-            this.myInventoryList = null;
-            this.slotIndex = 0;
-        } else {
+        if (!this.isEmpty() && (this.slotIndex != slotIndex || (myInventoryList != this.myInventoryList && myInventoryList != null))) {
             Logger.getLogger("HopperOptimizations").warning(
                     String.format("Unregistering stack %s from inventory: %s but stack says it is in: %s!",
                             this,
@@ -58,6 +55,8 @@ public abstract class ItemStackMixin implements OptimizedStackList.IItemStackCal
                             this.myInventoryList != null ? this.myInventoryList.parent : "no inventory")
             );
         }
+        this.myInventoryList = null;
+        this.slotIndex = 0;
     }
 
     @Inject(method = "setCount", at = @At(value = "HEAD"))

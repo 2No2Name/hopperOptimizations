@@ -80,7 +80,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
     private long lastTickTime_used_OutputInventoryEntityCache;
     //change counter value at the last time the input area was checked
     //counter of the input area
-    private int inputItemEntities_changeCount;
+    private long inputItemEntities_changeCount;
     private long lastTickTime_used_ItemEntityCache;
 
     protected HopperBlockEntityMixin(BlockEntityType<?> blockEntityType) {
@@ -357,13 +357,77 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
     @Shadow
     public abstract double getHopperY();
 
-    @Redirect(require = 0, allow = 1, method = "insertAndExtract", at = @At(value = "INVOKE", target = "Lnet/minecraft/block/entity/HopperBlockEntity;isEmpty()Z"))
-    private boolean isEmptyOpt(HopperBlockEntity hopperBlockEntity) {
-        OptimizedStackList opt = this.getOptimizedStackList();
-        if (opt != null) {
-            return opt.getFirstOccupiedSlot_extractable() == -1;
+    /**
+     * Inject to replace item pickup with the optimized version
+     *
+     * @param hopper the hopper
+     */
+    @Inject(method = "extract(Lnet/minecraft/block/entity/Hopper;)Z", at = @At(value = "INVOKE", target = "Lnet/minecraft/block/entity/HopperBlockEntity;getInputItemEntities(Lnet/minecraft/block/entity/Hopper;)Ljava/util/List;", shift = At.Shift.BEFORE), locals = LocalCapture.CAPTURE_FAILHARD, cancellable = true)
+    private static void optimizeItemPickupMixin(Hopper hopper, CallbackInfoReturnable<Boolean> cir) {
+        if (!(hopper instanceof HopperBlockEntityMixin)) {
+            return; //use vanilla code when optimization is off or this is a hopper minecart
         }
-        return isEmpty();
+
+        final OptimizedStackList opt = ((HopperBlockEntityMixin) hopper).getOptimizedStackList();
+        if (opt == null) {
+            return; //fallback to vanilla
+        }
+
+        //fix the entity cache in case it is not initialized
+        if (((HopperBlockEntityMixin) hopper).inputItemEntities == null) {
+            ((HopperBlockEntityMixin) hopper).initItemTracker();
+        }
+        //item entity cache up to date and valid
+        ((HopperBlockEntityMixin) hopper).lastTickTime_used_ItemEntityCache = ((HopperBlockEntityMixin) hopper).lastTickTime;
+
+        long changeCount = opt.getContentChangeCount();
+        if (((HopperBlockEntityMixin) hopper).this_lastChangeCount_Pickup == changeCount &&
+                ((HopperBlockEntityMixin) hopper).inputItemEntities.getNewEntityCounter() == ((HopperBlockEntityMixin) hopper).inputItemEntities_changeCount
+        ) {
+            //nothing changed after the last transfer attempt
+            //so we don't try to transfer at all
+            cir.setReturnValue(false);
+            return;
+        }
+        ((HopperBlockEntityMixin) hopper).inputItemEntities_changeCount = ((HopperBlockEntityMixin) hopper).inputItemEntities.getNewEntityCounter();
+        ((HopperBlockEntityMixin) hopper).this_lastChangeCount_Pickup = changeCount;
+
+        Iterator<ItemEntity> itemEntityIterator = ((HopperBlockEntityMixin) hopper).inputItemEntities.getItemEntityIterator();
+        while (itemEntityIterator.hasNext()) {
+            ItemEntity itemEntity = itemEntityIterator.next();
+            ItemStack itemEntityStack = itemEntity.getStack();
+            int receivingSlot;
+
+            while (!itemEntityStack.isEmpty() && 0 <= (receivingSlot = opt.getInsertSlot(itemEntityStack, null))) {
+                ItemStack receivingStack = ((HopperBlockEntityMixin) hopper).inventory.get(receivingSlot);
+                if (receivingStack.isEmpty()) {
+                    ((HopperBlockEntityMixin) hopper).inventory.set(receivingSlot, itemEntityStack);
+                    itemEntity.setStack(ItemStack.EMPTY);
+                    itemEntity.remove();
+                    cir.setReturnValue(true);
+                    ((HopperBlockEntityMixin) hopper).markDirty();
+                    return;
+                } else {
+                    int transferCount = receivingStack.getMaxCount() - receivingStack.getCount();
+                    final int itemEntityStackCount = itemEntityStack.getCount();
+                    if (itemEntityStackCount <= transferCount) {
+                        transferCount = itemEntityStackCount;
+                        itemEntity.setStack(ItemStack.EMPTY);
+                        itemEntity.remove();
+                        receivingStack.increment(transferCount);
+                        cir.setReturnValue(true);
+                        ((HopperBlockEntityMixin) hopper).markDirty();
+                        return;
+                    } else {
+                        itemEntityStack.decrement(transferCount);
+                        receivingStack.increment(transferCount);
+                    }
+                }
+            }
+        }
+        //return false when nothing was picked up
+        //also return false when no item entity was removed, but we still picked up items (like vanilla!)
+        cir.setReturnValue(false);
     }
 
     @Inject(method = "isInventoryFull", at = @At(value = "HEAD"), cancellable = true)
@@ -376,24 +440,27 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
         }
     }
 
-    /**
-     * Inject to replace item pickup with the optimized version
-     *
-     * @param hopper the hopper
-     */
-    @Inject(method = "extract(Lnet/minecraft/block/entity/Hopper;)Z", at = @At(value = "INVOKE", target = "Lnet/minecraft/block/entity/HopperBlockEntity;getInputItemEntities(Lnet/minecraft/block/entity/Hopper;)Ljava/util/List;", shift = At.Shift.BEFORE), locals = LocalCapture.CAPTURE_FAILHARD, cancellable = true)
-    private static void optimizeItemPickupMixin(Hopper hopper, CallbackInfoReturnable<Boolean> cir) {
-        if (!(hopper instanceof HopperBlockEntityMixin)) {
-            return; //use vanilla code when optimization is off or this is a hopper minecart
+    @Redirect(require = 0, allow = 1, method = "insertAndExtract", at = @At(value = "INVOKE", target = "Lnet/minecraft/block/entity/HopperBlockEntity;isEmpty()Z"))
+    private boolean isEmptyOpt(HopperBlockEntity hopperBlockEntity) {
+        OptimizedStackList opt = this.getOptimizedStackList();
+        if (opt != null) {
+            return opt.isEmpty();
         }
+        return isEmpty();
+    }
 
-        ((HopperBlockEntityMixin) hopper).optimizeItemPickup(hopper, cir);
+    private void initItemTracker() {
+        //keep a set of reachable items to be faster next time
+        this.inputItemEntities = new NearbyHopperItemsTracker(this.pos, this);
+        this.inputItemEntities.registerToEntityTracker(this.world);
+        this.this_lastChangeCount_Pickup = 0;
+        this.inputItemEntities_changeCount = 0;
     }
 
     @Redirect(require = 0, allow = 1, method = "insertAndExtract", at = @At(value = "INVOKE", target = "Lnet/minecraft/block/entity/HopperBlockEntity;isFull()Z"))
     private boolean isFullOpt(HopperBlockEntity hopperBlockEntity) {
         OptimizedStackList opt = this.getOptimizedStackList();
-        if (opt != null) return opt.isFull_insertable(null);
+        if (opt != null) return opt.isFull();
         return isFull();
     }
 
@@ -442,18 +509,19 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
     }
 
     @Redirect(method = "insert()Z", at = @At(value = "INVOKE", target = "Lnet/minecraft/block/entity/HopperBlockEntity;getOutputInventory()Lnet/minecraft/inventory/Inventory;"))
-    private Inventory getOutputInventoryFromCache(HopperBlockEntity hopper) {
-        Direction direction = hopper.getCachedState().get(HopperBlock.FACING);
+    private Inventory getOutputInventoryFromCache(HopperBlockEntity hopperBlockEntity) {
+        //noinspection ConstantConditions
+        Direction direction = ((HopperBlockEntityMixin) (Object) hopperBlockEntity).getDirection();
         //noinspection ConstantConditions
         Inventory ret = Settings.cacheInventories ?
-                this.getOutputInventoryWithCache(hopper) :
-                HopperHelper.vanillaGetBlockInventory(hopper.getWorld(), hopper.getPos().offset(direction));
+                this.getOutputInventoryWithCache(hopperBlockEntity) :
+                HopperHelper.vanillaGetBlockInventory(hopperBlockEntity.getWorld(), hopperBlockEntity.getPos().offset(direction));
         if (ret != null)
             return ret;
 
         return Settings.useEntityTrackerEngine ?
                 this.getOutputEntityInventoryWithCache() :
-                HopperHelper.vanillaGetEntityInventory(hopper.getWorld(), hopper.getPos().offset(hopper.getCachedState().get(HopperBlock.FACING)));
+                HopperHelper.vanillaGetEntityInventory(hopperBlockEntity.getWorld(), hopperBlockEntity.getPos().offset(direction));
     }
 
     public void clearInventoryCache() {
@@ -703,72 +771,4 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
         return new Box(this.pos.up());
     }
 
-    private void optimizeItemPickup(Object thisCast, CallbackInfoReturnable<Boolean> cir) {
-        final OptimizedStackList opt = this.getOptimizedStackList();
-        if (opt == null) {
-            return; //fallback to vanilla
-        }
-
-        //fix the entity cache in case it is not initialized
-        if (this.inputItemEntities == null) {
-            //keep a set of reachable items to be faster next time
-            this.inputItemEntities = new NearbyHopperItemsTracker(this.pos, (Hopper) thisCast);
-            this.inputItemEntities.registerToEntityTracker(this.world);
-            this.this_lastChangeCount_Pickup = 0;
-            this.inputItemEntities_changeCount = 0;
-        }
-        //item entity cache up to date and valid
-        this.lastTickTime_used_ItemEntityCache = this.lastTickTime;
-
-        long tmp1 = opt.getContentChangeCount();
-        //todo deal with same counter because not initialized / overflown in both cases
-        if (this.this_lastChangeCount_Pickup == tmp1) {
-            int inputAreaChangeCount = this.inputItemEntities.getNewEntityCounter();
-            if (this.inputItemEntities_changeCount == inputAreaChangeCount) {
-                //nothing changed after the last transfer attempt
-                //so we don't try to transfer at all
-                cir.setReturnValue(false);
-                return;
-            }
-            this.inputItemEntities_changeCount = inputAreaChangeCount;
-        }
-        this.this_lastChangeCount_Pickup = tmp1;
-
-        Iterator<ItemEntity> itemEntityIterator = this.inputItemEntities.getItemEntityIterator();
-        while (itemEntityIterator.hasNext()) {
-            ItemEntity itemEntity = itemEntityIterator.next();
-            ItemStack itemEntityStack = itemEntity.getStack();
-            int receivingSlot;
-
-            while (!itemEntityStack.isEmpty() && 0 <= (receivingSlot = opt.getInsertSlot(itemEntityStack, null))) {
-                ItemStack receivingStack = this.inventory.get(receivingSlot);
-                if (receivingStack.isEmpty()) {
-                    this.inventory.set(receivingSlot, itemEntityStack);
-                    itemEntity.setStack(ItemStack.EMPTY);
-                    itemEntity.remove();
-                    cir.setReturnValue(true);
-                    this.markDirty();
-                    return;
-                } else {
-                    int transferCount = receivingStack.getMaxCount() - receivingStack.getCount();
-                    final int itemEntityStackCount = itemEntityStack.getCount();
-                    if (itemEntityStackCount <= transferCount) {
-                        transferCount = itemEntityStackCount;
-                        itemEntity.setStack(ItemStack.EMPTY);
-                        itemEntity.remove();
-                        receivingStack.increment(transferCount);
-                        cir.setReturnValue(true);
-                        this.markDirty();
-                        return;
-                    } else {
-                        itemEntityStack.decrement(transferCount);
-                        receivingStack.increment(transferCount);
-                    }
-                }
-            }
-        }
-        //return false when nothing was picked up
-        //also return false when no item entity was removed, but we still picked up items (like vanilla!)
-        cir.setReturnValue(false);
-    }
 }

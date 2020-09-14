@@ -64,7 +64,7 @@ public class NearbyHopperItemsTracker implements ExactPositionListener {
     private long entityChangedSubchunkCounter;
 
     //counter to be able to shortcut item transfer attempts when both hopper and possible items to pick up haven't changed
-    private int newEntityCount;
+    private long newEntityCount;
 
     private boolean initialized = false;
     private boolean searchEntitiesAfterInitialization = false;
@@ -310,7 +310,7 @@ public class NearbyHopperItemsTracker implements ExactPositionListener {
         }
     }
 
-    public int getNewEntityCounter() {
+    public long getNewEntityCounter() {
         return this.newEntityCount;
     }
 

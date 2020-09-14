@@ -66,16 +66,6 @@ public abstract class OptimizedStackList extends DefaultedList<ItemStack> {
         return ItemStack.areTagsEqual(a, b);
     }
 
-    public DefaultedList<ItemStack> getDoubleInventoryHalfStackList(DoubleInventory parent) {
-        for (int i = 0; i < this.size(); i++) {
-            ItemStack stack = this.get(i);
-            //noinspection ConstantConditions
-            ((IItemStackCaller) (Object) stack).unregisterFromInventory(this, i);
-        }
-        //now this OptimizedStackList is invalid and needs to be garbage collected. It is essential that it is no longer touched
-        return new DoubleInventoryHalfStackList(this.delegate, this.initialElement, parent);
-    }
-
     public long getContentChangeCount() {
         return this.contentChangeCount;
     }
@@ -143,6 +133,8 @@ public abstract class OptimizedStackList extends DefaultedList<ItemStack> {
 
     public abstract boolean isFull_insertable(Direction fromDirection);
 
+    public abstract boolean isFull();
+
     public abstract int indexOfInAvailableSlots_extractable_maxIndex(ItemStack stack, int maxExclusive);
 
     public abstract int getInsertSlot(ItemStack stack, Direction fromDirection);
@@ -192,6 +184,14 @@ public abstract class OptimizedStackList extends DefaultedList<ItemStack> {
             this.delegate.clear();
         } else {
             super.clear();
+        }
+    }
+
+    public void unregisterStacks() {
+        for (int i = 0; i < this.size(); i++) {
+            ItemStack itemStack = this.get(i);
+            //noinspection ConstantConditions
+            ((OptimizedStackList.IItemStackCaller) (Object) itemStack).unregisterFromInventory(null, i);
         }
     }
 

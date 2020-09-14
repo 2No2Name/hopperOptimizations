@@ -14,16 +14,15 @@ public interface OptimizedInventory extends Inventory {
         return InventoryListOptimizedAccess.getOptimizedInventoryListOrUpgrade(this);
     }
 
-    default DefaultedList<ItemStack> getDoubleInventoryHalfStackList(Object parent) {
+    default DefaultedList<ItemStack> getDoubleInventoryHalfStackList(Object parent, int indexOffset) {
         DefaultedList<ItemStack> stackList = this.getInventory();
         if (!(stackList instanceof DoubleInventoryHalfStackList) || ((DoubleInventoryHalfStackList) stackList).parent != parent) {
             if (stackList instanceof OptimizedStackList) {
-                stackList = ((OptimizedStackList) stackList).getDoubleInventoryHalfStackList((DoubleInventory) parent);
+                ((OptimizedStackList) stackList).unregisterStacks();
             } else if (stackList instanceof DoubleInventoryHalfStackList) {
                 ((DoubleInventoryHalfStackList) stackList).unregisterStacks();
-            } else {
-                stackList = new DoubleInventoryHalfStackList(stackList.delegate, stackList.initialElement, (DoubleInventory) parent);
             }
+            stackList = new DoubleInventoryHalfStackList(stackList.delegate, stackList.initialElement, (DoubleInventory) parent, indexOffset);
             this.setInventory(stackList);
         }
         return stackList;
