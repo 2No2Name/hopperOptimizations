@@ -1,6 +1,7 @@
 package hopperOptimizations.utils;
 
 import hopperOptimizations.feature.inventory_optimization.BitSetOptimizedStackList;
+import hopperOptimizations.feature.inventory_optimization.DoubleInventoryHalfStackList;
 import hopperOptimizations.feature.inventory_optimization.OptimizedInventory;
 import hopperOptimizations.feature.inventory_optimization.OptimizedStackList;
 import net.minecraft.item.ItemStack;
@@ -11,6 +12,9 @@ public class InventoryListOptimizedAccess {
         DefaultedList<ItemStack> stackList = inventory.getInventory();
         if (stackList instanceof OptimizedStackList) {
             return (OptimizedStackList) stackList;
+        }
+        if (stackList instanceof DoubleInventoryHalfStackList) {
+            ((DoubleInventoryHalfStackList) stackList).unregisterStacks();
         }
 
         OptimizedStackList optimizedStackList = OptimizedStackList.convertFrom(stackList, inventory);

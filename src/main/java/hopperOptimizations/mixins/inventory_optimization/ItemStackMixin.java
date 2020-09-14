@@ -27,13 +27,16 @@ public abstract class ItemStackMixin implements OptimizedStackList.IItemStackCal
     public abstract boolean isEmpty();
 
     @Override
-    public void setInInventory(OptimizedStackList myInventoryList, int slotIndex) {
+    public void registerToInventory(OptimizedStackList myInventoryList, int slotIndex) {
         if (this.isEmpty()) {
             return;
         }
+
         if (this.myInventoryList != null) {
+            //currently upgrading to double inventories and downgrading double inventories
             Logger.getLogger("HopperOptimizations").warning(
-                    String.format("Adding stack to inventory: %s even though stacks thinks it is still in: %s!",
+                    String.format("Registering stack %s to inventory: %s even though stacks thinks it is still in: %s!",
+                            this,
                             myInventoryList.parent,
                             this.myInventoryList != null ? this.myInventoryList.parent : "no inventory")
             );
@@ -43,14 +46,15 @@ public abstract class ItemStackMixin implements OptimizedStackList.IItemStackCal
     }
 
     @Override
-    public void removeFromInventory(OptimizedStackList myInventoryList, int slotIndex) {
-        if (this.myInventoryList == myInventoryList && this.slotIndex == slotIndex) {
+    public void unregisterFromInventory(@Nullable OptimizedStackList myInventoryList, int slotIndex) {
+        if (this.isEmpty() || this.slotIndex == slotIndex && (myInventoryList == this.myInventoryList || myInventoryList == null)) {
             this.myInventoryList = null;
             this.slotIndex = 0;
-        } else if (!this.isEmpty()) {
+        } else {
             Logger.getLogger("HopperOptimizations").warning(
-                    String.format("Removing stack from inventory: %s but stack says it is in: %s!",
-                            myInventoryList.parent,
+                    String.format("Unregistering stack %s from inventory: %s but stack says it is in: %s!",
+                            this,
+                            myInventoryList == null ? "unknown inventory" : myInventoryList.parent,
                             this.myInventoryList != null ? this.myInventoryList.parent : "no inventory")
             );
         }

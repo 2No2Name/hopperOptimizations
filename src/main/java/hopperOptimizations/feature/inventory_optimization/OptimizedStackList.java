@@ -42,7 +42,7 @@ public abstract class OptimizedStackList extends DefaultedList<ItemStack> {
                 this.contentWeight += stack.getCount() * (64 / stackMaxCount);
 
                 //noinspection ConstantConditions
-                ((IItemStackCaller) (Object) stack).setInInventory(this, i);
+                ((IItemStackCaller) (Object) stack).registerToInventory(this, i);
             }
         }
     }
@@ -70,7 +70,7 @@ public abstract class OptimizedStackList extends DefaultedList<ItemStack> {
         for (int i = 0; i < this.size(); i++) {
             ItemStack stack = this.get(i);
             //noinspection ConstantConditions
-            ((IItemStackCaller) (Object) stack).removeFromInventory(this, i);
+            ((IItemStackCaller) (Object) stack).unregisterFromInventory(this, i);
         }
         //now this OptimizedStackList is invalid and needs to be garbage collected. It is essential that it is no longer touched
         return new DoubleInventoryHalfStackList(this.delegate, this.initialElement, parent);
@@ -91,10 +91,11 @@ public abstract class OptimizedStackList extends DefaultedList<ItemStack> {
         ItemStack prevStack = super.set(slotIndex, newStack);
         if (prevStack != newStack) {
             //noinspection ConstantConditions
-            ((IItemStackCaller) (Object) prevStack).removeFromInventory(this, slotIndex);
-            //noinspection ConstantConditions
-            if (!newStack.isEmpty())
-                ((IItemStackCaller) (Object) newStack).setInInventory(this, slotIndex);
+            ((IItemStackCaller) (Object) prevStack).unregisterFromInventory(this, slotIndex);
+            if (!newStack.isEmpty()) {
+                //noinspection ConstantConditions
+                ((IItemStackCaller) (Object) newStack).registerToInventory(this, slotIndex);
+            }
         }
         return prevStack;
     }
@@ -195,8 +196,8 @@ public abstract class OptimizedStackList extends DefaultedList<ItemStack> {
     }
 
     public interface IItemStackCaller {
-        void setInInventory(OptimizedStackList myInventoryList, int slotIndex);
+        void registerToInventory(OptimizedStackList myInventoryList, int slotIndex);
 
-        void removeFromInventory(OptimizedStackList myInventoryList, int slotIndex);
+        void unregisterFromInventory(OptimizedStackList myInventoryList, int slotIndex);
     }
 }

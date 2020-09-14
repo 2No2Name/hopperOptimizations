@@ -15,16 +15,18 @@ public interface OptimizedInventory extends Inventory {
     }
 
     default DefaultedList<ItemStack> getDoubleInventoryHalfStackList(Object parent) {
-        DefaultedList<ItemStack> inventory = this.getInventory();
-        if (!(inventory instanceof DoubleInventoryHalfStackList) || ((DoubleInventoryHalfStackList) inventory).parent != parent) {
-            if (inventory instanceof OptimizedStackList) {
-                inventory = ((OptimizedStackList) inventory).getDoubleInventoryHalfStackList((DoubleInventory) parent);
+        DefaultedList<ItemStack> stackList = this.getInventory();
+        if (!(stackList instanceof DoubleInventoryHalfStackList) || ((DoubleInventoryHalfStackList) stackList).parent != parent) {
+            if (stackList instanceof OptimizedStackList) {
+                stackList = ((OptimizedStackList) stackList).getDoubleInventoryHalfStackList((DoubleInventory) parent);
+            } else if (stackList instanceof DoubleInventoryHalfStackList) {
+                ((DoubleInventoryHalfStackList) stackList).unregisterStacks();
             } else {
-                inventory = new DoubleInventoryHalfStackList(inventory.delegate, inventory.initialElement, (DoubleInventory) parent);
+                stackList = new DoubleInventoryHalfStackList(stackList.delegate, stackList.initialElement, (DoubleInventory) parent);
             }
-            this.setInventory(inventory);
+            this.setInventory(stackList);
         }
-        return inventory;
+        return stackList;
     }
 
     DefaultedList<ItemStack> getInventory();
