@@ -184,7 +184,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
                 ComparatorUpdateFakeMode fakeMode = MarkDirtyHelper.markDirtyOnHopperInteraction(from, 0, firstOccupiedSlot, true, null);
                 HopperHelper.transferOneItem_knownSuccessful(to, toSlot, from, firstOccupiedSlot);
                 ((IHopper) to).setComparatorUpdateFakeMode(fakeMode);
-
+                from.markDirty();
                 cir.setReturnValue(true);
                 return;
             } else if (fromOpt.getNumOccupiedSlots() > 5) { //&& !to.isFull
@@ -211,6 +211,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
                     ComparatorUpdateFakeMode fakeMode = MarkDirtyHelper.markDirtyOnHopperInteraction(from, 0, firstFromSlot, true, null);
                     HopperHelper.transferOneItem_knownSuccessful(to, correspondingToSlot, from, firstFromSlot);
                     ((IHopper) to).setComparatorUpdateFakeMode(fakeMode);
+                    from.markDirty();
                     cir.setReturnValue(true);
                     return;
                 }
@@ -230,6 +231,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
                     ComparatorUpdateFakeMode fakeMode = MarkDirtyHelper.markDirtyOnHopperInteraction(from, 0, fromSlot, true, null);
                     HopperHelper.transferOneItem_knownSuccessful(to, toSlot, from, fromSlot);
                     ((IHopper) to).setComparatorUpdateFakeMode(fakeMode);
+                    from.markDirty();
                     cir.setReturnValue(true);
                     return;
                 }
