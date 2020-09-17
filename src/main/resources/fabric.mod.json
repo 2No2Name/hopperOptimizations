@@ -23,8 +23,10 @@
   ],
   "accessWidener": "hopperOptimizations.accesswidener",
   "depends": {
+    "lithium-fork-by-2no2name": [
+      ">=0.5.7",
+      ">=0.5.7-SNAPSHOT"
+    ],
     "fabricloader": ">=0.4.0"
-  },
-  "suggests": {
   }
 }
