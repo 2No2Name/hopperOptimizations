@@ -19,7 +19,7 @@ Inventories keep extra data such as a _modification counter_, an _item type -> s
 This allows replacing vanilla's linear search though the whole inventory with a few mask operations to find slots that
 the hopper can transfer from or to. If the previous transfer attempt failed, and both the hopper and the other
 inventory haven't increased their modification counter, the hopper can skip the next transfer attempt after mimicking
-the comparator updates the failed transfer the naive vanilla implementation sends.
+the comparator updates the failed transfer of the naive vanilla implementation sends.
 ### Entity Tracking
 Hoppers register their entity search area to a modified version of Lithium's entity tracker engine (available in my
 fork of Lithium).
