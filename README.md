@@ -4,6 +4,7 @@ This Mod optimizes hoppers interacting with inventories and item entities. It im
  This branch of hopper optimizations **requires** installing my fork of Lithium.
  
  Performance measurements are welcome. If you find a bug, please report it on the issue tracker.
+ You can support me on [patreon](https://www.patreon.com/2No2Name)
 
 ## Installation instructions
 - Install the fabric mod loader. https://fabricmc.net/use/
