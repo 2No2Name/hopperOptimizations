@@ -36,6 +36,11 @@ dependencies {
 	compileOnly "com.google.code.findbugs:jsr305:3.0.1"
 }
 
+tasks.withType(AbstractArchiveTask) {
+	preserveFileTimestamps = false
+	reproducibleFileOrder = true
+}
+
 processResources {
 	inputs.property "version", project.version
 
