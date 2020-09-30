@@ -165,7 +165,7 @@ public abstract class OptimizedStackList extends DefaultedList<ItemStack> {
     }
 
     public boolean cannotExtractFrom(int slot) {
-        return this.isSlotEmpty(slot) || (this.isSided && ((SidedInventory) this.parent).canExtract(slot, this.get(slot), Direction.DOWN));
+        return this.isSlotEmpty(slot) || (this.isSided && !((SidedInventory) this.parent).canExtract(slot, this.get(slot), Direction.DOWN));
     }
 
     @Override
