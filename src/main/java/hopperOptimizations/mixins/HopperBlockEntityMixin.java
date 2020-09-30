@@ -395,6 +395,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
         ((HopperBlockEntityMixin) hopper).this_lastChangeCount_Pickup = changeCount;
 
         Iterator<ItemEntity> itemEntityIterator = ((HopperBlockEntityMixin) hopper).inputItemEntities.getItemEntityIterator();
+        boolean pickedUpSomething = false;
         while (itemEntityIterator.hasNext()) {
             ItemEntity itemEntity = itemEntityIterator.next();
             ItemStack itemEntityStack = itemEntity.getStack();
@@ -421,11 +422,16 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
                         ((HopperBlockEntityMixin) hopper).markDirty();
                         return;
                     } else {
+                        pickedUpSomething = true;
                         itemEntityStack.decrement(transferCount);
+                        itemEntity.setStack(itemEntityStack);
                         receivingStack.increment(transferCount);
                     }
                 }
             }
+        }
+        if (pickedUpSomething) {
+            ((HopperBlockEntityMixin) hopper).markDirty();
         }
         //return false when nothing was picked up
         //also return false when no item entity was removed, but we still picked up items (like vanilla!)
