@@ -6,6 +6,7 @@
   "mixins": [
     "HopperBlockEntityMixin",
     "HopperMinecartEntityMixin",
+    "WorldMixin",
     "cache_inventories.BlockEntityMixin",
     "cache_inventories.DoubleInventoryMixin",
     "cache_inventories.cacheInventoryBlocks.ComposterBlockComposterInventoryMixin",
