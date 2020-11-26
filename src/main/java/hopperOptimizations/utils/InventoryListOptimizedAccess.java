@@ -9,7 +9,7 @@ import net.minecraft.util.collection.DefaultedList;
 
 public class InventoryListOptimizedAccess {
     public static OptimizedStackList getOptimizedInventoryListOrUpgrade(OptimizedInventory inventory) {
-        DefaultedList<ItemStack> stackList = inventory.getInventory();
+        DefaultedList<ItemStack> stackList = inventory.getInventory_HopperOptimizations();
         if (stackList instanceof OptimizedStackList) {
             return (OptimizedStackList) stackList;
         }
@@ -18,12 +18,12 @@ public class InventoryListOptimizedAccess {
         }
 
         OptimizedStackList optimizedStackList = OptimizedStackList.convertFrom(stackList, inventory);
-        inventory.setInventory(optimizedStackList);
+        inventory.setInventory_HopperOptimizations(optimizedStackList);
         return optimizedStackList;
     }
 
     public static OptimizedStackList getOptimizedInventoryListOrNull(OptimizedInventory inventory) {
-        DefaultedList<ItemStack> stackList = inventory.getInventory();
+        DefaultedList<ItemStack> stackList = inventory.getInventory_HopperOptimizations();
         if (stackList instanceof OptimizedStackList) {
             return (BitSetOptimizedStackList) stackList;
         }

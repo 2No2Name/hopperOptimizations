@@ -34,8 +34,8 @@ public abstract class DoubleInventoryMixin implements OptimizedInventory {
             this.initOptimizedStackList();
         } else {
             //if the inventory's stacklist was replaced, discard the OptimizedStackList, which references the outdated object in its fields
-            if (this.firstList != ((OptimizedInventory) this.first).getInventory() ||
-                    this.secondList != ((OptimizedInventory) this.second).getInventory()) {
+            if (this.firstList != ((OptimizedInventory) this.first).getInventory_HopperOptimizations() ||
+                    this.secondList != ((OptimizedInventory) this.second).getInventory_HopperOptimizations()) {
                 this.stackList = null;
 
                 this.initOptimizedStackList();
@@ -45,8 +45,8 @@ public abstract class DoubleInventoryMixin implements OptimizedInventory {
     }
 
     private void initOptimizedStackList() {
-        DefaultedList<ItemStack> firstList = ((OptimizedInventory) this.first).getInventory();
-        DefaultedList<ItemStack> secondList = ((OptimizedInventory) this.second).getInventory();
+        DefaultedList<ItemStack> firstList = ((OptimizedInventory) this.first).getInventory_HopperOptimizations();
+        DefaultedList<ItemStack> secondList = ((OptimizedInventory) this.second).getInventory_HopperOptimizations();
         if (firstList instanceof DoubleInventoryHalfStackList && secondList instanceof DoubleInventoryHalfStackList) {
             if ((this.isEqual(((DoubleInventoryHalfStackList) firstList).parent)) &&
                     (this.isEqual(((DoubleInventoryHalfStackList) secondList).parent))) {

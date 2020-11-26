@@ -15,7 +15,7 @@ public interface OptimizedInventory extends Inventory {
     }
 
     default DefaultedList<ItemStack> getDoubleInventoryHalfStackList(Object parent, int indexOffset) {
-        DefaultedList<ItemStack> stackList = this.getInventory();
+        DefaultedList<ItemStack> stackList = this.getInventory_HopperOptimizations();
         if (!(stackList instanceof DoubleInventoryHalfStackList) || ((DoubleInventoryHalfStackList) stackList).parent != parent) {
             if (stackList instanceof OptimizedStackList) {
                 ((OptimizedStackList) stackList).unregisterStacks();
@@ -23,13 +23,14 @@ public interface OptimizedInventory extends Inventory {
                 ((DoubleInventoryHalfStackList) stackList).unregisterStacks();
             }
             stackList = new DoubleInventoryHalfStackList(stackList.delegate, stackList.initialElement, (DoubleInventory) parent, indexOffset);
-            this.setInventory(stackList);
+            this.setInventory_HopperOptimizations(stackList);
         }
         return stackList;
     }
 
-    DefaultedList<ItemStack> getInventory();
+    //avoid name conflicts with other mods: getInventory() by appending _HopperOptimizations
+    DefaultedList<ItemStack> getInventory_HopperOptimizations();
 
-    void setInventory(DefaultedList<ItemStack> inventory);
+    void setInventory_HopperOptimizations(DefaultedList<ItemStack> inventory);
 
 }
