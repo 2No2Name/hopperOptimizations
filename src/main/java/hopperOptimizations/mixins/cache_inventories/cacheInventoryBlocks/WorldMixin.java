@@ -23,11 +23,6 @@ public abstract class WorldMixin implements Interfaces.WorldInterface {
     private Thread thread;
 
     @Shadow
-    public static boolean isHeightInvalid(int y) {
-        throw new AssertionError();
-    }
-
-    @Shadow
     @Nullable
     protected abstract BlockEntity getPendingBlockEntity(BlockPos blockPos);
 
@@ -37,7 +32,7 @@ public abstract class WorldMixin implements Interfaces.WorldInterface {
     @Override
     @Nullable
     public BlockEntity getExistingBlockEntity(BlockPos pos) {
-        if (isHeightInvalid(pos.getY())) {
+        if (World.isOutOfBuildLimitVertically(pos.getY())) {
             return null;
         } else if (!this.isClient && Thread.currentThread() != this.thread) {
             return null;

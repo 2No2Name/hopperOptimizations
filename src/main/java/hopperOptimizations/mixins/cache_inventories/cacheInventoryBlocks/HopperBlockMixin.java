@@ -28,7 +28,7 @@ public class HopperBlockMixin {
     }
 
     @Inject(method = "onBlockAdded", at = @At(value = "INVOKE", target = "Lnet/minecraft/block/HopperBlock;updateEnabled(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/BlockState;)V", shift = At.Shift.AFTER))
-    private void hotfixVanillaUpdateSupression(BlockState state, World world, BlockPos pos, BlockState oldState, boolean moved, CallbackInfo ci) {
+    private void workAroundVanillaUpdateSupression(BlockState state, World world, BlockPos pos, BlockState oldState, boolean moved, CallbackInfo ci) {
         if (world.getBlockState(pos) != state) {
             Fixes.onInventoryBlockChangedWithoutBlockUpdate(world, pos);
         }
