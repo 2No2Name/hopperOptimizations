@@ -18,6 +18,15 @@ public class DoubleInventoryMixin implements RemovedCounter {
 
     @Override
     public int getRemovedCount() {
-        return ((RemovedCounter) first).getRemovedCount() + ((RemovedCounter) second).getRemovedCount();
+        int i = ((RemovedCounter) first).getRemovedCount();
+        int j = ((RemovedCounter) second).getRemovedCount();
+        return i == -1 ? -1 : j == -1 ? -1 : i + j;
+    }
+
+    @Override
+    public void increaseRemoveCounter() {
+        //It isn't expected that this is called on Double Inventories
+        ((RemovedCounter) first).increaseRemoveCounter();
+        ((RemovedCounter) second).increaseRemoveCounter();
     }
 }

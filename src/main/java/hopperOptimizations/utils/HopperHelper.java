@@ -129,7 +129,7 @@ public abstract class HopperHelper {
         }
 
         if (cachedInv instanceof Interfaces.RemovedCounter) { //BlockEntities and DoubleInventories implement RemovedCounter
-            if (((Interfaces.RemovedCounter) cachedInv).getRemovedCount() != cachedRemovedCount) {
+            if (cachedRemovedCount == -1 || ((Interfaces.RemovedCounter) cachedInv).getRemovedCount() != cachedRemovedCount) {
                 return true;
             }
             if (cachedInv instanceof ChestBlockEntity) {

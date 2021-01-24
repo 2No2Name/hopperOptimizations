@@ -1,5 +1,6 @@
 package hopperOptimizations.mixins;
 
+import hopperOptimizations.workarounds.Interfaces;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.block.entity.HopperBlockEntity;
 import net.minecraft.world.World;
@@ -23,7 +24,10 @@ public abstract class WorldMixin {
     private void removeHoppersFromTrackerEngine(CallbackInfo ci) {
         for (BlockEntity be : this.unloadedBlockEntities) {
             if (be instanceof HopperBlockEntity) {
-                be.markRemoved();
+                be.markRemoved(); //invalidate caches of hoppers
+            }
+            if (be instanceof Interfaces.RemovedCounter) {
+                ((Interfaces.RemovedCounter) be).increaseRemoveCounter(); //invalidate the blockentity being cached by hoppers
             }
         }
     }

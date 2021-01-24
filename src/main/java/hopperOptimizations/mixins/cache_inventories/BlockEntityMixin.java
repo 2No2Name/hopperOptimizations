@@ -15,11 +15,18 @@ public class BlockEntityMixin implements Interfaces.RemovedCounter {
 
     @Inject(method = "markRemoved()V", at = @At("HEAD"))
     private void increaseRemovedCount(CallbackInfo ci) {
-        if (this.removedCount != -1) ++this.removedCount;
+        this.increaseRemoveCounter();
     }
 
     @Override
     public int getRemovedCount() {
         return removedCount;
+    }
+
+    @Override
+    public void increaseRemoveCounter() {
+        if (this.removedCount != -1) {
+            ++this.removedCount;
+        }
     }
 }

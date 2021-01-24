@@ -7,6 +7,8 @@ public class Interfaces {
 
     public interface RemovedCounter {
         int getRemovedCount();
+
+        void increaseRemoveCounter();
     }
 
     public interface WorldInterface {
