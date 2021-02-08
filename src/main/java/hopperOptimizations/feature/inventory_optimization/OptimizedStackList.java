@@ -17,7 +17,8 @@ public abstract class OptimizedStackList extends DefaultedList<ItemStack> {
     public static boolean SMALL_POWER_OF_TWO_STACKSIZES_ONLY = true;
 
     public final Inventory parent;
-    final boolean isSided;
+    public final boolean isSided;
+    private final int size;
     long contentChangeCount;
     int contentWeight; //unstackable weigh 64, 16-stackable 4 and 64-stackable 1
 
@@ -26,6 +27,7 @@ public abstract class OptimizedStackList extends DefaultedList<ItemStack> {
 
     public OptimizedStackList(List<ItemStack> delegate, @Nullable ItemStack initialElement, Inventory containedIn) {
         super(delegate, initialElement);
+        this.size = delegate.size();
         assert !(containedIn instanceof Item);
         this.parent = containedIn;
         this.isSided = this.parent instanceof SidedInventory;
@@ -35,7 +37,8 @@ public abstract class OptimizedStackList extends DefaultedList<ItemStack> {
 
 
         int maxStackSize = this.parent.getMaxCountPerStack();
-        for (int i = 0; i < this.size(); i++) {
+        int bound = this.size();
+        for (int i = 0; i < bound; i++) {
             ItemStack stack = this.get(i);
             if (!stack.isEmpty()) {
                 int stackMaxCount = Math.min(stack.getMaxCount(), maxStackSize);
@@ -45,6 +48,11 @@ public abstract class OptimizedStackList extends DefaultedList<ItemStack> {
                 ((IItemStackCaller) (Object) stack).registerToInventory(this, i);
             }
         }
+    }
+
+    @Override
+    public int size() {
+        return this.size;
     }
 
     public static OptimizedStackList convertFrom(DefaultedList<ItemStack> convertFrom, Inventory parent) {
@@ -157,7 +165,7 @@ public abstract class OptimizedStackList extends DefaultedList<ItemStack> {
         this.cachedSignalStrength++;
     }
 
-    public boolean hasFreeSlotsInsertable_NonSidedInventory() {
+    public boolean hasFreeSlotsInsertable() {
         if (this.isSided) {
             throw new IllegalStateException("Expected Inventory to not be sided!");
         }

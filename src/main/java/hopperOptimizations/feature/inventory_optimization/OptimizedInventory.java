@@ -11,7 +11,11 @@ import javax.annotation.Nullable;
 public interface OptimizedInventory extends Inventory {
     @Nullable
     default OptimizedStackList getOptimizedStackList() {
-        return InventoryListOptimizedAccess.getOptimizedInventoryListOrUpgrade(this);
+        DefaultedList<ItemStack> stackList = this.getInventory_HopperOptimizations();
+        if (stackList instanceof OptimizedStackList) {
+            return (OptimizedStackList) stackList;
+        }
+        return InventoryListOptimizedAccess.upgrade(this, stackList);
     }
 
     default DefaultedList<ItemStack> getDoubleInventoryHalfStackList(Object parent, int indexOffset) {

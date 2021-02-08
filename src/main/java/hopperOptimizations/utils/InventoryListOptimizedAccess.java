@@ -8,11 +8,15 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.util.collection.DefaultedList;
 
 public class InventoryListOptimizedAccess {
-    public static OptimizedStackList getOptimizedInventoryListOrUpgrade(OptimizedInventory inventory) {
-        DefaultedList<ItemStack> stackList = inventory.getInventory_HopperOptimizations();
+
+    public static OptimizedStackList castOptimizedInventoryListOrUpgrade(OptimizedInventory inventory, DefaultedList<ItemStack> stackList) {
         if (stackList instanceof OptimizedStackList) {
             return (OptimizedStackList) stackList;
         }
+        return upgrade(inventory, stackList);
+    }
+
+    public static OptimizedStackList upgrade(OptimizedInventory inventory, DefaultedList<ItemStack> stackList) {
         if (stackList instanceof DoubleInventoryHalfStackList) {
             ((DoubleInventoryHalfStackList) stackList).unregisterStacks();
         }

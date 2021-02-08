@@ -10,8 +10,10 @@ import hopperOptimizations.feature.inventory_optimization.OptimizedStackList;
 import hopperOptimizations.settings.Settings;
 import hopperOptimizations.utils.HopperHelper;
 import hopperOptimizations.utils.IHopper;
+import hopperOptimizations.utils.InventoryListOptimizedAccess;
 import hopperOptimizations.workarounds.Cast;
 import hopperOptimizations.workarounds.Interfaces;
+import net.minecraft.block.BlockState;
 import net.minecraft.block.HopperBlock;
 import net.minecraft.block.entity.*;
 import net.minecraft.entity.Entity;
@@ -21,6 +23,7 @@ import net.minecraft.entity.vehicle.HopperMinecartEntity;
 import net.minecraft.inventory.Inventory;
 import net.minecraft.inventory.SidedInventory;
 import net.minecraft.item.ItemStack;
+import net.minecraft.state.property.Property;
 import net.minecraft.util.collection.DefaultedList;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Direction;
@@ -46,6 +49,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
     private DefaultedList<ItemStack> inventory;
 
     private Direction direction;
+    private byte enabled;
 
 
     //information about the inventory last inserted to
@@ -92,13 +96,6 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
 
     @Shadow
     protected abstract void setCooldown(int count);
-
-    @Override
-    @Shadow
-    public abstract double getHopperZ();
-
-    @Shadow
-    protected abstract boolean isFull();
 
     /**
      * Transfers as much of the given ItemStack stack into the to Inventory as possible.
@@ -149,7 +146,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
                         return;
                     }
                     if (fromOpt.isAnyExtractableSlotOccupied()) {
-                        MarkDirtyHelper.markDirtyOnHopperInteraction(from, 0, from.size(), false, null);
+                        MarkDirtyHelper.markDirtyOnHopperInteraction(from, 0, fromOpt.size(), false, null);
                     }
                 } else {
                     System.out.println("Hopper is full even though it wasn't");
@@ -173,7 +170,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
                 return;
             }
 
-            if (toOpt.hasFreeSlotsInsertable_NonSidedInventory()) {
+            if (!toOpt.isSided && toOpt.hasFreeSlotsInsertable()) {
                 //When the hopper has any empty slot, just get the first item from the source
                 //fromSlot (= firstOccupiedSlot) already set
 
@@ -187,7 +184,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
                 from.markDirty();
                 cir.setReturnValue(true);
                 return;
-            } else if (fromOpt.getNumOccupiedSlots() > 5) { //&& !to.isFull
+            } else if (!fromOpt.isSided && fromOpt.getNumOccupiedSlots() > 5 && !toOpt.isSided) { //&& !to.isFull
                 //When the hopper has no empty slots, try to pull items instead of pushing, because the hopper
                 //inventory is small, and therefore the for loop is shorter.
 
@@ -196,7 +193,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
                 //Make sure that the minimal possible fromSlot is chosen (vanilla behavior)
                 int firstFromSlot = Integer.MAX_VALUE;
                 int correspondingToSlot = 0; //init with 0 to prevent "might not have been initialized" error
-                for (int toSlot = 0; firstFromSlot > 0 && toSlot < to.size(); toSlot++) {
+                for (int toSlot = 0; firstFromSlot > 0 && toSlot < toOpt.size(); toSlot++) {
                     ItemStack stack = to.getStack(toSlot);
                     if (stack.getMaxCount() > stack.getCount()) {
                         int fromSlot = fromOpt.indexOfInAvailableSlots_extractable_maxIndex(stack, firstFromSlot - 1);
@@ -218,7 +215,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
             } else {
                 int i = from instanceof SidedInventory ? 0 : firstOccupiedSlot;
                 int[] availableSlots = from instanceof SidedInventory ? ((SidedInventory) from).getAvailableSlots(Direction.DOWN) : null;
-                for (; availableSlots != null ? i < availableSlots.length : i < from.size(); i++) {
+                for (; availableSlots != null ? i < availableSlots.length : i < fromOpt.size(); i++) {
                     int fromSlot = availableSlots != null ? availableSlots[i] : i;
                     if (fromOpt.cannotExtractFrom(fromSlot)) {
                         continue;
@@ -239,7 +236,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
             //transfer not successful
             ComparatorUpdateFakeMode fakeMode = ComparatorUpdateFakeMode.NO_UPDATE;
             if (fromOpt.isAnyExtractableSlotOccupied()) {
-                fakeMode = MarkDirtyHelper.markDirtyOnHopperInteraction(from, 0, from.size(), false, null);
+                fakeMode = MarkDirtyHelper.markDirtyOnHopperInteraction(from, 0, fromOpt.size(), false, null);
             }
             ((IHopper) to).setComparatorUpdateFakeMode(fakeMode);
             cir.setReturnValue(false);
@@ -338,27 +335,6 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
         }
     }
 
-    @Override
-    @Shadow
-    public abstract int size();
-
-    @Override
-    public void markRemoved() {
-        super.markRemoved();
-        clearInputItemEntityCache(Long.MAX_VALUE);
-        clearInputInventoryEntityCache(Long.MAX_VALUE);
-        clearOutputInventoryEntityCache(Long.MAX_VALUE);
-        clearInventoryCache();
-    }
-
-    @Override
-    @Shadow
-    public abstract double getHopperX();
-
-    @Override
-    @Shadow
-    public abstract double getHopperY();
-
     /**
      * Inject to replace item pickup with the optimized version
      *
@@ -404,7 +380,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
             while (!itemEntityStack.isEmpty() && 0 <= (receivingSlot = opt.getInsertSlot(itemEntityStack, null))) {
                 ItemStack receivingStack = ((HopperBlockEntityMixin) hopper).inventory.get(receivingSlot);
                 if (receivingStack.isEmpty()) {
-                    ((HopperBlockEntityMixin) hopper).inventory.set(receivingSlot, itemEntityStack);
+                    ((HopperBlockEntityMixin) hopper).inventory.set(receivingSlot, itemEntityStack); //todo whatabout checklootinteraction
                     itemEntity.setStack(ItemStack.EMPTY);
                     itemEntity.remove();
                     cir.setReturnValue(true);
@@ -438,6 +414,19 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
         cir.setReturnValue(false);
     }
 
+    @Override
+    public void markRemoved() {
+        super.markRemoved();
+        this.clearInputItemEntityCache(Long.MAX_VALUE);
+        this.clearInputInventoryEntityCache(Long.MAX_VALUE);
+        this.clearOutputInventoryEntityCache(Long.MAX_VALUE);
+        this.clearInventoryCache();
+    }
+
+    @Override
+    @Shadow
+    protected abstract DefaultedList<ItemStack> getInvStackList();
+
     @Inject(method = "isInventoryFull", at = @At(value = "HEAD"), cancellable = true)
     private void isInventoryFullOpt(Inventory inventory_1, Direction direction_1, CallbackInfoReturnable<Boolean> cir) {
         if (inventory_1 instanceof OptimizedInventory) {
@@ -448,13 +437,21 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
         }
     }
 
+    @Redirect(require = 0, allow = 1, method = "insertAndExtract", at = @At(value = "INVOKE", target = "Lnet/minecraft/block/entity/HopperBlockEntity;getCachedState()Lnet/minecraft/block/BlockState;"))
+    private BlockState cachedIsEnabled0(HopperBlockEntity hopperBlockEntity) {
+        return null;
+    }
+
+    @Redirect(require = 0, allow = 1, method = "insertAndExtract", at = @At(value = "INVOKE", target = "Lnet/minecraft/block/BlockState;get(Lnet/minecraft/state/property/Property;)Ljava/lang/Comparable;"))
+    private Comparable<Boolean> cachedIsEnabled(BlockState blockState, Property<Boolean> property) {
+        return this.isEnabled();
+    }
+
+
     @Redirect(require = 0, allow = 1, method = "insertAndExtract", at = @At(value = "INVOKE", target = "Lnet/minecraft/block/entity/HopperBlockEntity;isEmpty()Z"))
     private boolean isEmptyOpt(HopperBlockEntity hopperBlockEntity) {
-        OptimizedStackList opt = this.getOptimizedStackList();
-        if (opt != null) {
-            return opt.isEmpty();
-        }
-        return isEmpty();
+        OptimizedStackList opt = InventoryListOptimizedAccess.castOptimizedInventoryListOrUpgrade(this, this.getInvStackList());
+        return opt.isEmpty();
     }
 
     private void initItemTracker() {
@@ -467,9 +464,8 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
 
     @Redirect(require = 0, allow = 1, method = "insertAndExtract", at = @At(value = "INVOKE", target = "Lnet/minecraft/block/entity/HopperBlockEntity;isFull()Z"))
     private boolean isFullOpt(HopperBlockEntity hopperBlockEntity) {
-        OptimizedStackList opt = this.getOptimizedStackList();
-        if (opt != null) return opt.isFull();
-        return isFull();
+        OptimizedStackList opt = InventoryListOptimizedAccess.castOptimizedInventoryListOrUpgrade(this, this.getInvStackList());
+        return opt.isFull();
     }
 
     @Inject(method = "insert()Z", at = @At(value = "INVOKE", target = "Lnet/minecraft/block/entity/HopperBlockEntity;isInventoryFull(Lnet/minecraft/inventory/Inventory;Lnet/minecraft/util/math/Direction;)Z", shift = At.Shift.BEFORE), cancellable = true, locals = LocalCapture.CAPTURE_FAILHARD)
@@ -494,16 +490,19 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
                 }
 
                 //Try to push each item into the destination. As the hopper is usually smaller than the destination
-                int invSize = this.size();
+                int invSize = fromOpt.size();
                 int transferAttempts = fromOpt.getNumOccupiedSlots();
                 for (int fromSlot = firstOccupiedSlot; transferAttempts > 0 && fromSlot < invSize; fromSlot++) {
                     ItemStack stack = this.getStack(fromSlot);
                     if (!stack.isEmpty()) {
+                        if (fromOpt.isSided && !((SidedInventory) this).canExtract(fromSlot, stack, null)) {
+                            continue;
+                        }
                         --transferAttempts;
                         int toSlot = toOpt.getInsertSlot(stack, insertFromDirection);
                         if (toSlot < 0) continue;
 
-                        boolean wasEmpty = to.isEmpty();
+                        boolean wasEmpty = toOpt.isEmpty();
                         HopperHelper.transferOneItem_knownSuccessful(to, toSlot, this, fromSlot);
                         setReceiverCooldown(to, wasEmpty, this.lastTickTime);
                         to.markDirty();
@@ -518,11 +517,10 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
 
     @Redirect(method = "insert()Z", at = @At(value = "INVOKE", target = "Lnet/minecraft/block/entity/HopperBlockEntity;getOutputInventory()Lnet/minecraft/inventory/Inventory;"))
     private Inventory getOutputInventoryFromCache(HopperBlockEntity hopperBlockEntity) {
-        //noinspection ConstantConditions
-        Direction direction = ((HopperBlockEntityMixin) (Object) hopperBlockEntity).getDirection();
+        Direction direction = this.getDirection();
         //noinspection ConstantConditions
         Inventory ret = Settings.cacheInventories ?
-                this.getOutputInventoryWithCache(hopperBlockEntity) :
+                this.getOutputInventoryWithCache() :
                 HopperHelper.vanillaGetBlockInventory(hopperBlockEntity.getWorld(), hopperBlockEntity.getPos().offset(direction));
         if (ret != null)
             return ret;
@@ -674,13 +672,13 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
         return true;
     }
 
-    public Inventory getOutputInventoryWithCache(HopperBlockEntity hopper) {
+    public Inventory getOutputInventoryWithCache() {
         Inventory inventory;
-        if (hasCachedBlockOutputInventory()) {
-            inventory = getCachedBlockOutputInventory();
+        if (this.hasCachedBlockOutputInventory()) {
+            inventory = this.getCachedBlockOutputInventory();
         } else {
             //noinspection ConstantConditions
-            inventory = HopperHelper.vanillaGetBlockInventory(this.world, hopper.getPos().offset(this.getDirection()));
+            inventory = HopperHelper.vanillaGetBlockInventory(this.world, this.getPos().offset(this.getDirection()));
             this.cacheOutputInventoryBlock(inventory);
         }
 
@@ -718,6 +716,16 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
     public void resetBlock() {
         super.resetBlock();
         this.direction = null;
+        this.enabled = 0;
+        this.clearOutputInventoryEntityCache(Long.MAX_VALUE);
+        this.clearInventoryCache();
+    }
+
+    private Boolean isEnabled() {
+        if (this.enabled == 0) {
+            this.enabled = this.getCachedState().get(HopperBlock.ENABLED) ? (byte) 1 : (byte) 2;
+        }
+        return this.enabled == 1;
     }
 
     private Direction getDirection() {

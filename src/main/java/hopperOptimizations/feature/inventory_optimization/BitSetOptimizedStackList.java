@@ -158,7 +158,7 @@ public class BitSetOptimizedStackList extends OptimizedStackList {
 
     @Override
     public int getInsertSlot(ItemStack stack, Direction fromDirection) {
-        BitSet slotMask = this.itemToSlotMask.get(stack.getItem());
+        BitSet slotMask = stack == null ? null : this.itemToSlotMask.get(stack.getItem());
 
         if (this.isSided) {
             SidedInventory thisSided = ((SidedInventory) this.parent);

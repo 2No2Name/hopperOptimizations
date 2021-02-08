@@ -10,6 +10,7 @@ import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.block.entity.ChestBlockEntity;
 import net.minecraft.block.enums.ChestType;
 import net.minecraft.entity.Entity;
+import net.minecraft.inventory.DoubleInventory;
 import net.minecraft.inventory.Inventory;
 import net.minecraft.item.ItemStack;
 import net.minecraft.predicate.entity.EntityPredicates;
@@ -128,7 +129,7 @@ public abstract class HopperHelper {
                     || !((IValidInventoryUntilBlockUpdate) cachedInv).isValid();
         }
 
-        if (cachedInv instanceof Interfaces.RemovedCounter) { //BlockEntities and DoubleInventories implement RemovedCounter
+        if (cachedInv instanceof BlockEntity) { //BlockEntities and DoubleInventories implement RemovedCounter
             if (cachedRemovedCount == -1 || ((Interfaces.RemovedCounter) cachedInv).getRemovedCount() != cachedRemovedCount) {
                 return true;
             }
@@ -137,6 +138,11 @@ public abstract class HopperHelper {
             }
             return false;
         }
+
+        if (cachedInv instanceof DoubleInventory) {
+            return cachedRemovedCount == -1 || ((Interfaces.RemovedCounter) cachedInv).getRemovedCount() != cachedRemovedCount;
+        }
+
         return true; //never cache Entity Inventories, the entity might have moved away or a Blockentity might have been placed
     }
 
