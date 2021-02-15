@@ -1,6 +1,5 @@
 package hopperOptimizations.feature.inventory_optimization;
 
-import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Reference2ReferenceOpenHashMap;
 import net.minecraft.inventory.Inventory;
 import net.minecraft.inventory.SidedInventory;
@@ -18,7 +17,6 @@ public class BitSetOptimizedStackList extends OptimizedStackList {
     private final BitSet slotFullMask;
     private final BitSet slotOccupiedMask;
     private final Reference2ReferenceOpenHashMap<Item, BitSet> itemToSlotMask;
-    private Int2ReferenceOpenHashMap<BitSet> stackSizeToSlotMask;
 
     //only used for sided inventories (including shulker boxes):
     private int sidedOnly_firstExtractableSlot;
@@ -33,7 +31,6 @@ public class BitSetOptimizedStackList extends OptimizedStackList {
         this.slotOccupiedMask = new BitSet(this.size());
 
         this.itemToSlotMask = new Reference2ReferenceOpenHashMap<>();
-        this.stackSizeToSlotMask = null;
 
         int maxStackSize = this.parent.getMaxCountPerStack();
         for (int slot = 0; slot < this.size(); slot++) {
@@ -133,17 +130,7 @@ public class BitSetOptimizedStackList extends OptimizedStackList {
             return -1;
         }
         if (this.isSided) {
-            int[] availableSlots = ((SidedInventory) this.parent).getAvailableSlots(Direction.DOWN);
-            for (int i = 0; i < availableSlots.length; i++) {
-                int slotIndex = availableSlots[i];
-                if (slotMask.get(slotIndex) &&
-                        areItemsAndTagsEqual(get(slotIndex), stack) &&
-                        ((SidedInventory) this.parent).canExtract(slotIndex, this.get(slotIndex), Direction.DOWN)) {
-                    //return index in available slots instead of the slot index itself. It will be converted
-                    //later, but the index is required for determining which slot is "first"
-                    return i;
-                }
-            }
+            throw new UnsupportedOperationException();
         } else {
             int slotIndex = slotMask.nextSetBit(0);
             while (slotIndex != -1 && slotIndex < maxExclusive) {
@@ -195,45 +182,6 @@ public class BitSetOptimizedStackList extends OptimizedStackList {
     }
 
     @Override
-    public int getIndexForMaximumSignalStrengthDecrease(int inventoryScanStart, int inventoryScanExclusiveEnd) {
-        if (this.stackSizeToSlotMask == null) {
-            this.stackSizeToSlotMask = new Int2ReferenceOpenHashMap<>();
-
-            int maxStackSize = this.parent.getMaxCountPerStack();
-            for (int slotIndex = 0; slotIndex < this.size(); slotIndex++) {
-                ItemStack stack = this.get(slotIndex);
-                if (stack.isEmpty()) {
-                    continue;
-                }
-                int stackMaxCount = Math.min(stack.getMaxCount(), maxStackSize);
-                BitSet slotMask = this.stackSizeToSlotMask.get(stackMaxCount);
-                if (slotMask == null) {
-                    this.stackSizeToSlotMask.put(stackMaxCount, (slotMask = new BitSet(this.size())));
-                }
-                slotMask.set(slotIndex);
-            }
-        }
-
-        int minMaxStackSizeInsideRange = Integer.MAX_VALUE;
-        int slotWithMinMaxStackSizeInsideRange = -1;
-        for (int maxStackSize : this.stackSizeToSlotMask.keySet()) {
-            if (maxStackSize < minMaxStackSizeInsideRange) {
-                BitSet bitSet = this.stackSizeToSlotMask.get(maxStackSize);
-                int slotWithStackSize = bitSet.nextSetBit(inventoryScanStart);
-                while (this.isSided && slotWithStackSize >= 0 && slotWithStackSize < inventoryScanExclusiveEnd &&
-                        !((SidedInventory) this.parent).canExtract(slotWithStackSize, this.get(slotWithStackSize), Direction.DOWN)) {
-                    slotWithStackSize = bitSet.nextSetBit(inventoryScanStart + 1);
-                }
-                if (slotWithStackSize >= 0 && slotWithStackSize < inventoryScanExclusiveEnd) {
-                    minMaxStackSizeInsideRange = maxStackSize;
-                    slotWithMinMaxStackSizeInsideRange = slotWithStackSize;
-                }
-            }
-        }
-        return slotWithMinMaxStackSizeInsideRange;
-    }
-
-    @Override
     public void onStackChange(final int slot, ItemStack newStack, final int newCount) {
         super.onStackChange(slot, newStack, newCount);
         ItemStack prevStack = this.get(slot);
@@ -262,14 +210,6 @@ public class BitSetOptimizedStackList extends OptimizedStackList {
                 } else {
                     throw new IllegalStateException("Removing item from inventory that wasn't in its optimizer!");
                 }
-
-                if (this.stackSizeToSlotMask != null && (prevMaxC != newMaxC || newItem == Items.AIR)) {
-                    BitSet sizeSlotMask = this.stackSizeToSlotMask.get(prevMaxC);
-                    sizeSlotMask.clear(slot);
-                    if (sizeSlotMask.isEmpty()) {
-                        this.stackSizeToSlotMask.remove(prevMaxC);
-                    }
-                }
             }
             if (prevCount >= prevMaxC) {
                 this.slotFullMask.clear(slot);
@@ -283,14 +223,6 @@ public class BitSetOptimizedStackList extends OptimizedStackList {
                     this.itemToSlotMask.put(newItem, (itemSlotMask = new BitSet(this.size())));
                 }
                 itemSlotMask.set(slot);
-
-                if (this.stackSizeToSlotMask != null && (prevMaxC != newMaxC || prevItem == Items.AIR)) {
-                    BitSet sizeSlotMask = this.stackSizeToSlotMask.get(newMaxC);
-                    if (sizeSlotMask == null) {
-                        this.stackSizeToSlotMask.put(newMaxC, (sizeSlotMask = new BitSet(this.size())));
-                    }
-                    sizeSlotMask.set(slot);
-                }
             }
             if (newCount >= newMaxC) {
                 this.slotFullMask.set(slot);

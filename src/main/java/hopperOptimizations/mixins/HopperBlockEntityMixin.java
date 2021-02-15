@@ -60,7 +60,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
     //information about the inventory last extracted from
     private OptimizedStackList previousExtract;
     private long prevExtractChangeCount;
-    //whether extracing causes markDirty to be called, used when skipping extraction to provide equivalent side effects
+    //whether extracting causes markDirty to be called, used when skipping extraction to provide equivalent side effects
     private ComparatorUpdateFakeMode previousMarkDirtyMode;
     //counter of this hopper
     private long this_lastChangeCount_Pickup;
@@ -146,7 +146,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
                         return;
                     }
                     if (fromOpt.isAnyExtractableSlotOccupied()) {
-                        MarkDirtyHelper.markDirtyOnHopperInteraction(from, 0, fromOpt.size(), false, null);
+                        MarkDirtyHelper.markDirtyOnHopperInteraction(from, 0, fromOpt.size() - 1, false, null);
                     }
                 } else {
                     System.out.println("Hopper is full even though it wasn't");
@@ -177,10 +177,8 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
                 //Find the slot in the hopper, which might be before the first empty slot due to stacking items
                 ItemStack stack = from.getStack(firstOccupiedSlot);
                 int toSlot = toOpt.getInsertSlot(stack, null);
-                //if (toSlot < 0) throw new ThisNeverHappensException(); //empty slot always exists
-                ComparatorUpdateFakeMode fakeMode = MarkDirtyHelper.markDirtyOnHopperInteraction(from, 0, firstOccupiedSlot, true, null);
                 HopperHelper.transferOneItem_knownSuccessful(to, toSlot, from, firstOccupiedSlot);
-                ((IHopper) to).setComparatorUpdateFakeMode(fakeMode);
+                ((IHopper) to).setComparatorUpdateFakeMode(ComparatorUpdateFakeMode.UNDETERMINED);
                 from.markDirty();
                 cir.setReturnValue(true);
                 return;
@@ -189,7 +187,6 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
                 //inventory is small, and therefore the for loop is shorter.
 
                 //Assume that all hopper slots are allowed to be filled by the hopper pulling items
-                //(Hopper is not SidedInventory, incompatible with mods that change this)
                 //Make sure that the minimal possible fromSlot is chosen (vanilla behavior)
                 int firstFromSlot = Integer.MAX_VALUE;
                 int correspondingToSlot = 0; //init with 0 to prevent "might not have been initialized" error
@@ -204,8 +201,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
                     }
                 }
                 if (firstFromSlot != Integer.MAX_VALUE) {
-                    firstFromSlot = fromOpt.getAvailableSlotsEntry(firstFromSlot, Direction.DOWN);
-                    ComparatorUpdateFakeMode fakeMode = MarkDirtyHelper.markDirtyOnHopperInteraction(from, 0, firstFromSlot, true, null);
+                    ComparatorUpdateFakeMode fakeMode = MarkDirtyHelper.markDirtyOnHopperInteraction(from, 0, firstFromSlot - 1, true, null);
                     HopperHelper.transferOneItem_knownSuccessful(to, correspondingToSlot, from, firstFromSlot);
                     ((IHopper) to).setComparatorUpdateFakeMode(fakeMode);
                     from.markDirty();
@@ -225,7 +221,7 @@ public abstract class HopperBlockEntityMixin extends LootableContainerBlockEntit
                     if (toSlot == -1) {
                         continue;
                     }
-                    ComparatorUpdateFakeMode fakeMode = MarkDirtyHelper.markDirtyOnHopperInteraction(from, 0, fromSlot, true, null);
+                    ComparatorUpdateFakeMode fakeMode = MarkDirtyHelper.markDirtyOnHopperInteraction(from, 0, fromSlot - 1, true, null);
                     HopperHelper.transferOneItem_knownSuccessful(to, toSlot, from, fromSlot);
                     ((IHopper) to).setComparatorUpdateFakeMode(fakeMode);
                     from.markDirty();
