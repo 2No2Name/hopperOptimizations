@@ -12,7 +12,7 @@
     "sources": "https://github.com/2no2name/hopperOptimizations"
   },
   "license": "MIT",
-  "icon": "assets/modid/icon.png",
+  "icon": "assets/hopperoptimizations/icon.png",
   "environment": "*",
   "entrypoints": {
     "main": [
