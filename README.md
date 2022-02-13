@@ -1,3 +1,5 @@
+This mod will no longer be updated. In Minecraft 1.17+ all hopper optimzations are in the optimization mod [Lithium](https://github.com/CaffeineMC/lithium-fabric). The optimizations are generally even better than before.
+
 # Hopper Optimizations Mod
 This Mod optimizes hoppers interacting with inventories and item entities. It implements optimizations _without changing
  any observable behavior_ (besides the better performance).
