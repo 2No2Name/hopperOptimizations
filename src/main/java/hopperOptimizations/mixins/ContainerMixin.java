@@ -101,7 +101,7 @@ public abstract class ContainerMixin {
     }
 
     @Inject(method = "insertItem(Lnet/minecraft/item/ItemStack;IIZ)Z", at = @At(value = "INVOKE", target = "Lnet/minecraft/item/ItemStack;setCount(I)V", ordinal = 1, shift = At.Shift.AFTER), locals = LocalCapture.CAPTURE_FAILHARD)
-    private void notifyInventoryB(ItemStack stack, int startIndex, int endIndex, boolean fromLast, CallbackInfoReturnable<Boolean> cir, boolean bl, int i, Slot slot, ItemStack itemStack, int j, ItemStack var10, int var11) {
+    private void notifyInventoryB(ItemStack stack, int startIndex, int endIndex, boolean fromLast, CallbackInfoReturnable<Boolean> cir, boolean bl, int i, Slot slot, ItemStack itemStack) {
         Inventory inventory;
         if (Settings.optimizedInventories && (inventory = slot.inventory) instanceof OptimizedInventory) {
             InventoryOptimizer opt = ((OptimizedInventory) inventory).getOptimizer();
@@ -128,7 +128,7 @@ public abstract class ContainerMixin {
     }
 
     @Inject(method = "insertItem(Lnet/minecraft/item/ItemStack;IIZ)Z", at = @At(value = "INVOKE", target = "Lnet/minecraft/item/ItemStack;setCount(I)V", ordinal = 2, shift = At.Shift.AFTER), locals = LocalCapture.CAPTURE_FAILHARD)
-    private void notifyInventoryC(ItemStack stack, int startIndex, int endIndex, boolean fromLast, CallbackInfoReturnable<Boolean> cir, boolean bl, int i, Slot slot, ItemStack itemStack, ItemStack var10, int var11) {
+    private void notifyInventoryC(ItemStack stack, int startIndex, int endIndex, boolean fromLast, CallbackInfoReturnable<Boolean> cir, boolean bl, int i, Slot slot, ItemStack itemStack) {
         Inventory inventory;
         if (Settings.optimizedInventories && (inventory = slot.inventory) instanceof OptimizedInventory) {
             InventoryOptimizer opt = ((OptimizedInventory) inventory).getOptimizer();
@@ -154,7 +154,7 @@ public abstract class ContainerMixin {
     }
 
     @Inject(method = "insertItem(Lnet/minecraft/item/ItemStack;IIZ)Z", at = @At(value = "INVOKE", target = "Lnet/minecraft/item/ItemStack;decrement(I)V", shift = At.Shift.AFTER), locals = LocalCapture.CAPTURE_FAILHARD)
-    private void notifyInventory2(ItemStack stack, int startIndex, int endIndex, boolean fromLast, CallbackInfoReturnable<Boolean> cir, boolean bl, int i, Slot slot, ItemStack itemStack, ItemStack var10, int var11) {
+    private void notifyInventory2(ItemStack stack, int startIndex, int endIndex, boolean fromLast, CallbackInfoReturnable<Boolean> cir, boolean bl, int i, Slot slot, ItemStack itemStack) {
         Inventory inventory;
         if (Settings.optimizedInventories && (inventory = this.slots.get(slotId).inventory) instanceof OptimizedInventory) {
             if (slotId >= inventory.getInvSize()) return; //SlotIds count higher into the player inventory
